@@ -9,6 +9,8 @@ from defcon.objects.lib import Lib
 
 class Font(BaseObject):
 
+    _notificationName = "Font.Changed"
+
     def __init__(self, path=None,
                     kerningClass=None, infoClass=None, groupsClass=None, libClass=None,
                     glyphClass=None, glyphContourClass=None):

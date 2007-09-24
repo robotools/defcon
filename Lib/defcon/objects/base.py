@@ -4,6 +4,8 @@ from defcon.tools.notifications import NotificationCenter
 
 class BaseObject(object):
 
+    _notificationName = "BaseObject.Changed"
+
     def __init__(self, dispatcher=None):
         if dispatcher is None:
             dispatcher = NotificationCenter()
@@ -41,8 +43,7 @@ class BaseObject(object):
         BaseObject.Changed False
         """
         self._dirty = value
-        notification = "%s.Changed" % self.__class__.__name__
-        self._dispatcher.postNotification(notification=notification, observable=self, data=value)
+        self._dispatcher.postNotification(notification=self._notificationName, observable=self, data=value)
 
     def _get_dirty(self):
         """

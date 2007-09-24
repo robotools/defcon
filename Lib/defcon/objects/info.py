@@ -3,6 +3,8 @@ from defcon.objects.base import BaseObject
 
 class Info(BaseObject):
 
+    _notificationName = "Info.Changed"
+
     # this code is automatically generated
 
     def __init__(self, dispatcher=None):

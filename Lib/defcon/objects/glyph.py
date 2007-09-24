@@ -14,6 +14,8 @@ def removeRepresentationFactory(name):
 
 class Glyph(BaseObject):
 
+    _notificationName = "Glyph.Changed"
+
     def __init__(self, dispatcher=None, contourClass=None, componentClass=None, anchorClass=None):
         super(Glyph, self).__init__(dispatcher)
         self._parent = None

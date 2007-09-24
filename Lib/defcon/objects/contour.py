@@ -5,6 +5,8 @@ from defcon.objects.point import Point
 
 class Contour(BaseObject):
 
+    _notificationName = "Contour.Changed"
+
     def __init__(self, dispatcher=None):
         super(Contour, self).__init__(dispatcher)
         self._points = []

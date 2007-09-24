@@ -1,7 +1,9 @@
 from defcon.objects.base import BaseDictObject
 
 
-class Lib(BaseDictObject): pass
+class Lib(BaseDictObject):
+
+    _notificationName = "Lib.Changed"
 
 
 if __name__ == "__main__":

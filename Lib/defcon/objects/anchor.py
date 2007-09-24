@@ -2,6 +2,8 @@ from defcon.objects.base import BaseObject
 
 class Anchor(BaseObject):
 
+    _notificationName = "Anchor.Changed"
+
     def __init__(self, dispatcher=None):
         super(Anchor, self).__init__(dispatcher)
         self._x = None

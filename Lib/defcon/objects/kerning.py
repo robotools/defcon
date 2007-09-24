@@ -3,6 +3,8 @@ from defcon.objects.base import BaseObject
 
 class Kerning(BaseObject):
 
+    _notificationName = "Kerning.Changed"
+
     def __init__(self, dispatcher=None):
         super(Kerning, self).__init__(dispatcher)
         self._kerning = {}

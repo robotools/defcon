@@ -3,6 +3,8 @@ from defcon.objects.base import BaseObject
 
 class Component(BaseObject):
 
+    _notificationName = "Component.Changed"
+
     def __init__(self, dispatcher=None):
         super(Component, self).__init__(dispatcher)
         self._dirty = False

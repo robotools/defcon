@@ -1,7 +1,9 @@
 from defcon.objects.base import BaseDictObject
 
 
-class Groups(BaseDictObject): pass
+class Groups(BaseDictObject):
+
+    _notificationName = "Groups.Changed"
 
 
 if __name__ == "__main__":
