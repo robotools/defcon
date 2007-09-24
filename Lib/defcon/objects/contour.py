@@ -1,6 +1,7 @@
 from fontTools.misc import bezierTools
 from defcon.objects.base import BaseObject
 from defcon.objects.point import Point
+from defcon.tools import bezierMath
 
 
 class Contour(BaseObject):
@@ -307,6 +308,158 @@ class Contour(BaseObject):
         assert point.segmentType is not None, 'index must represent an on curve point'
         before = self._points[:index]
         self._points = self._points[index:] + before
+        self.dirty = True
+
+    def positionForProspectivePointInsertionAtSegmentAndT(self, segmentIndex, t):
+        """
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> from defcon.objects.font import Font
+        >>> font = Font(getTestFontPath())
+        >>> contour = font['A'][0]
+        >>> contour.positionForProspectivePointInsertionAtSegmentAndT(0, .5)
+        ((350.0, 0.0), False)
+        >>> contour = font['B'][0]
+        >>> contour.positionForProspectivePointInsertionAtSegmentAndT(0, .5)
+        ((102.625, 102.625), True)
+        >>> contour = font['B'][1]
+        >>> contour.positionForProspectivePointInsertionAtSegmentAndT(0, .5)
+        ((226.125, 473.5), True)
+        """
+        return self._splitAndInsertAtSegmentAndT(segmentIndex, t, False)
+
+    def splitAndInsertPointAtSegmentAndT(self, segmentIndex, t):
+        """
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> from defcon.objects.font import Font
+        >>> font = Font(getTestFontPath())
+        >>> contour = font['A'][0]
+        >>> contour.splitAndInsertPointAtSegmentAndT(0, .5)
+        >>> [(point.x, point.y, point.segmentType) for point in contour]
+        [(0, 0, 'line'), (350.0, 0.0, 'line'), (700, 0, 'line'), (700, 700, 'line'), (0, 700, 'line')]
+        >>> contour = font['B'][0]
+        >>> contour.splitAndInsertPointAtSegmentAndT(0, .5)
+        >>> [(point.x, point.y, point.segmentType) for point in contour]
+        [(0, 350, 'curve'), (0.0, 253.5, None), (39.25, 166.0, None), (102.625, 102.625, 'curve'), (166.0, 39.25, None), (253.5, 0.0, None), (350, 0, 'curve'), (543, 0, None), (700, 157, None), (700, 350, 'curve'), (700, 543, None), (543, 700, None), (350, 700, 'curve'), (157, 700, None), (0, 543, None)]
+        """
+        self._splitAndInsertAtSegmentAndT(segmentIndex, t, True)
+
+    def _splitAndInsertAtSegmentAndT(self, segmentIndex, t, insert):
+        segments = self.segments
+        segment = segments[segmentIndex]
+        segment.insert(0, segments[segmentIndex-1][-1])
+        firstPoint = segment[0]
+        lastPoint = segment[-1]
+        segmentType = lastPoint.segmentType
+        segment = [(point.x, point.y) for point in segment]
+        if segmentType == "line":
+            (x1, y1), (x2, y2) = segment
+            x = x1 + (x2 - x1) * t
+            y = y1 + (y2 - y1) * t
+            pointsToInsert = [((x, y), "line", False)]
+            insertionPoint =  (x, y)
+            pointWillBeSmooth = False
+        elif segmentType == "curve":
+            pt1, pt2, pt3, pt4 = segment
+            (pt1, pt2, pt3, pt4), (pt5, pt6, pt7, pt8) = bezierTools.splitCubicAtT(pt1, pt2, pt3, pt4, t)
+            pointsToInsert = [(pt2, None, False), (pt3, None, False), (pt4, "curve", True), (pt6, None, False), (pt7, None, False)]
+            insertionPoint = tuple(pt4)
+            pointWillBeSmooth = True
+        else:
+            # XXX could be a quad. in that case, we could handle it.
+            raise NotImplementedError("unknown segment type: %s" % segmentType)
+        if insert:
+            firstPointIndex = self._points.index(firstPoint)
+            lastPointIndex = self._points.index(lastPoint)
+            firstPoints = self._points[:firstPointIndex + 1]
+            if lastPointIndex == 0:
+                lastPoints = []
+            else:
+                lastPoints = self._points[lastPointIndex:]
+            newPoints = [Point(pos, segmentType=segmentType, smooth=smooth) for pos, segmentType, smooth in pointsToInsert]
+            self._points = firstPoints + newPoints + lastPoints
+            self.dirty = True
+        return insertionPoint, pointWillBeSmooth
+
+    def removeSegment(self, segmentIndex, preserveCurve=False):
+        """
+        >>> print "need removeSegment tests!"
+        """
+        segments = self.segments
+        nextIndex = segmentIndex + 1
+        if nextIndex == len(segments):
+            nextIndex = 0
+        previousIndex = segmentIndex - 1
+        if previousIndex < 0:
+            previousIndex = len(segments) + previousIndex
+        nextSegment = segments[nextIndex]
+        segment = segments[segmentIndex]
+        previousSegment = segments[previousIndex]
+        # if preserveCurve is off
+        # or if all are lines, handle it
+        if not preserveCurve or (previousSegment[-1].segmentType == "line"\
+            and segment[-1].segmentType == "line"\
+            and nextSegment[-1].segmentType == "line"):
+            for point in segment:
+                self._points.remove(point)
+        # if have a curve, do the preservation
+        else:
+            # gather the needed points
+            previousOnCurveX = previousSegment[-1].x
+            previousOnCurveY = previousSegment[-1].y
+            onCurveX = segment[-1].x
+            onCurveY = segment[-1].y
+            nextOnCurveX = nextSegment[-1].x
+            nextOnCurveY = nextSegment[-1].y
+            if segment[-1].segmentType == "curve":
+                offCurve1X = segment[0].x
+                offCurve1Y = segment[0].y
+                offCurve2X = segment[-2].x
+                offCurve2Y = segment[-2].y
+            elif segment[-1].segmentType == "line":
+                offCurve1X = previousOnCurveX
+                offCurve1Y = previousOnCurveY
+                offCurve2X = onCurveX
+                offCurve2Y = onCurveY
+            else:
+                # XXX could be a quad. in that case, we can't handle it.
+                raise NotImplementedError("unknown segment type: %s" % segment[-1].segmentType)
+            if nextSegment[-1].segmentType == "curve":
+                nextOffCurve1X = nextSegment[0].x
+                nextOffCurve1Y = nextSegment[0].y
+                nextOffCurve2X = nextSegment[-2].x
+                nextOffCurve2Y = nextSegment[-2].y
+            elif nextSegment[-1].segmentType == "line":
+                nextOffCurve1X = onCurveX
+                nextOffCurve1Y = onCurveY
+                nextOffCurve2X = nextOnCurveX
+                nextOffCurve2Y = nextOnCurveY
+            else:
+                # XXX could be a quad. in that case, we can't handle it.
+                raise NotImplementedError("unknown segment type: %s" % nextSegment[-1].segmentType)
+            # now do the math
+            result = bezierMath.joinSegments((previousOnCurveX, previousOnCurveY),
+                (offCurve1X, offCurve1Y), (offCurve2X, offCurve2Y), (onCurveX, onCurveY),
+                (nextOffCurve1X, nextOffCurve1Y), (nextOffCurve2X, nextOffCurve2Y), (nextOnCurveX, nextOnCurveY))
+            # remove the segment
+            for point in segment:
+                self._points.remove(point)
+            # if the next segment type isn't a curve, make it one
+            if not nextSegment[-1].segmentType == "curve":
+                nextSegment[-1].segmentType = "curve"
+                pointIndex = self._points.index(nextSegment[-1])
+                newPoints = [Point((result[0][0], result[0][1])), Point((result[1][0], result[1][1]))]
+                if pointIndex == 0:
+                    self._points.extend(newPoints)
+                else:
+                    self._points = self._points[:pointIndex] + newPoints + self._points[pointIndex:]
+            # otherwise, set the point positions
+            else:
+                nextSegment[0].x = result[0][0]
+                nextSegment[0].y = result[0][1]
+                nextSegment[1].x = result[1][0]
+                nextSegment[1].y = result[1][1]
+        # mark the contour as dirty
+        self._boundsCache = None
         self.dirty = True
 
     #------------
