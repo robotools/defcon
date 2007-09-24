@@ -37,10 +37,10 @@ class Glyph(BaseObject):
             contourClass = Contour
         if componentClass is None:
             from component import Component
-            componentClass = Contour
+            componentClass = Component
         if anchorClass is None:
             from anchor import Anchor
-            anchorClass = Contour
+            anchorClass = Anchor
         #
         self.contourClass = contourClass
         self.componentClass = componentClass
