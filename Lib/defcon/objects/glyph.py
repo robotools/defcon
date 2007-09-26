@@ -50,9 +50,9 @@ class Glyph(BaseObject):
         #
         self.addObserver(observer=self, methodName="destroyAllRepresentations", notification="Glyph.Changed")
 
-    #-----------
+    # ----------
     # Attributes
-    #-----------
+    # ----------
 
     def _set_name(self, value):
         """
@@ -288,9 +288,9 @@ class Glyph(BaseObject):
 
     anchors = property(_get_anchors)
 
-    #------------
+    # -----------
     # Pen Methods
-    #------------
+    # -----------
 
     def draw(self, pen):
         from robofab.pens.adapterPens import PointToSegmentPen
@@ -313,9 +313,9 @@ class Glyph(BaseObject):
         from defcon.pens.glyphObjectPointPen import GlyphObjectPointPen
         return GlyphObjectPointPen(self)
 
-    #--------
+    # -------
     # Methods
-    #--------
+    # -------
 
     def __len__(self):
         """
@@ -698,9 +698,9 @@ class Glyph(BaseObject):
                     direction += 1
             contour.clockwise = direction % 2
 
-    #----------------
+    # ---------------
     # Representations
-    #----------------
+    # ---------------
 
     def destroyAllRepresentations(self, notification):
         self._representations = {}
@@ -716,9 +716,9 @@ class Glyph(BaseObject):
             self._representations[key] = representation
         return self._representations[key]
 
-    #-----
+    # ----
     # Undo
-    #-----
+    # ----
 
     def prepareUndo(self):
         """
@@ -756,9 +756,9 @@ class Glyph(BaseObject):
         """
         raise NotImplementedError
 
-    #-----------------------
+    # ----------------------
     # Notification Callbacks
-    #-----------------------
+    # ----------------------
 
     def _outlineContentChanged(self, notification):
         self._boundsCache = None

@@ -10,6 +10,8 @@ class BaseObject(object):
         if dispatcher is None:
             dispatcher = NotificationCenter()
         self._dispatcher = dispatcher
+        self._dataOnDisk = None
+        self._dataOnDiskTimeStamp = None
 
     def setParent(self, obj):
         if obj is None:

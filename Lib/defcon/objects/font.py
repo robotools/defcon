@@ -1,3 +1,4 @@
+import os
 from robofab.ufoLib import UFOReader, UFOWriter
 from defcon.objects.base import BaseObject
 from defcon.objects.glyph import Glyph
@@ -39,6 +40,7 @@ class Font(BaseObject):
         self._glyphs = {}
         self._glyphSet = None
         self._scheduledForDeletion = []
+        self._keys = set()
         #
         self._kerning = None
         self._info = None
@@ -51,8 +53,8 @@ class Font(BaseObject):
         if path:
             r = UFOReader(self._path)
             self._glyphSet = r.getGlyphSet()
-            # glyphNameToFileNameFunc!
             self.cmap = r.getCharacterMapping()
+            self._keys = set(self._glyphSet.keys())
 
     def _loadGlyph(self, name):
         if self._glyphSet is None or not self._glyphSet.has_key(name):
@@ -63,6 +65,7 @@ class Font(BaseObject):
         glyph.dirty = False
         self._glyphs[name] = glyph
         self._setParentDataInGlyph(glyph)
+        self._stampGlyphDataState(glyph)
         return glyph
 
     def _setParentDataInGlyph(self, glyph):
@@ -106,6 +109,8 @@ class Font(BaseObject):
         # scheduled for deletion
         if name in self._scheduledForDeletion:
             self._scheduledForDeletion.remove(name)
+        # keep the keys up to date
+        self._keys.add(name)
 
     def insertGlyph(self, glyph, name=None):
         from copy import deepcopy
@@ -199,6 +204,8 @@ class Font(BaseObject):
             raise KeyError, '%s not in font' % name
         if name in self._glyphs:
             del self._glyphs[name]
+        if name in self._keys:
+            self._keys.remove(name)
         self._removeFromCMAP(name)
         if self._glyphSet is not None and name in self._glyphSet:
             self._scheduledForDeletion.append(name)
@@ -230,13 +237,7 @@ class Font(BaseObject):
         >>> 'A' in font
         False
         """
-        if name in self._scheduledForDeletion:
-            return False
-        if self._glyphSet is not None and name in self._glyphSet:
-            return True
-        if name in self._glyphs:
-            return True
-        return False
+        return name in self._keys
 
     def keys(self):
         """
@@ -246,15 +247,29 @@ class Font(BaseObject):
         >>> keys.sort()
         >>> print keys
         ['A', 'B', 'C']
-        
+        >>> del font["A"]
+        >>> keys = font.keys()
+        >>> keys.sort()
+        >>> print keys
+        ['B', 'C']
+        >>> font.newGlyph("A")
+        >>> keys = font.keys()
+        >>> keys.sort()
+        >>> print keys
+        ['A', 'B', 'C']
+
         >>> font = Font()
         >>> font.keys()
         []
+        >>> font.newGlyph("A")
+        >>> keys = font.keys()
+        >>> keys.sort()
+        >>> print keys
+        ['A']
         """
-        names = set()
-        if self._glyphSet is not None:
-            names = names | set(self._glyphSet.keys())
-        names = names | set(self._glyphs)
+        # this is not generated dynamically since we
+        # support external editing. it must be fixed.
+        names = self._keys
         names = names - set(self._scheduledForDeletion)
         return list(names)
 
@@ -300,9 +315,9 @@ class Font(BaseObject):
                 self.cmap[value] = []
             self.cmap[value].append(glyph.name)
 
-    #-----------
+    # ----------
     # Attributes
-    #-----------
+    # ----------
 
     def _get_path(self):
         """
@@ -391,9 +406,9 @@ class Font(BaseObject):
 
     glyphsWithOutlines = property(_get_glyphsWithOutlines)
 
-    #------------
+    # -----------
     # Sub-Objects
-    #------------
+    # -----------
 
     def _get_info(self):
         if self._info is None:
@@ -403,6 +418,7 @@ class Font(BaseObject):
                 u.readInfo(self._info)
             self._info.setParent(self)
             self._info.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="%s.Changed" % self._info.__class__.__name__)
+            self._stampInfoDataState()
         return self._info
 
     info = property(_get_info)
@@ -416,6 +432,7 @@ class Font(BaseObject):
                 self._kerning.update(d)
             self._kerning.setParent(self)
             self._kerning.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="%s.Changed" % self._kerning.__class__.__name__)
+            self._stampKerningDataState()
         return self._kerning
 
     kerning = property(_get_kerning)
@@ -428,6 +445,7 @@ class Font(BaseObject):
                 d = r.readGroups()
                 self._groups.update(d)
             self._groups.setParent(self)
+            self._stampGroupsDataState()
         return self._groups
 
     groups = property(_get_groups)
@@ -440,13 +458,14 @@ class Font(BaseObject):
                 d = r.readLib()
                 self._lib.update(d)
             self._lib.setParent(self)
+            self._stampLibDataState()
         return self._lib
 
     lib = property(_get_lib)
 
-    #--------
+    # -------
     # Methods
-    #--------
+    # -------
 
     def save(self, path=None):
         """
@@ -509,14 +528,18 @@ class Font(BaseObject):
         # save objects as needed
         if saveInfo:
             ufoWriter.writeInfo(self.info)
+            self._stampInfoDataState()
             self.info.dirty = False
         if saveKerning:
             ufoWriter.writeKerning(self.kerning)
+            self._stampKerningDataState()
             self.kerning.dirty = False
         if saveGroups:
             ufoWriter.writeGroups(self.groups)
+            self._stampGroupsDataState()
         if saveLib:
             ufoWriter.writeLib(self.lib)
+            self._stampLibDataState()
         ## save glyphs
         # for a save as operation, load all the glyphs
         # and mark them as dirty.
@@ -527,6 +550,7 @@ class Font(BaseObject):
         for glyphName, glyphObject in self._glyphs.items():
             if glyphObject.dirty:
                 glyphSet.writeGlyph(glyphName, glyphObject, glyphObject.drawPoints)
+                self._stampGlyphDataState(glyphObject)
         # remove deleted glyphs
         if not saveAs and self._scheduledForDeletion:
             for glyphName in self._scheduledForDeletion:
@@ -537,9 +561,9 @@ class Font(BaseObject):
         self._path = path
         self.dirty = False
 
-    #-----------------------
+    # ----------------------
     # Notification Callbacks
-    #-----------------------
+    # ----------------------
 
     def _objectDirtyStateChange(self, notification):
         if notification.data:
@@ -562,6 +586,7 @@ class Font(BaseObject):
         glyph = self._glyphs[oldName]
         del self[oldName]
         self._glyphs[newName] = glyph
+        self._keys.add(newName)
 
     def _glyphUnicodesChange(self, notification):
         """
@@ -587,6 +612,249 @@ class Font(BaseObject):
         glyphName = notification.object().name
         self._removeFromCMAP(glyphName)
         self._addToCMAP(self[glyphName])
+
+    # ---------------------
+    # External Edit Support
+    # ---------------------
+
+    # data stamping
+
+    def _stampFontDataState(self, obj, fileName):
+        # font is not on disk
+        if self._path is None:
+            return
+        # data has not been loaded
+        if obj is None:
+            return
+        path = os.path.join(self._path, fileName)
+        # file is not in UFO
+        if not os.path.exists(path):
+            return
+        # get the text
+        f = open(path, "rb")
+        text = f.read()
+        f.close()
+        # get the file modification time
+        modTime = os.stat(path).st_mtime
+        # store the data
+        obj._dataOnDisk = text
+        obj._dataOnDiskTimeStamp = modTime
+
+    def _stampInfoDataState(self):
+        self._stampFontDataState(self._info, "fontInfo.plist")
+
+    def _stampKerningDataState(self):
+        self._stampFontDataState(self._kerning, "kerning.plist")
+
+    def _stampGroupsDataState(self):
+        self._stampFontDataState(self._groups, "groups.plist")
+
+    def _stampLibDataState(self):
+        self._stampFontDataState(self._lib, "lib.plist")
+
+    def _stampGlyphDataState(self, glyph):
+        if self._glyphSet is None:
+            return
+        glyphSet = self._glyphSet
+        glyphName = glyph.name
+        if glyphName not in glyphSet.contents:
+            return
+        path = os.path.join(self.path, "glyphs", glyphSet.contents[glyphName])
+        # get the text
+        f = open(path, "rb")
+        text = f.read()
+        f.close()
+        # get the file modification time
+        modTime = os.stat(path).st_mtime
+        # store the data
+        glyph._dataOnDisk = text
+        glyph._dataOnDiskTimeStamp = modTime
+
+    # data comparison
+
+    def testForExternalChanges(self):
+        """
+        >>> from plistlib import readPlist, writePlist
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> path = getTestFontPath("TestExternalEditing.ufo")
+        >>> font = Font(path)
+
+        # load all the objects so that they get stamped
+        >>> i = font.info
+        >>> k = font.kerning
+        >>> g = font.groups
+        >>> l = font.lib
+        >>> g = font["A"]
+
+        >>> d = font.testForExternalChanges()
+        >>> d["info"]
+        False
+        >>> d["kerning"]
+        False
+        >>> d["groups"]
+        False
+        >>> d["lib"]
+        False
+        >>> d["modifiedGlyphs"]
+        []
+        >>> d["addedGlyphs"]
+        []
+        >>> d["deletedGlyphs"]
+        []
+
+        # make a simple change to the kerning data
+        >>> path = os.path.join(font.path, "kerning.plist")
+        >>> f = open(path, "rb")
+        >>> t = f.read()
+        >>> f.close()
+        >>> t += " "
+        >>> f = open(path, "wb")
+        >>> f.write(t)
+        >>> f.close()
+        >>> d = font.testForExternalChanges()
+        >>> d["kerning"]
+        True
+        >>> d["info"]
+        False
+
+        # save the kerning data and test again
+        >>> font.kerning.dirty = True
+        >>> font.save()
+        >>> d = font.testForExternalChanges()
+        >>> d["kerning"]
+        False
+
+        # make a simple change to a glyph
+        >>> path = os.path.join(font.path, "glyphs", "A_.glif")
+        >>> f = open(path, "rb")
+        >>> t = f.read()
+        >>> f.close()
+        >>> t += " "
+        >>> f = open(path, "wb")
+        >>> f.write(t)
+        >>> f.close()
+        >>> d = font.testForExternalChanges()
+        >>> d["modifiedGlyphs"]
+        ['A']
+
+        # save the glyph and test again
+        >>> font["A"].dirty = True
+        >>> font.save()
+        >>> d = font.testForExternalChanges()
+        >>> d["modifiedGlyphs"]
+        []
+
+        # add a glyph
+        >>> path = os.path.join(font.path, "glyphs", "A_.glif")
+        >>> f = open(path, "rb")
+        >>> t = f.read()
+        >>> f.close()
+        >>> t = t.replace('<glyph name="A" format="1">', '<glyph name="XXX" format="1">')
+        >>> path = os.path.join(font.path, "glyphs", "XXX.glif")
+        >>> f = open(path, "wb")
+        >>> f.write(t)
+        >>> f.close()
+        >>> path = os.path.join(font.path, "glyphs", "contents.plist")
+        >>> plist = readPlist(path)
+        >>> savePlist = dict(plist)
+        >>> plist["XXX"] = "XXX.glif"
+        >>> writePlist(plist, path)
+        >>> d = font.testForExternalChanges()
+        >>> d["modifiedGlyphs"]
+        []
+        >>> d["addedGlyphs"]
+        [u'XXX']
+
+        # delete a glyph
+        >>> path = getTestFontPath("TestExternalEditing.ufo")
+        >>> font = Font(path)
+        >>> g = font["XXX"]
+        >>> path = os.path.join(font.path, "glyphs", "contents.plist")
+        >>> writePlist(savePlist, path)
+        >>> path = os.path.join(font.path, "glyphs", "XXX.glif")
+        >>> os.remove(path)
+        >>> d = font.testForExternalChanges()
+        >>> d["modifiedGlyphs"]
+        []
+        >>> d["deletedGlyphs"]
+        ['XXX']
+        """
+        infoChanged = self._testInfoForExternalModifications()
+        kerningChanged = self._testKerningForExternalModifications()
+        groupsChanged = self._testGroupsForExternalModifications()
+        libChanged = self._testLibForExternalModifications()
+        modifiedGlyphs, addedGlyphs, deletedGlyphs = self._testGlyphsForExternalModifications()
+        return dict(
+            info=infoChanged,
+            kerning=kerningChanged,
+            groups=groupsChanged,
+            lib=libChanged,
+            modifiedGlyphs=modifiedGlyphs,
+            addedGlyphs=addedGlyphs,
+            deletedGlyphs=deletedGlyphs
+        )
+
+    def _testFontDataForExternalModifications(self, obj, fileName):
+        # font is not on disk
+        if self._path is None:
+            return False
+        # data has not been loaded
+        if obj is None:
+            return False
+        path = os.path.join(self._path, fileName)
+        # file is not in UFO
+        if not os.path.exists(path):
+            return False
+        # mod time mismatch
+        modTime = os.stat(path).st_mtime
+        if obj._dataOnDiskTimeStamp != modTime:
+            f = open(path, "rb")
+            text = f.read()
+            f.close()
+            # text mismatch
+            if text != obj._dataOnDisk:
+                return True
+        return False
+
+    def _testInfoForExternalModifications(self):
+        return self._testFontDataForExternalModifications(self._info, "fontInfo.plist")
+
+    def _testKerningForExternalModifications(self):
+        return self._testFontDataForExternalModifications(self._kerning, "kerning.plist")
+
+    def _testGroupsForExternalModifications(self):
+        return self._testFontDataForExternalModifications(self._groups, "groups.plist")
+
+    def _testLibForExternalModifications(self):
+        return self._testFontDataForExternalModifications(self._lib, "lib.plist")
+
+    def _testGlyphsForExternalModifications(self):
+        # font is not stored on disk
+        if self._glyphSet is None:
+            return [], [], []
+        glyphSet = self._glyphSet
+        glyphSet.rebuildContents()
+        # glyphs added since we started up
+        addedGlyphs = list(set(self._glyphSet.keys()) - self._keys)
+        # glyphs deleted since we started up
+        deletedGlyphs = list(self._keys - set(self._glyphSet.keys()))
+        # glyphs modified since loading
+        modifiedGlyphs = []
+        for glyphName, glyph in self._glyphs.items():
+            # deleted glyph. skip.
+            if glyphName not in glyphSet.contents:
+                continue
+            path = os.path.join(self.path, "glyphs", glyphSet.contents[glyphName])
+            modTime = os.stat(path).st_mtime
+            # mod time mismatch
+            if modTime != glyph._dataOnDiskTimeStamp:
+                f = open(path, "rb")
+                text = f.read()
+                f.close()
+                # data mismatch
+                if text != glyph._dataOnDisk:
+                    modifiedGlyphs.append(glyphName)
+        return modifiedGlyphs, addedGlyphs, deletedGlyphs
 
 
 if __name__ == "__main__":
