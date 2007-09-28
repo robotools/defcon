@@ -641,7 +641,7 @@ class Font(BaseObject):
         obj._dataOnDiskTimeStamp = modTime
 
     def _stampInfoDataState(self):
-        self._stampFontDataState(self._info, "fontInfo.plist")
+        self._stampFontDataState(self._info, "fontinfo.plist")
 
     def _stampKerningDataState(self):
         self._stampFontDataState(self._kerning, "kerning.plist")
@@ -711,6 +711,8 @@ class Font(BaseObject):
         >>> f = open(path, "wb")
         >>> f.write(t)
         >>> f.close()
+        >>> os.utime(path, (k._dataOnDiskTimeStamp + 1, k._dataOnDiskTimeStamp + 1))
+
         >>> d = font.testForExternalChanges()
         >>> d["kerning"]
         True
@@ -733,6 +735,7 @@ class Font(BaseObject):
         >>> f = open(path, "wb")
         >>> f.write(t)
         >>> f.close()
+        >>> os.utime(path, (g._dataOnDiskTimeStamp + 1, g._dataOnDiskTimeStamp + 1))
         >>> d = font.testForExternalChanges()
         >>> d["modifiedGlyphs"]
         ['A']
@@ -817,7 +820,7 @@ class Font(BaseObject):
         return False
 
     def _testInfoForExternalModifications(self):
-        return self._testFontDataForExternalModifications(self._info, "fontInfo.plist")
+        return self._testFontDataForExternalModifications(self._info, "fontinfo.plist")
 
     def _testKerningForExternalModifications(self):
         return self._testFontDataForExternalModifications(self._kerning, "kerning.plist")
@@ -855,6 +858,208 @@ class Font(BaseObject):
                 if text != glyph._dataOnDisk:
                     modifiedGlyphs.append(glyphName)
         return modifiedGlyphs, addedGlyphs, deletedGlyphs
+
+    # data reloading
+
+    def reloadInfo(self):
+        """
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> path = getTestFontPath("TestExternalEditing.ufo")
+        >>> font = Font(path)
+        >>> info = font.info
+
+        >>> path = os.path.join(font.path, "fontinfo.plist")
+        >>> f = open(path, "rb")
+        >>> t = f.read()
+        >>> f.close()
+        >>> t = t.replace("<integer>750</integer>", "<integer>751</integer>")
+        >>> f = open(path, "wb")
+        >>> f.write(t)
+        >>> f.close()
+
+        >>> info.ascender
+        750
+        >>> font.reloadInfo()
+        >>> info.ascender
+        751
+
+        >>> t = t.replace("<integer>751</integer>", "<integer>750</integer>")
+        >>> f = open(path, "wb")
+        >>> f.write(t)
+        >>> f.close()
+        """
+        if self._info is None:
+            obj = self.info
+        else:
+            r = UFOReader(self._path)
+            newInfo = Info()
+            r.readInfo(newInfo)
+            oldInfo = self._info
+            for attr in dir(newInfo):
+                if attr.startswith("_"):
+                    continue
+                if attr == "dirty":
+                    continue
+                if not hasattr(oldInfo, attr):
+                    continue
+                newValue = getattr(newInfo, attr)
+                oldValue = getattr(oldInfo, attr)
+                if hasattr(newValue, "im_func"):
+                    continue
+                if oldValue == newValue:
+                    continue
+                setattr(oldInfo, attr, newValue)
+            self._stampInfoDataState()
+
+    def reloadKerning(self):
+        """
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> path = getTestFontPath("TestExternalEditing.ufo")
+        >>> font = Font(path)
+        >>> kerning = font.kerning
+
+        >>> path = os.path.join(font.path, "kerning.plist")
+        >>> f = open(path, "rb")
+        >>> t = f.read()
+        >>> f.close()
+        >>> t = t.replace("<integer>-100</integer>", "<integer>-101</integer>")
+        >>> f = open(path, "wb")
+        >>> f.write(t)
+        >>> f.close()
+
+        >>> kerning.items()
+        [(('A', 'A'), -100)]
+        >>> font.reloadKerning()
+        >>> kerning.items()
+        [(('A', 'A'), -101)]
+
+        >>> t = t.replace("<integer>-101</integer>", "<integer>-100</integer>")
+        >>> f = open(path, "wb")
+        >>> f.write(t)
+        >>> f.close()
+        """
+        if self._kerning is None:
+            obj = self.kerning
+        else:
+            r = UFOReader(self._path)
+            d = r.readKerning()
+            self._kerning.clear()
+            self._kerning.update(d)
+            self._stampKerningDataState()
+
+    def reloadGroups(self):
+        """
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> path = getTestFontPath("TestExternalEditing.ufo")
+        >>> font = Font(path)
+        >>> groups = font.groups
+
+        >>> path = os.path.join(font.path, "groups.plist")
+        >>> f = open(path, "rb")
+        >>> t = f.read()
+        >>> f.close()
+        >>> t = t.replace("<key>TestGroup</key>", "<key>XXX</key>")
+        >>> f = open(path, "wb")
+        >>> f.write(t)
+        >>> f.close()
+
+        >>> groups.keys()
+        ['TestGroup']
+        >>> font.reloadGroups()
+        >>> groups.keys()
+        ['XXX']
+
+        >>> t = t.replace("<key>XXX</key>", "<key>TestGroup</key>")
+        >>> f = open(path, "wb")
+        >>> f.write(t)
+        >>> f.close()
+        """
+        if self._groups is None:
+            obj = self.groups
+        else:
+            r = UFOReader(self._path)
+            d = r.readGroups()
+            self._groups.clear()
+            self._groups.update(d)
+            self._stampGroupsDataState()
+
+    def reloadLib(self):
+        """
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> path = getTestFontPath("TestExternalEditing.ufo")
+        >>> font = Font(path)
+        >>> lib = font.lib
+
+        >>> path = os.path.join(font.path, "lib.plist")
+        >>> f = open(path, "rb")
+        >>> t = f.read()
+        >>> f.close()
+        >>> t = t.replace("<key>org.robofab.glyphOrder</key>", "<key>org.robofab.glyphOrder.XXX</key>")
+        >>> f = open(path, "wb")
+        >>> f.write(t)
+        >>> f.close()
+
+        >>> lib.keys()
+        ['org.robofab.glyphOrder']
+        >>> font.reloadLib()
+        >>> lib.keys()
+        ['org.robofab.glyphOrder.XXX']
+
+        >>> t = t.replace("<key>org.robofab.glyphOrder.XXX</key>", "<key>org.robofab.glyphOrder</key>")
+        >>> f = open(path, "wb")
+        >>> f.write(t)
+        >>> f.close()
+        """
+        if self._lib is None:
+            obj = self.lib
+        else:
+            r = UFOReader(self._path)
+            d = r.readLib()
+            self._lib.clear()
+            self._lib.update(d)
+            self._stampLibDataState()
+
+    def reloadGlyphs(self, glyphNames):
+        """
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> path = getTestFontPath("TestExternalEditing.ufo")
+        >>> font = Font(path)
+        >>> glyph = font["A"]
+
+        >>> path = os.path.join(font.path, "glyphs", "A_.glif")
+        >>> f = open(path, "rb")
+        >>> t = f.read()
+        >>> f.close()
+        >>> t = t.replace('<advance width="700"/>', '<advance width="701"/>')
+        >>> f = open(path, "wb")
+        >>> f.write(t)
+        >>> f.close()
+
+        >>> glyph.width
+        700
+        >>> len(glyph)
+        2
+        >>> font.reloadGlyphs(["A"])
+        >>> glyph.width
+        701
+        >>> len(glyph)
+        2
+
+        >>> t = t.replace('<advance width="701"/>', '<advance width="700"/>')
+        >>> f = open(path, "wb")
+        >>> f.write(t)
+        >>> f.close()
+        """
+        for glyphName in glyphNames:
+            if glyphName not in self._glyphs:
+                self.loadGlyph(glyphName)
+            else:
+                glyph = self._glyphs[glyphName]
+                glyph.clear()
+                pointPen = glyph.getPointPen()
+                self._glyphSet.readGlyph(glyphName=glyphName, glyphObject=glyph, pointPen=pointPen)
+                glyph.dirty = False
+                self._stampGlyphDataState(glyph)
 
 
 if __name__ == "__main__":
