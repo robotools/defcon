@@ -199,6 +199,38 @@ class Font(BaseObject):
             ...
         KeyError: 'NotInFont not in font'
         >>> tearDownTestFontCopy()
+
+        # test saving externally deleted glyphs.
+        # del glyph. not dirty.
+        >>> path = makeTestFontCopy()
+        >>> font = Font(path)
+        >>> glyph = font["A"]
+        >>> glyphPath = os.path.join(path, "glyphs", "A_.glif")
+        >>> os.remove(glyphPath)
+        >>> r = font.testForExternalChanges()
+        >>> r["deletedGlyphs"]
+        ['A']
+        >>> del font["A"]
+        >>> font.save()
+        >>> os.path.exists(glyphPath)
+        False
+        >>> tearDownTestFontCopy()
+
+        # del glyph. dirty.
+        >>> path = makeTestFontCopy()
+        >>> font = Font(path)
+        >>> glyph = font["A"]
+        >>> glyph.dirty = True
+        >>> glyphPath = os.path.join(path, "glyphs", "A_.glif")
+        >>> os.remove(glyphPath)
+        >>> r = font.testForExternalChanges()
+        >>> r["deletedGlyphs"]
+        ['A']
+        >>> del font["A"]
+        >>> font.save()
+        >>> os.path.exists(glyphPath)
+        False
+        >>> tearDownTestFontCopy()
         """
         if name not in self:
             raise KeyError, '%s not in font' % name
@@ -483,7 +515,7 @@ class Font(BaseObject):
         >>> fileNames
         ['A_.glif', 'B_.glif', 'C_.glif']
         >>> tearDownTestFontCopy()
-        
+
         >>> path = getTestFontPath()
         >>> font = Font(path)
         >>> saveAsPath = getTestFontCopyPath(path)
@@ -554,7 +586,8 @@ class Font(BaseObject):
         # remove deleted glyphs
         if not saveAs and self._scheduledForDeletion:
             for glyphName in self._scheduledForDeletion:
-                glyphSet.deleteGlyph(glyphName)
+                if glyphName in glyphSet:
+                    glyphSet.deleteGlyph(glyphName)
         glyphSet.writeContents()
         self._glyphSet = glyphSet
         self._scheduledForDeletion = []
