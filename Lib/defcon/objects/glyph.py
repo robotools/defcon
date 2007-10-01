@@ -433,7 +433,7 @@ class Glyph(BaseObject):
     def insertContour(self, index, contour):
         assert contour not in self._contours
         if contour.getParent() != self:
-            self._setParentDataInContour(contour)                
+            self._setParentDataInContour(contour)
         self._contours.insert(index, contour)
         self._boundsCache = None
         self.dirty = True
@@ -705,14 +705,15 @@ class Glyph(BaseObject):
     def destroyAllRepresentations(self, notification):
         self._representations = {}
 
-    def getRepresentation(self, name, *args):
-        if args:
-            key = (name) + args
+    def getRepresentation(self, name, **kwargs):
+        if kwargs:
+            key = [name] + sorted(kwargs.items())
+            key = tuple(key)
         else:
             key = name
         if key not in self._representations:
             factory = _representationFactories[name]
-            representation = factory(self, self.getParent(), *args)
+            representation = factory(self, self.getParent(), **kwargs)
             self._representations[key] = representation
         return self._representations[key]
 
