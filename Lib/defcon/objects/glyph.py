@@ -1,6 +1,7 @@
 from fontTools.misc import arrayTools
 from defcon.objects.base import BaseObject
 from defcon.tools.fuzzyNumber import FuzzyNumber
+from defcon.tools.notifications import NotificationCenter
 
 
 _representationFactories = {}
@@ -17,7 +18,7 @@ class Glyph(BaseObject):
     _notificationName = "Glyph.Changed"
 
     def __init__(self, dispatcher=None, contourClass=None, componentClass=None, anchorClass=None):
-        super(Glyph, self).__init__(dispatcher)
+        super(Glyph, self).__init__()
         self._parent = None
         self._dirty = False
         self._name = None
@@ -25,15 +26,18 @@ class Glyph(BaseObject):
         self._width = 0
         self.note = None
         self.lib = {}
-        #
+        if dispatcher is None:
+            dispatcher = NotificationCenter()
+        self._dispatcher = dispatcher
+
         self._contours = []
         self._components = []
         self._anchors = []
-        #
+
         self._boundsCache = None
-        #
+
         self._representations = {}
-        #
+
         if contourClass is None:
             from contour import Contour
             contourClass = Contour
@@ -43,11 +47,11 @@ class Glyph(BaseObject):
         if anchorClass is None:
             from anchor import Anchor
             anchorClass = Anchor
-        #
+
         self.contourClass = contourClass
         self.componentClass = componentClass
         self.anchorClass = anchorClass
-        #
+
         self.addObserver(observer=self, methodName="destroyAllRepresentations", notification="Glyph.Changed")
 
     # ----------
@@ -80,7 +84,7 @@ class Glyph(BaseObject):
         if oldName != value:
             self._name = value
             self.dirty = True
-            self._dispatcher.postNotification(notification="Glyph.NameChanged", observable=self, data=(oldName, value))
+            self.dispatcher.postNotification(notification="Glyph.NameChanged", observable=self, data=(oldName, value))
 
     def _get_name(self):
         """
@@ -122,7 +126,7 @@ class Glyph(BaseObject):
         if oldValue != value:
             self._unicodes = value
             self.dirty = True
-            self._dispatcher.postNotification(notification="Glyph.UnicodesChanged", observable=self, data=(oldValue, value))
+            self.dispatcher.postNotification(notification="Glyph.UnicodesChanged", observable=self, data=(oldValue, value))
 
     unicodes = property(_get_unicodes, _set_unicodes)
 
@@ -354,7 +358,7 @@ class Glyph(BaseObject):
 
     def _setParentDataInContour(self, contour):
         contour.setParent(self)
-        contour._dispatcher = self._dispatcher
+        contour.dispatcher = self.dispatcher
         contour.addObserver(observer=self, methodName="_outlineContentChanged", notification="Contour.Changed")
 
     def _removeParentDataInContour(self, contour):
@@ -364,8 +368,8 @@ class Glyph(BaseObject):
 
     def _setParentDataInComponent(self, component):
         component.setParent(self)
+        component.dispatcher = self.dispatcher
         component.addObserver(observer=self, methodName="_outlineContentChanged", notification="Component.Changed")
-        component._dispatcher = self._dispatcher
 
     def _removeParentDataInComponent(self, component):
         component.setParent(None)
@@ -374,7 +378,7 @@ class Glyph(BaseObject):
 
     def _setParentDataInAnchor(self, anchor):
         anchor.setParent(self)
-        anchor._dispatcher = self._dispatcher
+        anchor.dispatcher = self.dispatcher
         anchor.addObserver(observer=self, methodName="_outlineContentChanged", notification="Anchor.Changed")
 
     def appendContour(self, contour):

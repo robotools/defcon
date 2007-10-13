@@ -7,8 +7,8 @@ class Info(BaseObject):
 
     # this code is automatically generated
 
-    def __init__(self, dispatcher=None):
-        super(Info, self).__init__(dispatcher)
+    def __init__(self):
+        super(Info, self).__init__()
         self._dirty = False
         self._familyName = None
         self._styleName = None

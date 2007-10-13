@@ -1,4 +1,5 @@
 import os
+import weakref
 from robofab.ufoLib import UFOReader, UFOWriter
 from defcon.objects.base import BaseObject
 from defcon.objects.glyph import Glyph
@@ -6,6 +7,7 @@ from defcon.objects.info import Info
 from defcon.objects.kerning import Kerning
 from defcon.objects.groups import Groups
 from defcon.objects.lib import Lib
+from defcon.tools.notifications import NotificationCenter
 
 
 class Font(BaseObject):
@@ -15,7 +17,7 @@ class Font(BaseObject):
     def __init__(self, path=None,
                     kerningClass=None, infoClass=None, groupsClass=None, libClass=None,
                     glyphClass=None, glyphContourClass=None):
-        super(Font, self).__init__(None)
+        super(Font, self).__init__()
         if glyphClass is None:
             glyphClass = Glyph
         if infoClass is None:
@@ -26,30 +28,32 @@ class Font(BaseObject):
             groupsClass = Groups
         if libClass is None:
             libClass = Lib
-        #
+
+        self._dispatcher = NotificationCenter()
+
         self._glyphClass = glyphClass
         self._glyphContourClass = glyphContourClass
-        #
+
         self._kerningClass = kerningClass
         self._infoClass = infoClass
         self._groupsClass = groupsClass
         self._libClass = libClass
-        #
+
         self._path = path
-        #
+
         self._glyphs = {}
         self._glyphSet = None
         self._scheduledForDeletion = []
         self._keys = set()
-        #
+
         self._kerning = None
         self._info = None
         self._groups = None
         self._lib = None
         self.cmap = {}
-        #
+
         self._dirty = False
-        #
+
         if path:
             r = UFOReader(self._path)
             self._glyphSet = r.getGlyphSet()
@@ -59,7 +63,7 @@ class Font(BaseObject):
     def _loadGlyph(self, name):
         if self._glyphSet is None or not self._glyphSet.has_key(name):
             raise KeyError, '%s not in font' % name
-        glyph = self._glyphClass(self._dispatcher, contourClass=self._glyphContourClass)
+        glyph = self._glyphClass(dispatcher=self.dispatcher, contourClass=self._glyphContourClass)
         pointPen = glyph.getPointPen()
         self._glyphSet.readGlyph(glyphName=name, glyphObject=glyph, pointPen=pointPen)
         glyph.dirty = False
@@ -100,7 +104,7 @@ class Font(BaseObject):
         """
         if name in self:
             self._removeFromCMAP(name)
-        glyph = self._glyphClass(self._dispatcher, contourClass=self._glyphContourClass)
+        glyph = self._glyphClass(self.dispatcher, contourClass=self._glyphContourClass)
         glyph.name = name
         self._glyphs[name] = glyph
         self._setParentDataInGlyph(glyph)
@@ -444,7 +448,8 @@ class Font(BaseObject):
 
     def _get_info(self):
         if self._info is None:
-            self._info = self._infoClass(self._dispatcher)
+            self._info = self._infoClass()
+            self._info.dispatcher = self.dispatcher
             if self._path is not None:
                 u = UFOReader(self._path)
                 u.readInfo(self._info)
@@ -457,7 +462,8 @@ class Font(BaseObject):
 
     def _get_kerning(self):
         if self._kerning is None:
-            self._kerning = self._kerningClass(self._dispatcher)
+            self._kerning = self._kerningClass()
+            self._kerning.dispatcher = self.dispatcher
             if self._path is not None:
                 r = UFOReader(self._path)
                 d = r.readKerning()
@@ -471,7 +477,8 @@ class Font(BaseObject):
 
     def _get_groups(self):
         if self._groups is None:
-            self._groups = self._groupsClass(self._dispatcher)
+            self._groups = self._groupsClass()
+            self._groups.dispatcher = self.dispatcher
             if self._path is not None:
                 r = UFOReader(self._path)
                 d = r.readGroups()
@@ -484,7 +491,8 @@ class Font(BaseObject):
 
     def _get_lib(self):
         if self._lib is None:
-            self._lib = self._libClass(self._dispatcher)
+            self._lib = self._libClass()
+            self._lib.dispatcher = self.dispatcher
             if self._path is not None:
                 r = UFOReader(self._path)
                 d = r.readLib()
@@ -932,6 +940,8 @@ class Font(BaseObject):
                 if attr.startswith("_"):
                     continue
                 if attr == "dirty":
+                    continue
+                if attr == "dispatcher":
                     continue
                 if not hasattr(oldInfo, attr):
                     continue

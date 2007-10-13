@@ -4,8 +4,8 @@ class Anchor(BaseObject):
 
     _notificationName = "Anchor.Changed"
 
-    def __init__(self, dispatcher=None):
-        super(Anchor, self).__init__(dispatcher)
+    def __init__(self):
+        super(Anchor, self).__init__()
         self._x = None
         self._y = None
         self._name = None

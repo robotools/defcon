@@ -8,15 +8,15 @@ class Contour(BaseObject):
 
     _notificationName = "Contour.Changed"
 
-    def __init__(self, dispatcher=None):
-        super(Contour, self).__init__(dispatcher)
+    def __init__(self):
+        super(Contour, self).__init__()
         self._points = []
         self._boundsCache = None
         self._clockwiseCache = None
 
-    #-----------
+    # ----------
     # Attributes
-    #-----------
+    # ----------
 
     def _get_bounds(self):
         """
@@ -167,9 +167,9 @@ class Contour(BaseObject):
 
     segments = property(_get_segments)
 
-    #--------
+    # -------
     # Methods
-    #--------
+    # -------
 
     def __len__(self):
         """
@@ -462,9 +462,9 @@ class Contour(BaseObject):
         self._boundsCache = None
         self.dirty = True
 
-    #------------
+    # -----------
     # Pen methods
-    #------------
+    # -----------
 
     def beginPath(self):
         pass

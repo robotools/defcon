@@ -5,8 +5,8 @@ class Kerning(BaseObject):
 
     _notificationName = "Kerning.Changed"
 
-    def __init__(self, dispatcher=None):
-        super(Kerning, self).__init__(dispatcher)
+    def __init__(self):
+        super(Kerning, self).__init__()
         self._kerning = {}
         self._dirty = False
 

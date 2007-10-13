@@ -6,10 +6,8 @@ class BaseObject(object):
 
     _notificationName = "BaseObject.Changed"
 
-    def __init__(self, dispatcher=None):
-        if dispatcher is None:
-            dispatcher = NotificationCenter()
-        self._dispatcher = dispatcher
+    def __init__(self):
+        self._dispatcher = None
         self._dataOnDisk = None
         self._dataOnDiskTimeStamp = None
 
@@ -24,18 +22,37 @@ class BaseObject(object):
             return self._parent()
         return None
 
+    def _get_dispatcher(self):
+        if self._dispatcher is None:
+            return None
+        elif isinstance(self._dispatcher, NotificationCenter):
+            return self._dispatcher
+        else:
+            return self._dispatcher()
+
+    def _set_dispatcher(self, dispatcher):
+        if dispatcher is None:
+            pass
+        elif isinstance(dispatcher, NotificationCenter):
+            self._dispatcher = weakref.ref(dispatcher)
+        else:
+            self._dispatcher = dispatcher
+
+    dispatcher = property(_get_dispatcher, _set_dispatcher)
+
     def addObserver(self, observer, methodName, notification):
-        self._dispatcher.addObserver(observer=observer, callbackString=methodName,
+        self.dispatcher.addObserver(observer=observer, callbackString=methodName,
                                     notification=notification, observable=self)
 
     def removeObserver(self, observer, notification):
-        self._dispatcher.removeObserver(observer=observer, notification=notification, observable=self)
+        self.dispatcher.removeObserver(observer=observer, notification=notification, observable=self)
 
     def _set_dirty(self, value):
         """
         >>> from defcon.test.testTools import NotificationTestObject
         >>> notificationObject = NotificationTestObject()
         >>> obj = BaseObject()
+        >>> obj._dispatcher = NotificationCenter()
         >>> obj.addObserver(notificationObject, "testCallback", "BaseObject.Changed")
         >>> obj.dirty = True
         BaseObject.Changed True
@@ -45,11 +62,13 @@ class BaseObject(object):
         BaseObject.Changed False
         """
         self._dirty = value
-        self._dispatcher.postNotification(notification=self._notificationName, observable=self, data=value)
+        if self._dispatcher is not None:
+            self.dispatcher.postNotification(notification=self._notificationName, observable=self, data=value)
 
     def _get_dirty(self):
         """
         >>> obj = BaseObject()
+        >>> obj._dispatcher = NotificationCenter()
         >>> obj.dirty = True
         >>> obj.dirty
         True
@@ -63,11 +82,7 @@ class BaseObject(object):
 
 
 class BaseDictObject(dict, BaseObject):
-
-    def __init__(self, dispatcher=None):
-        if dispatcher is None:
-            dispatcher = NotificationCenter()
-        self._dispatcher = dispatcher
+    pass
 
 
 if __name__ == "__main__":

@@ -5,8 +5,8 @@ class Component(BaseObject):
 
     _notificationName = "Component.Changed"
 
-    def __init__(self, dispatcher=None):
-        super(Component, self).__init__(dispatcher)
+    def __init__(self):
+        super(Component, self).__init__()
         self._dirty = False
         self._baseGlyph = None
         self._transformation = (1, 0, 0, 1, 0, 0)
@@ -15,7 +15,9 @@ class Component(BaseObject):
         oldValue = self._baseGlyph
         self._baseGlyph = value
         self.dirty = True
-        self._dispatcher.postNotification(notification="Component.BaseGlyphChanged", observable=self, data=(oldValue, value))
+        dispatcher = self.dispatcher
+        if dispatcher is not None:
+            dispatcher.postNotification(notification="Component.BaseGlyphChanged", observable=self, data=(oldValue, value))
 
     def _get_baseGlyph(self):
         return self._baseGlyph
