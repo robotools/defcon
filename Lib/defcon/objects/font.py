@@ -642,7 +642,7 @@ class Font(BaseObject):
         >>> font.cmap[65]
         ['A', 'test']
         """
-        glyphName = notification.object().name
+        glyphName = notification.object.name
         self._removeFromCMAP(glyphName)
         self._addToCMAP(self[glyphName])
 

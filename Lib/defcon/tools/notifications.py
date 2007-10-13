@@ -44,7 +44,10 @@ class Notification(object):
         self._objRef = objRef
         self.data = data
 
-    def object(self):
+    def _get_object(self):
         if self._objRef is not None:
             return self._objRef()
         return None
+
+    object = property(_get_object)
+
