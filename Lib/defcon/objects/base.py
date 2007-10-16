@@ -55,15 +55,15 @@ class BaseObject(object):
         >>> obj._dispatcher = NotificationCenter()
         >>> obj.addObserver(notificationObject, "testCallback", "BaseObject.Changed")
         >>> obj.dirty = True
-        BaseObject.Changed True
+        BaseObject.Changed None
         >>> obj.dirty
         True
         >>> obj.dirty = False
-        BaseObject.Changed False
+        BaseObject.Changed None
         """
         self._dirty = value
         if self._dispatcher is not None:
-            self.dispatcher.postNotification(notification=self._notificationName, observable=self, data=value)
+            self.dispatcher.postNotification(notification=self._notificationName, observable=self)
 
     def _get_dirty(self):
         """
