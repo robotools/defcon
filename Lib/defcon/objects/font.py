@@ -117,6 +117,9 @@ class Font(BaseObject):
         self._keys.add(name)
 
     def insertGlyph(self, glyph, name=None):
+        """
+        >>> "need insert glyph test!"
+        """
         from copy import deepcopy
         source = glyph
         if name is None:
@@ -335,6 +338,7 @@ class Font(BaseObject):
                 self.cmap[value].remove(name)
                 if not self.cmap[value]:
                     del self.cmap[value]
+        self.dispatcher.postNotification(notification="CMAP.Changed", observable=self)
 
     def _addToCMAP(self, glyph):
         """
@@ -350,6 +354,7 @@ class Font(BaseObject):
             if value not in self.cmap:
                 self.cmap[value] = []
             self.cmap[value].append(glyph.name)
+        self.dispatcher.postNotification(notification="CMAP.Changed", observable=self)
 
     # ----------
     # Attributes
