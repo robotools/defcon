@@ -455,11 +455,11 @@ class Font(BaseObject):
         if self._info is None:
             self._info = self._infoClass()
             self._info.dispatcher = self.dispatcher
+            self._info.setParent(self)
             if self._path is not None:
                 u = UFOReader(self._path)
                 u.readInfo(self._info)
-            self._info.setParent(self)
-            self._info.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="%s.Changed" % self._info.__class__.__name__)
+            self._info.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Info.Changed")
             self._stampInfoDataState()
         return self._info
 
@@ -469,12 +469,12 @@ class Font(BaseObject):
         if self._kerning is None:
             self._kerning = self._kerningClass()
             self._kerning.dispatcher = self.dispatcher
+            self._kerning.setParent(self)
             if self._path is not None:
                 r = UFOReader(self._path)
                 d = r.readKerning()
                 self._kerning.update(d)
-            self._kerning.setParent(self)
-            self._kerning.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="%s.Changed" % self._kerning.__class__.__name__)
+            self._kerning.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Kerning.Changed")
             self._stampKerningDataState()
         return self._kerning
 
@@ -484,11 +484,12 @@ class Font(BaseObject):
         if self._groups is None:
             self._groups = self._groupsClass()
             self._groups.dispatcher = self.dispatcher
+            self._groups.setParent(self)
             if self._path is not None:
                 r = UFOReader(self._path)
                 d = r.readGroups()
                 self._groups.update(d)
-            self._groups.setParent(self)
+            self._groups.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Groups.Changed")
             self._stampGroupsDataState()
         return self._groups
 
@@ -498,11 +499,11 @@ class Font(BaseObject):
         if self._lib is None:
             self._lib = self._libClass()
             self._lib.dispatcher = self.dispatcher
+            self._lib.setParent(self)
             if self._path is not None:
                 r = UFOReader(self._path)
                 d = r.readLib()
                 self._lib.update(d)
-            self._lib.setParent(self)
             self._stampLibDataState()
         return self._lib
 
