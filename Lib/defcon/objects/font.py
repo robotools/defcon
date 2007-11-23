@@ -613,7 +613,7 @@ class Font(BaseObject):
     # ----------------------
 
     def _objectDirtyStateChange(self, notification):
-        if notification.data:
+        if notification.object.dirty:
             self.dirty = True
 
     def _glyphNameChange(self, notification):
