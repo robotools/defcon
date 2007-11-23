@@ -706,6 +706,15 @@ class Glyph(BaseObject):
     # Representations
     # ---------------
 
+    def destroyRepresentation(self, name, **kwargs):
+        if kwargs:
+            key = [name] + sorted(kwargs.items())
+            key = tuple(key)
+        else:
+            key = name
+        if key in self._representations:
+            del self._representations[key]
+
     def destroyAllRepresentations(self, notification):
         self._representations = {}
 
