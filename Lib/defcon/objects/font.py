@@ -1109,6 +1109,7 @@ class Font(BaseObject):
                 self._glyphSet.readGlyph(glyphName=glyphName, glyphObject=glyph, pointPen=pointPen)
                 glyph.dirty = False
                 self._stampGlyphDataState(glyph)
+        self.dispatcher.postNotification(notification="Font.ReloadedGlyphs", observable=self, data=glyphNames)
 
 
 if __name__ == "__main__":
