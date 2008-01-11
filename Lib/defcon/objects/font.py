@@ -584,7 +584,7 @@ class Font(BaseObject):
             ufoWriter.writeGroups(self.groups)
             self._stampGroupsDataState()
         if saveLib:
-            ufoWriter.writeLib(self.lib)
+            ufoWriter.writeLib(dict(self.lib))
             self._stampLibDataState()
         ## save glyphs
         # for a save as operation, load all the glyphs
