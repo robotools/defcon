@@ -5,6 +5,9 @@ class Kerning(BaseDictObject):
 
     _notificationName = "Kerning.Changed"
 
+    def get(self, pair, default=0):
+        return super(Kerning, self).get(pair, default)
+
     def _test(self):
         """
         >>> from defcon.test.testTools import getTestFontPath
