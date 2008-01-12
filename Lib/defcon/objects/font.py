@@ -63,7 +63,7 @@ class Font(BaseObject):
     def _loadGlyph(self, name):
         if self._glyphSet is None or not self._glyphSet.has_key(name):
             raise KeyError, '%s not in font' % name
-        glyph = self._glyphClass(dispatcher=self.dispatcher, contourClass=self._glyphContourClass)
+        glyph = self._glyphClass(contourClass=self._glyphContourClass)
         pointPen = glyph.getPointPen()
         self._glyphSet.readGlyph(glyphName=name, glyphObject=glyph, pointPen=pointPen)
         glyph.dirty = False
@@ -81,6 +81,7 @@ class Font(BaseObject):
         True
         """
         glyph.setParent(self)
+        glyph.dispatcher = self.dispatcher
         glyph.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Glyph.Changed")
         glyph.addObserver(observer=self, methodName="_glyphNameChange", notification="Glyph.NameChanged")
         glyph.addObserver(observer=self, methodName="_glyphUnicodesChange", notification="Glyph.UnicodesChanged")

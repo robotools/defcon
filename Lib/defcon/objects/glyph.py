@@ -26,8 +26,6 @@ class Glyph(BaseObject):
         self._width = 0
         self.note = None
         self.lib = {}
-        if dispatcher is None:
-            dispatcher = NotificationCenter()
         self._dispatcher = dispatcher
 
         self._contours = []
@@ -52,7 +50,23 @@ class Glyph(BaseObject):
         self.componentClass = componentClass
         self.anchorClass = anchorClass
 
-        self.addObserver(observer=self, methodName="destroyAllRepresentations", notification="Glyph.Changed")
+        if dispatcher is not None:
+            self.addObserver(observer=self, methodName="destroyAllRepresentations", notification="Glyph.Changed")
+
+    def _set_dispatcher(self, dispatcher):
+        super(Glyph, self)._set_dispatcher(dispatcher)
+        if dispatcher is not None:
+            for contour in self._contours:
+                self._setParentDataInContour(contour)
+            for component in self._components:
+                self._setParentDataInComponent(component)
+            for anchor in self._anchors:
+                self._setParentDataInAnchor(anchor)
+
+    def _get_dispatcher(self):
+        return super(Glyph, self)._get_dispatcher()
+
+    dispatcher = property(_get_dispatcher, _set_dispatcher)
 
     # ----------
     # Attributes
@@ -84,7 +98,9 @@ class Glyph(BaseObject):
         if oldName != value:
             self._name = value
             self.dirty = True
-            self.dispatcher.postNotification(notification="Glyph.NameChanged", observable=self, data=(oldName, value))
+            dispatcher = self.dispatcher
+            if dispatcher is not None:
+                self.dispatcher.postNotification(notification="Glyph.NameChanged", observable=self, data=(oldName, value))
 
     def _get_name(self):
         """
@@ -126,7 +142,9 @@ class Glyph(BaseObject):
         if oldValue != value:
             self._unicodes = value
             self.dirty = True
-            self.dispatcher.postNotification(notification="Glyph.UnicodesChanged", observable=self, data=(oldValue, value))
+            dispatcher = self.dispatcher
+            if dispatcher is not None:
+                self.dispatcher.postNotification(notification="Glyph.UnicodesChanged", observable=self, data=(oldValue, value))
 
     unicodes = property(_get_unicodes, _set_unicodes)
 
@@ -358,8 +376,10 @@ class Glyph(BaseObject):
 
     def _setParentDataInContour(self, contour):
         contour.setParent(self)
-        contour.dispatcher = self.dispatcher
-        contour.addObserver(observer=self, methodName="_outlineContentChanged", notification="Contour.Changed")
+        dispatcher = self.dispatcher
+        if dispatcher is not None:
+            contour.dispatcher = dispatcher
+            contour.addObserver(observer=self, methodName="_outlineContentChanged", notification="Contour.Changed")
 
     def _removeParentDataInContour(self, contour):
         contour.setParent(None)
@@ -368,8 +388,10 @@ class Glyph(BaseObject):
 
     def _setParentDataInComponent(self, component):
         component.setParent(self)
-        component.dispatcher = self.dispatcher
-        component.addObserver(observer=self, methodName="_outlineContentChanged", notification="Component.Changed")
+        dispatcher = self.dispatcher
+        if dispatcher is not None:
+            component.dispatcher = dispatcher
+            component.addObserver(observer=self, methodName="_outlineContentChanged", notification="Component.Changed")
 
     def _removeParentDataInComponent(self, component):
         component.setParent(None)
@@ -378,8 +400,10 @@ class Glyph(BaseObject):
 
     def _setParentDataInAnchor(self, anchor):
         anchor.setParent(self)
-        anchor.dispatcher = self.dispatcher
-        anchor.addObserver(observer=self, methodName="_outlineContentChanged", notification="Anchor.Changed")
+        dispatcher = self.dispatcher
+        if dispatcher is not None:
+            anchor.dispatcher = dispatcher
+            anchor.addObserver(observer=self, methodName="_outlineContentChanged", notification="Anchor.Changed")
 
     def appendContour(self, contour):
         """
