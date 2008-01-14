@@ -5,6 +5,8 @@ from defcon.objects.base import BaseDictObject
 
 class CMAP(BaseDictObject):
 
+    _notificationName = "CMAP.Changed"
+
     def __init__(self):
         super(CMAP, self).__init__()
 
@@ -161,17 +163,37 @@ class CMAP(BaseDictObject):
     # Sorting
     # -------
 
-    def sortGlyphNames(self, glyphNames, sortDescriptors=[dict(type="alphabetical")]):
+    def sortGlyphNames(self, glyphNames, sortDescriptors=[dict(type="unicode")]):
         """
-        Sort Descriptor
-        type = The type of sort to perform. See below for options.
-        ascending - Boolean epresenting if the glyphs should be
-            in ascending or descending order. The default is True.
+        This sorts the list of glyphs following the sort descriptors
+        provided in the sortDescriptors list. Ths works by iterating over
+        the sort descriptors and subdividing. For example, if the first
+        sort descriptor is a suffix type, internally, the result of the
+        sort will look something like this:
+            [
+                [glyphs with no suffix],
+                [glyphs with suffix 1],
+                [glyphs with suffix 2]
+            ]
+        When the second sort descriptor is processed, the results of previous
+        sorts are subdivided even further. For example, if the second
+        sort type is script:
+            [[
+                [glyphs with no suffix, script 1], [glyphs with no suffix, script 2],
+                [glyphs with suffix 1, script 1], [glyphs with suffix 1, script 2],
+                [glyphs with suffix 2, script 1], [glyphs with suffix 2, script 2]
+            ]]
+        And so on. The returned list will be flattened.
+
+        Sort Descriptor - A dict containing the following:
+        type - The type of sort to perform. See below for options.
+        ascending - Boolean representing if the glyphs should be in
+            ascending or descending order. Optional. The default is True.
         allowPseudoUnicode - Boolean representing if pseudo Unicode
             values are used. If not, real Unicode values will be used
-            if necessary. The default is False.
+            if necessary. Optional. The default is False.
 
-        Sort types:
+        Sort Types:
         alphabetical - Self-explanitory.
         unicode - Sort based on Unicode value.
         script - Sort based on Unicode script.
