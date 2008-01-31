@@ -3,63 +3,91 @@ from defcon.tools import unicodeTools
 from defcon.objects.base import BaseDictObject
 
 
-class CMAP(BaseDictObject):
+class UnicodeData(BaseDictObject):
 
-    _notificationName = "CMAP.Changed"
+    _notificationName = "UnicodeData.Changed"
 
     def __init__(self):
-        super(CMAP, self).__init__()
-
-        # self._dict = unicode to glyph names
-        self._glyphNameToUnicode = {}
-        self._glyphNameToPseudoUnicode = {}
+        super(UnicodeData, self).__init__()
         self._glyphNameToForcedUnicode = {}
         self._forcedUnicodeToGlyphName = {}
+
+    # -----------
+    # set and get
+    # -----------
+
+    def removeGlyphData(self, glyphName, values):
+        for value in values:
+            if value not in self._dict:
+                continue
+            glyphList = self._dict[value]
+            glyphList.remove(glyphName)
+            if not glyphList:
+                del self._dict[value]
+        # remove the forced reference to the glyph
+        if glyphName in self._glyphNameToForcedUnicode:
+            fourcedValue = self._glyphNameToForcedUnicode[glyphName]
+            del self._glyphNameToForcedUnicode[glyphName]
+            del self._forcedUnicodeToGlyphName[fourcedValue]
+        if self.dispatcher is not None:
+            self.dispatcher.postNotification(notification=self._notificationName, observable=self)
+
+    def addGlyphData(self, glyphName, values):
+        for value in values:
+            # update unicode to glyph name
+            glyphList = self._dict.get(value)
+            if glyphList is None:
+                glyphList = []
+            if glyphName not in glyphList:
+                glyphList.append(glyphName)
+            self._dict[value] = glyphList
+        if self.dispatcher is not None:
+            self.dispatcher.postNotification(notification=self._notificationName, observable=self)
+
+    def __delitem__(self, value):
+        glyphList = self._dict.get(value)
+        if glyphList is None:
+            return
+        for glyphName in glyphList:
+            # remove forced references
+            if glyphName in self._glyphNameToForcedUnicode:
+                forcedValue = self._glyphNameToForcedUnicode[glyphName]
+                del self._forcedUnicodeToGlyphName[forcedValue]
+                del self._glyphNameToForcedUnicode[glyphName]
+        del self._dict[value]
+        if self.dispatcher is not None:
+            self.dispatcher.postNotification(notification=self._notificationName, observable=self)
+
+    def __setitem__(self, value, glyphList):
+        if value not in self._dict:
+            self._dict[value] = []
+        for glyphName in glyphList:
+            self._dict[value].append(glyphName)
+            # remove now out dated forced references
+            if glyphName in self._glyphNameToForcedUnicode:
+                forcedValue = self._glyphNameToForcedUnicode[glyphName]
+                del self._forcedUnicodeToGlyphName[forcedValue]
+                del self._glyphNameToForcedUnicode[glyphName]
+        if self.dispatcher is not None:
+            self.dispatcher.postNotification(notification=self._notificationName, observable=self)
+
+    def clear(self):
+        raise NotImplementedError
+
+    def update(self, other):
+        for value, glyphList in other.items():
+            for glyphName in glyphList:
+                if glyphName in self._glyphNameToForcedUnicode:
+                    forcedValue = self._glyphNameToForcedUnicode[glyphName]
+                    del self._forcedUnicodeToGlyphName[forcedValue]
+                    del self._glyphNameToForcedUnicode[glyphName]
+            self._dict[value] = list(glyphList)
+        if self.dispatcher is not None:
+            self.dispatcher.postNotification(notification=self._notificationName, observable=self)
 
     # -------
     # Loaders
     # -------
-
-    def _loadGlyphNameToUnicode(self):
-        for uniValue, glyphList in self.items():
-            for glyphName in glyphList:
-                self._glyphNameToUnicode[glyphName] = uniValue
-
-    def _loadPseudoUnicodeValue(self, glyphName):
-        # already loaded
-        if glyphName in self._glyphNameToPseudoUnicode:
-            return
-        # load the glyph to unicode map
-        if not self._glyphNameToUnicode:
-            self._loadGlyphNameToUnicode()
-        # glyph has a real unicode
-        if glyphName in self._glyphNameToUnicode:
-            return
-        # glyph doesn't have a suffix
-        skip = False
-        if glyphName.startswith(".") or glyphName.startswith("_"):
-            skip = True
-        if "." not in glyphName and "_" not in glyphName:
-            skip = True
-        if skip:
-            self._glyphNameToPseudoUnicode[glyphName] = None
-            return
-        # get the base
-        if "." in glyphName:
-            base = glyphName.split(".")[0]
-        # in the case of ligatures, grab the first glyph
-        elif "_" in glyphName:
-            base = glyphName.split("_")[0]
-        # in the case of ligatures with a suffix, decompose even further.
-        if "_" in base:
-            base = base.split("_")[0]
-        # base doesn't have a value
-        if base not in self._glyphNameToUnicode:
-            value = None
-        # base does have a value
-        else:
-            value = self._glyphNameToUnicode[base]
-        self._glyphNameToPseudoUnicode[glyphName] = value
 
     def _setupForcedValueDict(self):
         for value, glyphList in self.values():
@@ -78,11 +106,8 @@ class CMAP(BaseDictObject):
         # already loaded
         if glyphName in self._glyphNameToForcedUnicode:
             return
-        # load the glyph to unicode map
-        if not self._glyphNameToUnicode:
-            self._loadGlyphNameToUnicode()
         # glyph has a real unicode
-        if glyphName in self._glyphNameToUnicode:
+        if self.unicodeForGlyphName(glyphName) is not None:
             return
         # start at the highest point, falling back to the bottom of the PUA
         startPoint = max(self._forcedUnicodeToGlyphName.keys() + [_privateUse1Min])
@@ -95,34 +120,47 @@ class CMAP(BaseDictObject):
     # Value Retrieval
     # ---------------
 
-    def getUnicodeForGlyphName(self, glyphName):
-        if not self._glyphNameToUnicode:
-            self._loadGlyphNameToUnicode()
-        return self._glyphNameToUnicode.get(glyphName)
+    def unicodeForGlyphName(self, glyphName):
+        font = self.getParent()
+        if glyphName not in font:
+            return None
+        glyph = font[glyphName]
+        unicodes = glyph.unicodes
+        if not unicodes:
+            return None
+        return unicodes[0]
 
-    def getGlyphNameForUnicode(self, value):
+    def glyphNameForUnicode(self, value):
         glyphList = self.get(value)
         if not glyphList:
             return None
         return glyphList[0]
 
-    def getPseudoUnicodeForGlyphName(self, glyphName):
-        realValue = self.getUnicodeForGlyphName(glyphName)
+    def pseudoUnicodeForGlyphName(self, glyphName):
+        realValue = self.unicodeForGlyphName(glyphName)
         if realValue is not None:
             return realValue
-        if glyphName not in self._glyphNameToPseudoUnicode:
-            self._loadPseudoUnicodeValue(glyphName)
-        return self._glyphNameToPseudoUnicode[glyphName]
+        # glyph doesn't have a suffix
+        if glyphName.startswith(".") or glyphName.startswith("_"):
+            return None
+        if "." not in glyphName and "_" not in glyphName:
+            return None
+        # get the base
+        base = glyphName.split(".")[0]
+        # in the case of ligatures, grab the first glyph
+        base = glyphName.split("_")[0]
+        # get the value for the base
+        return self.unicodeForGlyphName(base)
 
-    def getForcedUnicodeForGlyphName(self, glyphName):
-        realValue = self.getUnicodeForGlyphName(glyphName)
+    def forcedUnicodeForGlyphName(self, glyphName):
+        realValue = self.unicodeForGlyphName(glyphName)
         if realValue is not None:
             return realValue
         if glyphName not in self._glyphNameToForcedUnicode:
             self._loadForcedUnicodeValue(glyphName)
         return self._glyphNameToForcedUnicode[glyphName]
 
-    def getGlyphNameForForcedUnicode(self, value):
+    def glyphNameForForcedUnicode(self, value):
         if value in self:
             glyphName = self[value]
             if isinstance(glyphName, list):
@@ -141,17 +179,17 @@ class CMAP(BaseDictObject):
 
     def _findDecomposedBaseForGlyph(self, glyphName, allowPseudoUnicode):
         if allowPseudoUnicode:
-            uniValue = self.getPseudoUnicodeForGlyphName(glyphName)
+            uniValue = self.pseudoUnicodeForGlyphName(glyphName)
         else:
-            uniValue = self.getUnicodeForGlyphName(glyphName)
+            uniValue = self.unicodeForGlyphName(glyphName)
         if uniValue is None:
             return
         if uniValue is not None:
             decomposition = recursiveDecomposition(uniValue)
             if decomposition != -1:
-                if decomposition in font.cmap:
-                    baseGlyphName = font.cmap[decomposition][0]
-                    if "." in glyphName:
+                if decomposition in font.unicodeData:
+                    baseGlyphName = font.unicodeData[decomposition][0]
+                    if "." in glyphName.unicodeData:
                         suffix = glyphName.split(".", 1)[1]
                         baseWithSuffix = baseGlyphName + "." + suffix
                         if baseWithSuffix in font:
@@ -274,9 +312,9 @@ class CMAP(BaseDictObject):
         withoutValue = []
         for glyphName in glyphNames:
             if allowPseudoUnicode:
-                value = self.getPseudoUnicodeForGlyphName(glyphName)
+                value = self.pseudoUnicodeForGlyphName(glyphName)
             else:
-                value = self.getUnicodeForGlyphName(glyphName)
+                value = self.unicodeForGlyphName(glyphName)
             if value is None:
                 withoutValue.append(glyphName)
             else:
@@ -303,9 +341,9 @@ class CMAP(BaseDictObject):
         tagToGlyphs = {}
         for glyphName in glyphNames:
             if allowPseudoUnicode:
-                value = self.getPseudoUnicodeForGlyphName(glyphName)
+                value = self.pseudoUnicodeForGlyphName(glyphName)
             else:
-                value = self.getUnicodeForGlyphName(glyphName)
+                value = self.unicodeForGlyphName(glyphName)
             if value is None:
                 tag = None
             else:
@@ -329,14 +367,14 @@ class CMAP(BaseDictObject):
         baseToGlyphNames = {None:[]}
         for glyphName in glyphNames:
             if allowPseudoUnicode:
-                value = self.getPseudoUnicodeForGlyphName(glyphName)
+                value = self.pseudoUnicodeForGlyphName(glyphName)
             else:
-                value = self.getUnicodeForGlyphName(glyphName)
+                value = self.unicodeForGlyphName(glyphName)
             if value is None:
                 base = None
             else:
                 base = unicodeTools.decompositionBase(value)
-                base = self.getGlyphNameForUnicode(base)
+                base = self.glyphNameForUnicode(base)
                 # try to add the glyph names suffix to the base.
                 # this will handle mapping aacute.alt to a.alt
                 # instead of aacute.alt to a.
@@ -429,3 +467,7 @@ def _findAvailablePUACode(existing, code=None):
         else:
             return _findAvailablePUACode(existing, code)
 
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
