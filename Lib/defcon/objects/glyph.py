@@ -100,7 +100,7 @@ class Glyph(BaseObject):
             self.dirty = True
             dispatcher = self.dispatcher
             if dispatcher is not None:
-                data = dict(oldName=oldName, newName=name)
+                data = dict(oldName=oldName, newName=value)
                 self.dispatcher.postNotification(notification="Glyph.NameChanged", observable=self, data=data)
 
     def _get_name(self):
