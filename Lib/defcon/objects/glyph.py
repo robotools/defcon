@@ -100,7 +100,8 @@ class Glyph(BaseObject):
             self.dirty = True
             dispatcher = self.dispatcher
             if dispatcher is not None:
-                self.dispatcher.postNotification(notification="Glyph.NameChanged", observable=self, data=(oldName, value))
+                data = dict(oldName=oldName, newName=name)
+                self.dispatcher.postNotification(notification="Glyph.NameChanged", observable=self, data=data)
 
     def _get_name(self):
         """
@@ -144,7 +145,8 @@ class Glyph(BaseObject):
             self.dirty = True
             dispatcher = self.dispatcher
             if dispatcher is not None:
-                self.dispatcher.postNotification(notification="Glyph.UnicodesChanged", observable=self, data=(oldValue, value))
+                data = dict(oldValues=oldValue, newValues=value)
+                self.dispatcher.postNotification(notification="Glyph.UnicodesChanged", observable=self, data=data)
 
     unicodes = property(_get_unicodes, _set_unicodes)
 
