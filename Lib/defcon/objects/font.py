@@ -320,39 +320,6 @@ class Font(BaseObject):
         names = names - set(self._scheduledForDeletion)
         return list(names)
 
-    # ---------------
-    # CMAP management
-    # ---------------
-
-    def _removeFromUnicodeData(self, name):
-        """
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> font = Font(getTestFontPath())
-        >>> font.newGlyph("A")
-        >>> font.unicodeData.get(65)
-
-        >>> font = Font(getTestFontPath())
-        >>> font.newGlyph("test")
-        >>> glyph = font["test"]
-        >>> glyph.unicodes = [65]
-        >>> del font["A"]
-        >>> font.unicodeData.get(65)
-        ['test']
-        """
-        pass
-
-    def _addToUnicodeData(self, glyph):
-        """
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> font = Font(getTestFontPath())
-        >>> font.newGlyph("test")
-        >>> glyph = font["test"]
-        >>> glyph.unicodes = [123]
-        >>> font.unicodeData.get(123)
-        ['test']
-        """
-        pass
-
     # ----------
     # Attributes
     # ----------
