@@ -7,6 +7,7 @@ from defcon.objects.info import Info
 from defcon.objects.kerning import Kerning
 from defcon.objects.groups import Groups
 from defcon.objects.lib import Lib
+from defcon.objects.uniData import UnicodeData
 from defcon.tools.notifications import NotificationCenter
 
 
@@ -16,7 +17,7 @@ class Font(BaseObject):
 
     def __init__(self, path=None,
                     kerningClass=None, infoClass=None, groupsClass=None, libClass=None,
-                    glyphClass=None, glyphContourClass=None):
+                    unicodeDataClass=None, glyphClass=None, glyphContourClass=None):
         super(Font, self).__init__()
         if glyphClass is None:
             glyphClass = Glyph
@@ -28,6 +29,8 @@ class Font(BaseObject):
             groupsClass = Groups
         if libClass is None:
             libClass = Lib
+        if unicodeDataClass is None:
+            unicodeDataClass = UnicodeData
 
         self._dispatcher = NotificationCenter()
 
@@ -50,15 +53,19 @@ class Font(BaseObject):
         self._info = None
         self._groups = None
         self._lib = None
-        self.cmap = {}
+
+        self.unicodeData = unicodeDataClass()
+        self.unicodeData.setParent(self)
 
         self._dirty = False
 
         if path:
             r = UFOReader(self._path)
             self._glyphSet = r.getGlyphSet()
-            self.cmap = r.getCharacterMapping()
             self._keys = set(self._glyphSet.keys())
+            self.unicodeData.update(r.getCharacterMapping())
+
+        self.unicodeData.dispatcher = self.dispatcher
 
     def _loadGlyph(self, name):
         if self._glyphSet is None or not self._glyphSet.has_key(name):
@@ -104,7 +111,7 @@ class Font(BaseObject):
         ['A', 'B', 'C', 'NewGlyphTest']
         """
         if name in self:
-            self._removeFromCMAP(name)
+            self.unicodeData.removeGlyphData(name, self[name].unicodes)
         glyph = self._glyphClass(self.dispatcher, contourClass=self._glyphContourClass)
         glyph.name = name
         self._glyphs[name] = glyph
@@ -134,7 +141,7 @@ class Font(BaseObject):
         dest.note = source.note
         dest.lib = deepcopy(source.lib)
         if dest.unicodes:
-            self._addToCMAP(dest)
+            self.unicodeData.addGlyphData(name, dest.unicodes)
         return dest
 
     def __iter__(self):
@@ -242,11 +249,11 @@ class Font(BaseObject):
         """
         if name not in self:
             raise KeyError, '%s not in font' % name
+        self.unicodeData.removeGlyphData(name, self[name].unicodes)
         if name in self._glyphs:
             del self._glyphs[name]
         if name in self._keys:
             self._keys.remove(name)
-        self._removeFromCMAP(name)
         if self._glyphSet is not None and name in self._glyphSet:
             self._scheduledForDeletion.append(name)
         self.dirty = True
@@ -317,45 +324,34 @@ class Font(BaseObject):
     # CMAP management
     # ---------------
 
-    def _removeFromCMAP(self, name):
+    def _removeFromUnicodeData(self, name):
         """
         >>> from defcon.test.testTools import getTestFontPath
         >>> font = Font(getTestFontPath())
         >>> font.newGlyph("A")
-        >>> font.cmap.get(65)
+        >>> font.unicodeData.get(65)
 
         >>> font = Font(getTestFontPath())
         >>> font.newGlyph("test")
         >>> glyph = font["test"]
         >>> glyph.unicodes = [65]
         >>> del font["A"]
-        >>> font.cmap.get(65)
+        >>> font.unicodeData.get(65)
         ['test']
         """
-        reversedCMAP = self.reversedCMAP
-        if name in reversedCMAP:
-            unicodes = reversedCMAP[name]
-            for value in unicodes:
-                self.cmap[value].remove(name)
-                if not self.cmap[value]:
-                    del self.cmap[value]
-        self.dispatcher.postNotification(notification="CMAP.Changed", observable=self)
+        pass
 
-    def _addToCMAP(self, glyph):
+    def _addToUnicodeData(self, glyph):
         """
         >>> from defcon.test.testTools import getTestFontPath
         >>> font = Font(getTestFontPath())
         >>> font.newGlyph("test")
         >>> glyph = font["test"]
         >>> glyph.unicodes = [123]
-        >>> font.cmap.get(123)
+        >>> font.unicodeData.get(123)
         ['test']
         """
-        for value in glyph.unicodes:
-            if value not in self.cmap:
-                self.cmap[value] = []
-            self.cmap[value].append(glyph.name)
-        self.dispatcher.postNotification(notification="CMAP.Changed", observable=self)
+        pass
 
     # ----------
     # Attributes
@@ -378,17 +374,12 @@ class Font(BaseObject):
     path = property(_get_path)
 
     def _get_reversedCMAP(self):
-        """
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> font = Font(getTestFontPath())
-        >>> font.reversedCMAP
-        {'A': [65], 'C': [67], 'B': [66]}
-        >>> font['A'].unicodes = [123, 456]
-        >>> font.reversedCMAP
-        {'A': [123, 456], 'C': [67], 'B': [66]}
-        """
+        import warnings
+        warnings.warn(
+            "Font.reversedCMAP is deprecated. Use the various methods in the Font.unicodeData object to get the reversed values.",
+            DeprecationWarning)
         map = {}
-        for univalue, nameList in self.cmap.items():
+        for univalue, nameList in self.unicodeData.items():
             for name in nameList:
                 if name not in map:
                     map[name] = []
@@ -396,6 +387,15 @@ class Font(BaseObject):
         return map
 
     reversedCMAP = property(_get_reversedCMAP)
+
+    def _get_cmap(self):
+        import warnings
+        warnings.warn(
+            "Font.cmap is deprecated. Use the Font.unicodeData object.",
+            DeprecationWarning)
+        return self.unicodeData
+
+    cmap = property(_get_cmap)
 
     def _get_glyphsWithOutlines(self):
         """
@@ -630,11 +630,15 @@ class Font(BaseObject):
         >>> font.dirty
         True
         """
-        oldName, newName = notification.data
+        data = notification.data
+        oldName = data["oldName"]
+        newName = data["newName"]
         glyph = self._glyphs[oldName]
         del self[oldName]
         self._glyphs[newName] = glyph
         self._keys.add(newName)
+        self.unicodeData.removeGlyphData(oldName, glyph.unicodes)
+        self.unicodeData.addGlyphData(newName, glyph.unicodes)
 
     def _glyphUnicodesChange(self, notification):
         """
@@ -642,24 +646,27 @@ class Font(BaseObject):
         >>> font = Font(getTestFontPath())
         >>> glyph = font['A']
         >>> glyph.unicodes = [123, 456]
-        >>> font.cmap[123]
+        >>> font.unicodeData[123]
         ['A']
-        >>> font.cmap[456]
+        >>> font.unicodeData[456]
         ['A']
-        >>> font.cmap[66]
+        >>> font.unicodeData[66]
         ['B']
-        >>> font.cmap.get(65)
+        >>> font.unicodeData.get(65)
 
         >>> font = Font(getTestFontPath())
         >>> font.newGlyph("test")
         >>> glyph = font["test"]
         >>> glyph.unicodes = [65]
-        >>> font.cmap[65]
+        >>> font.unicodeData[65]
         ['A', 'test']
         """
         glyphName = notification.object.name
-        self._removeFromCMAP(glyphName)
-        self._addToCMAP(self[glyphName])
+        data = notification.data
+        oldValues = data["oldValues"]
+        newValues = data["newValues"]
+        self.unicodeData.removeGlyphData(glyphName, oldValues)
+        self.unicodeData.addGlyphData(glyphName, newValues)
 
     # ---------------------
     # External Edit Support
@@ -1110,7 +1117,8 @@ class Font(BaseObject):
                 self._glyphSet.readGlyph(glyphName=glyphName, glyphObject=glyph, pointPen=pointPen)
                 glyph.dirty = False
                 self._stampGlyphDataState(glyph)
-        self.dispatcher.postNotification(notification="Font.ReloadedGlyphs", observable=self, data=glyphNames)
+        data = dict(glyphNames=glyphNames)
+        self.dispatcher.postNotification(notification="Font.ReloadedGlyphs", observable=self, data=data)
 
 
 if __name__ == "__main__":

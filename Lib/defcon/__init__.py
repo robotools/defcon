@@ -13,3 +13,4 @@ from defcon.objects.info import Info
 from defcon.objects.groups import Groups
 from defcon.objects.kerning import Kerning
 from defcon.objects.lib import Lib
+from defcon.objects.uniData import UnicodeData
