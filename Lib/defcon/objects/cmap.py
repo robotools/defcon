@@ -250,11 +250,77 @@ class UnicodeData(BaseDictObject):
             return None
         return self._forcedUnicodeToGlyphName[value]
 
-    # -------------
-    # Decomposition
-    # -------------
+    # ---------------------
+    # Description Retrieval
+    # ---------------------
 
-    def _findDecomposedBaseForGlyph(self, glyphName, allowPseudoUnicode):
+    def scriptForGlyphName(self, glyphName, allowPseudoUnicode=True):
+        """
+        >>> from defcon.objects.font import Font
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> path = getTestFontPath()
+        >>> font = Font(path)
+        >>> font.newGlyph("A.alt")
+        >>> font.unicodeData.scriptForGlyphName("A")
+        'Latin'
+        >>> font.unicodeData.scriptForGlyphName("A.alt")
+        'Latin'
+        >>> font.unicodeData.scriptForGlyphName("A.alt", False)
+        'Unknown'
+        """
+        if allowPseudoUnicode:
+            value = self.pseudoUnicodeForGlyphName(glyphName)
+        else:
+            value = self.unicodeForGlyphName(glyphName)
+        if value is None:
+            return "Unknown"
+        return unicodeTools.script(value)
+
+    def blockForGlyphName(self, glyphName, allowPseudoUnicode=True):
+        """
+        >>> from defcon.objects.font import Font
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> path = getTestFontPath()
+        >>> font = Font(path)
+        >>> font.newGlyph("A.alt")
+        >>> font.unicodeData.blockForGlyphName("A")
+        'Basic Latin'
+        >>> font.unicodeData.blockForGlyphName("A.alt")
+        'Basic Latin'
+        >>> font.unicodeData.blockForGlyphName("A.alt", False)
+        'No_Block'
+        """
+        if allowPseudoUnicode:
+            value = self.pseudoUnicodeForGlyphName(glyphName)
+        else:
+            value = self.unicodeForGlyphName(glyphName)
+        if value is None:
+            return "No_Block"
+        return unicodeTools.block(value)
+
+    def categoryForGlyphName(self, glyphName, allowPseudoUnicode=True):
+        """
+        >>> from defcon.objects.font import Font
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> path = getTestFontPath()
+        >>> font = Font(path)
+        >>> font.newGlyph("A.alt")
+        >>> font.unicodeData.categoryForGlyphName("A")
+        'Lu'
+        >>> font.unicodeData.categoryForGlyphName("A.alt")
+        'Lu'
+        >>> font.unicodeData.categoryForGlyphName("A.alt", False)
+        'Cn'
+        """
+        if allowPseudoUnicode:
+            value = self.pseudoUnicodeForGlyphName(glyphName)
+        else:
+            value = self.unicodeForGlyphName(glyphName)
+        if value is None:
+            return "Cn"
+        return unicodeTools.category(value)
+
+    def decompositionBaseForGlyphName(self, glyphName, allowPseudoUnicode=True):
         """
         >>> from defcon.objects.font import Font
         >>> from defcon.test.testTools import getTestFontPath
@@ -262,17 +328,17 @@ class UnicodeData(BaseDictObject):
         >>> font = Font(path)
         >>> font.newGlyph("Aacute")
         >>> font["Aacute"].unicode = int("00C1", 16)
-        >>> font.unicodeData._findDecomposedBaseForGlyph("Aacute", True)
+        >>> font.unicodeData.decompositionBaseForGlyphName("Aacute", True)
         'A'
         >>> font.newGlyph("Aringacute")
         >>> font["Aringacute"].unicode = int("01FA", 16)
-        >>> font.unicodeData._findDecomposedBaseForGlyph("Aringacute", True)
+        >>> font.unicodeData.decompositionBaseForGlyphName("Aringacute", True)
         'A'
         >>> font.newGlyph("Aacute.alt")
-        >>> font.unicodeData._findDecomposedBaseForGlyph("Aacute.alt", True)
+        >>> font.unicodeData.decompositionBaseForGlyphName("Aacute.alt", True)
         'A'
         >>> font.newGlyph("A.alt")
-        >>> font.unicodeData._findDecomposedBaseForGlyph("Aacute.alt", True)
+        >>> font.unicodeData.decompositionBaseForGlyphName("Aacute.alt", True)
         'A.alt'
         """
         if allowPseudoUnicode:
@@ -427,25 +493,18 @@ class UnicodeData(BaseDictObject):
         return result
 
     def _sortByScript(self, glyphNames, ascending, allowPseudoUnicode):
-        return self._sortByUnicodeLookup(glyphNames, ascending, allowPseudoUnicode, unicodeTools.script, unicodeTools.orderedScripts)
+        return self._sortByUnicodeLookup(glyphNames, ascending, allowPseudoUnicode, self.scriptForGlyphName, unicodeTools.orderedScripts)
 
     def _sortByBlock(self, glyphNames, ascending, allowPseudoUnicode):
-        return self._sortByUnicodeLookup(glyphNames, ascending, allowPseudoUnicode, unicodeTools.block, unicodeTools.orderedBlocks)
+        return self._sortByUnicodeLookup(glyphNames, ascending, allowPseudoUnicode, self.blockForGlyphName, unicodeTools.orderedBlocks)
 
     def _sortByCategory(self, glyphNames, ascending, allowPseudoUnicode):
-        return self._sortByUnicodeLookup(glyphNames, ascending, allowPseudoUnicode, unicodeTools.category, unicodeTools.orderedCategories)
+        return self._sortByUnicodeLookup(glyphNames, ascending, allowPseudoUnicode, self.categoryForGlyphName, unicodeTools.orderedCategories)
 
     def _sortByUnicodeLookup(self, glyphNames, ascending, allowPseudoUnicode, tagLookup, orderedTags):
         tagToGlyphs = {}
         for glyphName in glyphNames:
-            if allowPseudoUnicode:
-                value = self.pseudoUnicodeForGlyphName(glyphName)
-            else:
-                value = self.unicodeForGlyphName(glyphName)
-            if value is None:
-                tag = None
-            else:
-                tag = tagLookup(value)
+            tag = tagLookup(glyphName, allowPseudoUnicode)
             if tag not in tagToGlyphs:
                 tagToGlyphs[tag] = []
             tagToGlyphs[tag].append(glyphName)
