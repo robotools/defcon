@@ -17,6 +17,17 @@ class UnicodeData(BaseDictObject):
     # -----------
 
     def removeGlyphData(self, glyphName, values):
+        """
+        >>> from defcon.objects.font import Font
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> path = getTestFontPath()
+        >>> font = Font(path)
+        >>> font.newGlyph("XXX")
+        >>> font.unicodeData.addGlyphData("XXX", [65])
+        >>> font.unicodeData.removeGlyphData("A", [65])
+        >>> font.unicodeData[65]
+        ['XXX']
+        """
         for value in values:
             if value not in self._dict:
                 continue
@@ -33,6 +44,19 @@ class UnicodeData(BaseDictObject):
             self.dispatcher.postNotification(notification=self._notificationName, observable=self)
 
     def addGlyphData(self, glyphName, values):
+        """
+        >>> from defcon.objects.font import Font
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> path = getTestFontPath()
+        >>> font = Font(path)
+        >>> font.newGlyph("XXX")
+        >>> font.unicodeData.addGlyphData("XXX", [1000])
+        >>> font.unicodeData[1000]
+        ['XXX']
+        >>> font.unicodeData.addGlyphData("XXX", [65])
+        >>> font.unicodeData[65]
+        ['A', 'XXX']
+        """
         for value in values:
             # update unicode to glyph name
             glyphList = self._dict.get(value)
@@ -45,6 +69,16 @@ class UnicodeData(BaseDictObject):
             self.dispatcher.postNotification(notification=self._notificationName, observable=self)
 
     def __delitem__(self, value):
+        """
+        >>> from defcon.objects.font import Font
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> path = getTestFontPath()
+        >>> font = Font(path)
+        >>> del font.unicodeData[65]
+        >>> 65 in font.unicodeData
+        False
+        >>> font.unicodeData.glyphNameForUnicode(65)
+        """
         glyphList = self._dict.get(value)
         if glyphList is None:
             return
@@ -59,6 +93,19 @@ class UnicodeData(BaseDictObject):
             self.dispatcher.postNotification(notification=self._notificationName, observable=self)
 
     def __setitem__(self, value, glyphList):
+        """
+        >>> from defcon.objects.font import Font
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> path = getTestFontPath()
+        >>> font = Font(path)
+        >>> font.newGlyph("XXX")
+        >>> font.unicodeData[1000] = ["XXX"]
+        >>> font.unicodeData[1000]
+        ['XXX']
+        >>> font.unicodeData[65] = ["YYY"]
+        >>> font.unicodeData[65]
+        ['A', 'YYY']
+        """
         if value not in self._dict:
             self._dict[value] = []
         for glyphName in glyphList:
@@ -121,6 +168,14 @@ class UnicodeData(BaseDictObject):
     # ---------------
 
     def unicodeForGlyphName(self, glyphName):
+        """
+        >>> from defcon.objects.font import Font
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> path = getTestFontPath()
+        >>> font = Font(path)
+        >>> font.unicodeData.unicodeForGlyphName("A")
+        65
+        """
         font = self.getParent()
         if glyphName not in font:
             return None
@@ -131,12 +186,34 @@ class UnicodeData(BaseDictObject):
         return unicodes[0]
 
     def glyphNameForUnicode(self, value):
+        """
+        >>> from defcon.objects.font import Font
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> path = getTestFontPath()
+        >>> font = Font(path)
+        >>> font.unicodeData.glyphNameForUnicode(65)
+        'A'
+        """
         glyphList = self.get(value)
         if not glyphList:
             return None
         return glyphList[0]
 
     def pseudoUnicodeForGlyphName(self, glyphName):
+        """
+        >>> from defcon.objects.font import Font
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> path = getTestFontPath()
+        >>> font = Font(path)
+        >>> font.unicodeData.pseudoUnicodeForGlyphName("A")
+        65
+        >>> font.newGlyph("A.foo")
+        >>> font.unicodeData.pseudoUnicodeForGlyphName("A.foo")
+        65
+        >>> font.newGlyph("B_A")
+        >>> font.unicodeData.pseudoUnicodeForGlyphName("B_A")
+        66
+        """
         realValue = self.unicodeForGlyphName(glyphName)
         if realValue is not None:
             return realValue
@@ -148,7 +225,7 @@ class UnicodeData(BaseDictObject):
         # get the base
         base = glyphName.split(".")[0]
         # in the case of ligatures, grab the first glyph
-        base = glyphName.split("_")[0]
+        base = base.split("_")[0]
         # get the value for the base
         return self.unicodeForGlyphName(base)
 
@@ -178,6 +255,26 @@ class UnicodeData(BaseDictObject):
     # -------------
 
     def _findDecomposedBaseForGlyph(self, glyphName, allowPseudoUnicode):
+        """
+        >>> from defcon.objects.font import Font
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> path = getTestFontPath()
+        >>> font = Font(path)
+        >>> font.newGlyph("Aacute")
+        >>> font["Aacute"].unicode = int("00C1", 16)
+        >>> font.unicodeData._findDecomposedBaseForGlyph("Aacute", True)
+        'A'
+        >>> font.newGlyph("Aringacute")
+        >>> font["Aringacute"].unicode = int("01FA", 16)
+        >>> font.unicodeData._findDecomposedBaseForGlyph("Aringacute", True)
+        'A'
+        >>> font.newGlyph("Aacute.alt")
+        >>> font.unicodeData._findDecomposedBaseForGlyph("Aacute.alt", True)
+        'A'
+        >>> font.newGlyph("A.alt")
+        >>> font.unicodeData._findDecomposedBaseForGlyph("Aacute.alt", True)
+        'A.alt'
+        """
         if allowPseudoUnicode:
             uniValue = self.pseudoUnicodeForGlyphName(glyphName)
         else:
@@ -185,11 +282,12 @@ class UnicodeData(BaseDictObject):
         if uniValue is None:
             return
         if uniValue is not None:
-            decomposition = recursiveDecomposition(uniValue)
+            font = self.getParent()
+            decomposition = unicodeTools.decompositionBase(uniValue)
             if decomposition != -1:
                 if decomposition in font.unicodeData:
                     baseGlyphName = font.unicodeData[decomposition][0]
-                    if "." in glyphName.unicodeData:
+                    if "." in glyphName:
                         suffix = glyphName.split(".", 1)[1]
                         baseWithSuffix = baseGlyphName + "." + suffix
                         if baseWithSuffix in font:
