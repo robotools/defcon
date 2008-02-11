@@ -404,8 +404,6 @@ class UnicodeData(BaseDictObject):
         suffix - Sort based on glyph name suffix.
         decompositionBase = Sort based on the base glyph defined in the decomposition rules.
         """
-        if not isinstance(glyphNames, list):
-            glyphNames = list(glyphNames)
         blocks = [glyphNames]
         typeToMethod = dict(
             alphabetical=self._sortByAlphabet,
@@ -441,7 +439,7 @@ class UnicodeData(BaseDictObject):
     def _sortRecurse(self, blocks, sortMethod, ascending, allowPseudoUnicode):
         if not blocks:
             return []
-        if isinstance(blocks[0], list):
+        if not isinstance(list(blocks)[0], basestring):
             sortedBlocks = []
             for block in blocks:
                 block = self._sortRecurse(block, sortMethod, ascending, allowPseudoUnicode)
