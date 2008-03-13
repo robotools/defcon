@@ -1757,6 +1757,7 @@ def _parse(text):
     return result, orderedTags
 
 _scripts, orderedScripts = _parse(_scriptsText)
+orderedScripts.append("Unknown")
 _blocks, orderedBlocks = _parse(_blocksText)
 
 orderedCategories = """Lu
