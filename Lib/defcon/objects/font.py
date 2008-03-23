@@ -1,4 +1,5 @@
 import os
+import re
 import weakref
 from robofab.ufoLib import UFOReader, UFOWriter
 from defcon.objects.base import BaseObject
@@ -376,8 +377,6 @@ class Font(BaseObject):
         >>> sorted(font.glyphsWithOutlines)
         ['A', 'B']
         """
-        import re
-        import os
         pointRE = re.compile(
             "<\s*point\s+" # <point
             "[^>]+"        # anything except >
@@ -414,6 +413,50 @@ class Font(BaseObject):
         return found
 
     glyphsWithOutlines = property(_get_glyphsWithOutlines)
+
+    def _get_componentReferences(self):
+        """
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> font = Font(getTestFontPath())
+        >>> font.componentReferences
+        {'A': set(['C']), 'B': set(['C'])}
+        """
+        componentRE = re.compile(
+            "<\s*component\s+"  # <component
+            "[^>]*?"            # anything except >
+            "base\s*=\s*[\"\']" # base="
+            "(.*?)"             # glyph name
+            "[\"\']"            # "
+        )
+        found = {}
+        # scan loaded glyphs
+        for glyphName, glyph in self._glyphs.items():
+            if glyphName in self._scheduledForDeletion:
+                continue
+            if not glyph.components:
+                continue
+            for component in glyph.components:
+                baseGlyph = component.baseGlyph
+                if baseGlyph not in found:
+                    found[baseGlyph] = set()
+                found[baseGlyph].add(glyphName)
+        # scan glyphs that have not been loaded
+        glyphsPath = os.path.join(self.path, "glyphs")
+        for glyphName, fileName in self._glyphSet.contents.items():
+            if glyphName in self._glyphs or glyphName in self._scheduledForDeletion:
+                continue
+            glyphPath = os.path.join(glyphsPath, fileName)
+            f = open(glyphPath, "rb")
+            data = f.read()
+            f.close()
+            baseGlyphs = componentRE.findall(data)
+            for baseGlyph in baseGlyphs:
+                if baseGlyph not in found:
+                    found[baseGlyph] = set()
+                found[baseGlyph].add(glyphName)
+        return found
+
+    componentReferences = property(_get_componentReferences)
 
     # -----------
     # Sub-Objects
