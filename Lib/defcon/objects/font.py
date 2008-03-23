@@ -420,6 +420,9 @@ class Font(BaseObject):
         >>> font = Font(getTestFontPath())
         >>> font.componentReferences
         {'A': set(['C']), 'B': set(['C'])}
+        >>> glyph = font["C"]
+        >>> font.componentReferences
+        {'A': set(['C']), 'B': set(['C'])}
         """
         componentRE = re.compile(
             "<\s*component\s+"  # <component
