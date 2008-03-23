@@ -45,7 +45,10 @@ class Anchor(BaseObject):
         self.drawPoints(pointPen)
 
     def drawPoints(self, pointPen):
-        pass
+        pointPen.beginPath()
+        pointPen.addPoint((self.x, self.y), segmentType="move", smooth=False, name=self.name)
+        pointPen.endPath()
+
 
 if __name__ == "__main__":
     import doctest
