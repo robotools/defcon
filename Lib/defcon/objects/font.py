@@ -1125,6 +1125,7 @@ class Font(BaseObject):
                 self.loadGlyph(glyphName)
             else:
                 glyph = self._glyphs[glyphName]
+                glyph.destroyAllRepresentations(None)
                 glyph.clear()
                 pointPen = glyph.getPointPen()
                 self._glyphSet.readGlyph(glyphName=glyphName, glyphObject=glyph, pointPen=pointPen)
@@ -1146,7 +1147,8 @@ class Font(BaseObject):
                     continue
                 if reference in referenceChanges:
                     continue
-                glyph = self[reference]
+                glyph = self._glyphs[reference]
+                glyph.destroyAllRepresentations(None)
                 glyph.dispatcher.postNotification(notification=glyph._notificationName, observable=glyph)
                 referenceChanges.add(reference)
 
