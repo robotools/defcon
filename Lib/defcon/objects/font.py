@@ -1132,6 +1132,23 @@ class Font(BaseObject):
                 self._stampGlyphDataState(glyph)
         data = dict(glyphNames=glyphNames)
         self.dispatcher.postNotification(notification="Font.ReloadedGlyphs", observable=self, data=data)
+        # post a change notification for any glyphs that
+        # reference the reloaded glyphs via components.
+        componentReferences = self.componentReferences
+        referenceChanges = set()
+        for glyphName in glyphNames:
+            if glyphName not in componentReferences:
+                continue
+            for reference in componentReferences[glyphName]:
+                if reference in glyphNames:
+                    continue
+                if reference not in self._glyphs:
+                    continue
+                if reference in referenceChanges:
+                    continue
+                glyph = self[reference]
+                glyph.dispatcher.postNotification(notification=glyph._notificationName, observable=glyph)
+                referenceChanges.add(reference)
 
 
 if __name__ == "__main__":
