@@ -385,8 +385,9 @@ class Glyph(BaseObject):
 
     def _removeParentDataInContour(self, contour):
         contour.setParent(None)
-        contour.removeObserver(observer=self, notification="Contour.Changed")
-        contour._dispatcher = None
+        if contour._dispatcher is not None:
+            contour.removeObserver(observer=self, notification="Contour.Changed")
+            contour._dispatcher = None
 
     def _setParentDataInComponent(self, component):
         component.setParent(self)
@@ -397,8 +398,9 @@ class Glyph(BaseObject):
 
     def _removeParentDataInComponent(self, component):
         component.setParent(None)
-        component.removeObserver(observer=self, notification="Component.Changed")
-        component._dispatcher = None
+        if component._dispatcher is not None:
+            component.removeObserver(observer=self, notification="Component.Changed")
+            component._dispatcher = None
 
     def _setParentDataInAnchor(self, anchor):
         anchor.setParent(self)
