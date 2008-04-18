@@ -743,7 +743,7 @@ class Glyph(BaseObject):
         if key in self._representations:
             del self._representations[key]
 
-    def destroyAllRepresentations(self, notification):
+    def destroyAllRepresentations(self, notification=None):
         self._representations = {}
 
     def getRepresentation(self, name, **kwargs):
