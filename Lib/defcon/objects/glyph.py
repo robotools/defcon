@@ -212,6 +212,8 @@ class Glyph(BaseObject):
         >>> glyph.leftMargin = 100
         >>> glyph.leftMargin
         100
+        >>> glyph.width
+        800
         >>> glyph.dirty
         True
         """
@@ -222,6 +224,7 @@ class Glyph(BaseObject):
         diff = value - xMin
         self.move((diff, 0))
         self._width += diff
+        self.dirty = True
 
     leftMargin = property(_get_leftMargin, _set_leftMargin)
 
