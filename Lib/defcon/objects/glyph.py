@@ -17,7 +17,7 @@ class Glyph(BaseObject):
 
     _notificationName = "Glyph.Changed"
 
-    def __init__(self, dispatcher=None, contourClass=None, componentClass=None, anchorClass=None):
+    def __init__(self, contourClass=None, componentClass=None, anchorClass=None):
         super(Glyph, self).__init__()
         self._parent = None
         self._dirty = False
@@ -26,7 +26,7 @@ class Glyph(BaseObject):
         self._width = 0
         self.note = None
         self.lib = {}
-        self._dispatcher = dispatcher
+        self._dispatcher = None
 
         self._contours = []
         self._components = []
@@ -50,9 +50,6 @@ class Glyph(BaseObject):
         self.componentClass = componentClass
         self.anchorClass = anchorClass
 
-        if dispatcher is not None:
-            self.addObserver(observer=self, methodName="destroyAllRepresentations", notification="Glyph.Changed")
-
     def _set_dispatcher(self, dispatcher):
         super(Glyph, self)._set_dispatcher(dispatcher)
         if dispatcher is not None:
@@ -62,6 +59,7 @@ class Glyph(BaseObject):
                 self._setParentDataInComponent(component)
             for anchor in self._anchors:
                 self._setParentDataInAnchor(anchor)
+            self.addObserver(observer=self, methodName="destroyAllRepresentations", notification="Glyph.Changed")
 
     def _get_dispatcher(self):
         return super(Glyph, self)._get_dispatcher()

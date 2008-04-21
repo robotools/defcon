@@ -113,7 +113,7 @@ class Font(BaseObject):
         """
         if name in self:
             self.unicodeData.removeGlyphData(name, self[name].unicodes)
-        glyph = self._glyphClass(self.dispatcher, contourClass=self._glyphContourClass)
+        glyph = self._glyphClass(contourClass=self._glyphContourClass)
         glyph.name = name
         self._glyphs[name] = glyph
         self._setParentDataInGlyph(glyph)
