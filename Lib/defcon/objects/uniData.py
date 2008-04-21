@@ -119,7 +119,14 @@ class UnicodeData(BaseDictObject):
             self.dispatcher.postNotification(notification=self._notificationName, observable=self)
 
     def clear(self):
-        raise NotImplementedError
+        """
+        This will completely clear all stored data.
+        This should be done with extreme care under
+        very controlled circumstances.
+        """
+        self._dict.clear()
+        self._forcedUnicodeToGlyphName.clear()
+        self._glyphNameToForcedUnicode.clear()
 
     def update(self, other):
         for value, glyphList in other.items():
