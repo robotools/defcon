@@ -368,6 +368,76 @@ class UnicodeData(BaseDictObject):
                     return baseGlyphName
         return glyphName
 
+    def closeRelativeForGlyphName(self, glyphName, allowPseudoUnicode=True):
+        """
+        >>> from defcon.objects.font import Font
+        >>> font = Font()
+        >>> font.newGlyph("parenleft")
+        >>> font["parenleft"].unicode = int("0028", 16)
+        >>> font.newGlyph("parenright")
+        >>> font["parenright"].unicode = int("0029", 16)
+        >>> font.newGlyph("parenleft.alt")
+        >>> font.newGlyph("parenright.alt")
+        >>> font.unicodeData.closeRelativeForGlyphName("parenleft", True)
+        'parenright'
+        >>> font.unicodeData.closeRelativeForGlyphName("parenleft.alt", True)
+        'parenright.alt'
+        >>> del font["parenright.alt"]
+        >>> font.unicodeData.closeRelativeForGlyphName("parenleft.alt", True)
+        'parenright'
+        """
+        return self._openCloseSearch(glyphName, allowPseudoUnicode, unicodeTools.closeRelative)
+
+    def openRelativeForGlyphName(self, glyphName, allowPseudoUnicode=True):
+        """
+        >>> from defcon.objects.font import Font
+        >>> font = Font()
+        >>> font.newGlyph("parenleft")
+        >>> font["parenleft"].unicode = int("0028", 16)
+        >>> font.newGlyph("parenright")
+        >>> font["parenright"].unicode = int("0029", 16)
+        >>> font.newGlyph("parenleft.alt")
+        >>> font.newGlyph("parenright.alt")
+        >>> font.unicodeData.openRelativeForGlyphName("parenright", True)
+        'parenleft'
+        >>> font.unicodeData.openRelativeForGlyphName("parenright.alt", True)
+        'parenleft.alt'
+        >>> del font["parenleft.alt"]
+        >>> font.unicodeData.openRelativeForGlyphName("parenright.alt", True)
+        'parenleft'
+        """
+        return self._openCloseSearch(glyphName, allowPseudoUnicode, unicodeTools.openRelative)
+
+    def _openCloseSearch(self, glyphName, allowPseudoUnicode, lookup):
+        if allowPseudoUnicode:
+            uniValue = self.pseudoUnicodeForGlyphName(glyphName)
+        else:
+            uniValue = self.unicodeForGlyphName(glyphName)
+        if uniValue is None:
+            return
+        relativeValue = lookup(uniValue)
+        # no defined relative value. return.
+        if relativeValue is None:
+            return
+        # look for a hit on the unicode value.
+        # if none exists, return.
+        preciseMatch = self.glyphNameForUnicode(relativeValue)
+        if preciseMatch is None:
+            return
+        # pseudo unicode is not allowed. use precise match.
+        if not allowPseudoUnicode:
+            return preciseMatch
+        # add the suffix from the provided glyph name to the
+        # recise match and test for existence. if it does
+        # exist, return it. otherwise fallback to the
+        # precise match.
+        if "." in glyphName:
+            suffix = glyphName.split(".", 1)[1]
+            pseudoMatch = preciseMatch + "." + suffix
+            if pseudoMatch in self.getParent():
+                return pseudoMatch
+        return preciseMatch
+
     # -------
     # Sorting
     # -------
@@ -550,7 +620,7 @@ class UnicodeData(BaseDictObject):
             if base not in baseToGlyphNames:
                 baseToGlyphNames[base] = []
             baseToGlyphNames[base].append(glyphName)
-        # get the list of lgyphs with no base.
+        # get the list of glyphs with no base.
         noBase = baseToGlyphNames.pop(None)
         # find all bases that are not in the overall glyph names list
         missingBase = []
