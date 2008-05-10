@@ -339,7 +339,29 @@ class Font(BaseObject):
         """
         return self._path
 
-    path = property(_get_path)
+    def _set_path(self, path):
+        """
+        >>> import shutil
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> path1 = getTestFontPath()
+        >>> font = Font(path1)
+        >>> path2 = getTestFontPath("setPathTest.ufo")
+        >>> shutil.copytree(path1, path2)
+        >>> font.path = path2
+        >>> shutil.rmtree(path2)
+        """
+        # the file must already exist
+        assert os.path.exists(path)
+        # the glyphs directory must already exist
+        glyphsDir = os.path.join(path, "glyphs")
+        assert os.path.exists(glyphsDir)
+        # set the internal reference
+        self._path = path
+        # set the glyph set reference
+        if self._glyphSet is not None:
+            self._glyphSet.dirName = glyphsDir
+
+    path = property(_get_path, _set_path, doc="The location of the file on disk. Setting the path should only be done when the user has moved the file in the OS interface. Setting the path is not the same as a save operation.")
 
     def _get_reversedCMAP(self):
         import warnings
