@@ -736,11 +736,7 @@ class Glyph(BaseObject):
     # ---------------
 
     def destroyRepresentation(self, name, **kwargs):
-        if kwargs:
-            key = [name] + sorted(kwargs.items())
-            key = tuple(key)
-        else:
-            key = name
+        key = self._makeRepresentationKey(name, **kwargs)
         if key in self._representations:
             del self._representations[key]
 
@@ -748,16 +744,24 @@ class Glyph(BaseObject):
         self._representations = {}
 
     def getRepresentation(self, name, **kwargs):
-        if kwargs:
-            key = [name] + sorted(kwargs.items())
-            key = tuple(key)
-        else:
-            key = name
+        key = self._makeRepresentationKey(name, **kwargs)
         if key not in self._representations:
             factory = _representationFactories[name]
             representation = factory(self, self.getParent(), **kwargs)
             self._representations[key] = representation
         return self._representations[key]
+
+    def hasCachedRepresentation(self, name, **kwargs):
+        key = self._makeRepresentationKey(name, **kwargs)
+        return key in self._representations
+
+    def _makeRepresentationKey(self, name, **kwargs):
+        if kwargs:
+            key = [name] + sorted(kwargs.items())
+            key = tuple(key)
+        else:
+            key = name
+        return key
 
     # ----
     # Undo
