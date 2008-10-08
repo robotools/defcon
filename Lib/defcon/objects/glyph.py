@@ -735,6 +735,20 @@ class Glyph(BaseObject):
     # Representations
     # ---------------
 
+    def representationKeys(self):
+        representations = []
+        for key in self._representations.keys():
+            if isinstance(key, basestring):
+                name = key
+                kwargs = {}
+            else:
+                name = key[0]
+                kwargs = {}
+                for k, v in key[1:]:
+                    kwargs[k] = v
+            representations.append((name, kwargs))
+        return representations
+
     def destroyRepresentation(self, name, **kwargs):
         key = self._makeRepresentationKey(name, **kwargs)
         if key in self._representations:
