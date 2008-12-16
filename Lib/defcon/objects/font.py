@@ -1,6 +1,7 @@
 import os
 import re
 import weakref
+from fontTools.misc.arrayTools import unionRect
 from robofab.ufoLib import UFOReader, UFOWriter
 from defcon.objects.base import BaseObject
 from defcon.objects.glyph import Glyph
@@ -10,6 +11,82 @@ from defcon.objects.groups import Groups
 from defcon.objects.lib import Lib
 from defcon.objects.uniData import UnicodeData
 from defcon.tools.notifications import NotificationCenter
+
+
+# regular expressions used by various search methods
+outlineSearchPointRE = re.compile(
+    "<\s*point\s+" # <point
+    "[^>]+"        # anything except >
+    ">"            # >
+)
+
+componentSearchRE = re.compile(
+    "<\s*component\s+"  # <component
+    "[^>]*?"            # anything except >
+    "base\s*=\s*[\"\']" # base="
+    "(.*?)"             # glyph name
+    "[\"\']"            # "
+)
+
+controlBoundsPointRE = re.compile(
+    "<\s*point\s+"
+    "[^>]+"
+    ">"
+)
+controlBoundsPointXRE = re.compile(
+    "\s+"
+    "x\s*=\s*"
+    "[\"\']"
+    "([-\d]+)"
+    "[\"\']"
+)
+controlBoundsPointYRE = re.compile(
+    "\s+"
+    "y\s*=\s*"
+    "[\"\']"
+    "([-\d]+)"
+    "[\"\']"
+)
+controlBoundsComponentRE = re.compile(
+    "<\s*component\s+"
+    "[^>]*?"
+    ">"
+)
+controlBoundsComponentBaseRE = re.compile(
+    "base\s*=\s*[\"\']"
+    "(.*?)"
+    "[\"\']"
+)
+controlBoundsComponentXScaleRE = re.compile(
+    "xScale\s*=\s*[\"\']"
+    "([-.\d]+)"
+    "[\"\']"
+)
+controlBoundsComponentYScaleRE = re.compile(
+    "yScale\s*=\s*[\"\']"
+    "([-.\d]+)"
+    "[\"\']"
+)
+controlBoundsComponentXYScaleRE = re.compile(
+    "xyScale\s*=\s*[\"\']"
+    "([-.\d]+)"
+    "[\"\']"
+)
+controlBoundsComponentYXScaleRE = re.compile(
+    "yxScale\s*=\s*[\"\']"
+    "([-.\d]+)"
+    "[\"\']"
+)
+controlBoundsComponentXOffsetRE = re.compile(
+    "xOffset\s*=\s*[\"\']"
+    "([-\d]+)"
+    "[\"\']"
+)
+controlBoundsComponentYOffsetRE = re.compile(
+    "yOffset\s*=\s*[\"\']"
+    "([-\d]+)"
+    "[\"\']"
+)
 
 
 class Font(BaseObject):
@@ -399,11 +476,6 @@ class Font(BaseObject):
         >>> sorted(font.glyphsWithOutlines)
         ['A', 'B']
         """
-        pointRE = re.compile(
-            "<\s*point\s+" # <point
-            "[^>]+"        # anything except >
-            ">"            # >
-        )
         found = []
         # scan loaded glyphs
         for glyphName, glyph in self._glyphs.items():
@@ -422,7 +494,7 @@ class Font(BaseObject):
             f.close()
             containsPoints = False
             # use an re to extract all points
-            points = pointRE.findall(data)
+            points = outlineSearchPointRE.findall(data)
             # skip all moves, as individual moves
             # are anchors and therefore not part
             # of an outline.
@@ -446,13 +518,6 @@ class Font(BaseObject):
         >>> font.componentReferences
         {'A': set(['C']), 'B': set(['C'])}
         """
-        componentRE = re.compile(
-            "<\s*component\s+"  # <component
-            "[^>]*?"            # anything except >
-            "base\s*=\s*[\"\']" # base="
-            "(.*?)"             # glyph name
-            "[\"\']"            # "
-        )
         found = {}
         # scan loaded glyphs
         for glyphName, glyph in self._glyphs.items():
@@ -474,7 +539,7 @@ class Font(BaseObject):
             f = open(glyphPath, "rb")
             data = f.read()
             f.close()
-            baseGlyphs = componentRE.findall(data)
+            baseGlyphs = componentSearchRE.findall(data)
             for baseGlyph in baseGlyphs:
                 if baseGlyph not in found:
                     found[baseGlyph] = set()
@@ -482,6 +547,169 @@ class Font(BaseObject):
         return found
 
     componentReferences = property(_get_componentReferences)
+
+    def _get_bounds(self):
+        """
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> font = Font(getTestFontPath())
+        >>> font.bounds
+        (0, 0, 700, 700)
+        """
+        fontRect = None
+        for glyph in self:
+            glyphRect = glyph.bounds
+            if glyphRect is None:
+                continue
+            if fontRect is None:
+                fontRect = glyphRect
+            else:
+                fontRect = unionRect(fontRect, glyphRect)
+        return fontRect
+
+    bounds = property(_get_bounds, doc="The bounds of all glyphs in the font.")
+
+    def _get_controlPointBounds(self):
+        """
+        >>> from defcon.test.testTools import getTestFontPath
+        >>> font = Font(getTestFontPath())
+        >>> font.controlPointBounds
+        (0, 0, 700, 700)
+
+        #>>> font["A"].bounds
+        #(0, 0, 700, 700)
+        #>>> font["B"].bounds
+        #(0, 0, 700, 700)
+        #>>> font["C"].bounds
+        #(0.0, 0.0, 700.0, 700.0)
+        """
+        from fontTools.pens.boundsPen import ControlBoundsPen
+        from fontTools.misc.transform import Transform
+        # storage
+        glyphRects = {}
+        componentReferences = {}
+        # scan loaded glyphs
+        for glyphName, glyph in self._glyphs.items():
+            if glyphName in self._scheduledForDeletion:
+                continue
+            pen = ControlBoundsPen(self)
+            glyph.draw(pen)
+            glyphRect = pen.bounds
+            if glyphRect:
+                glyphRects[glyphName] = glyphRect
+        # scan glyphs that have not been loaded
+        if self.path is not None:
+            glyphsPath = os.path.join(self.path, "glyphs")
+            for glyphName, fileName in self._glyphSet.contents.items():
+                if glyphName in self._glyphs or glyphName in self._scheduledForDeletion:
+                    continue
+                # get the GLIF text
+                glyphPath = os.path.join(glyphsPath, fileName)
+                f = open(glyphPath, "rb")
+                data = f.read()
+                f.close()
+                # get the point bounding box
+                xMin = None
+                xMax = None
+                yMin = None
+                yMax = None
+                for line in controlBoundsPointRE.findall(data):
+                    x = controlBoundsPointXRE.findall(line)
+                    if not x:
+                        continue
+                    y = controlBoundsPointYRE.findall(line)
+                    if not y:
+                        continue
+                    x = int(x[0])
+                    if xMin is None:
+                        xMin = xMax = x
+                    if xMin > x:
+                        xMin = x
+                    if xMax < x:
+                        xMax = x
+                    y = int(y[0])
+                    if yMin is None:
+                        yMin = yMax = y
+                    if yMin > y:
+                        yMin = y
+                    if yMax < y:
+                        yMax = y
+                glyphRect = (xMin, yMin, xMax, yMax)
+                if None not in glyphRect:
+                    glyphRects[glyphName] = glyphRect
+                # get all component references
+                for line in controlBoundsComponentRE.findall(data):
+                    base = controlBoundsComponentBaseRE.findall(line)
+                    if not base:
+                        continue
+                    base = base[0]
+                    # xScale
+                    xScale = controlBoundsComponentXScaleRE.findall(line)
+                    if not xScale:
+                        xScale = [1]
+                    xScale = float(xScale[0])
+                    # yScale
+                    yScale = controlBoundsComponentYScaleRE.findall(line)
+                    if not yScale:
+                        yScale = [1]
+                    yScale = float(yScale[0])
+                    # xyScale
+                    xyScale = controlBoundsComponentXYScaleRE.findall(line)
+                    if not xyScale:
+                        xyScale = [0]
+                    xyScale = float(xyScale[0])
+                    # yxScale
+                    yxScale = controlBoundsComponentYXScaleRE.findall(line)
+                    if not yxScale:
+                        yxScale = [0]
+                    yxScale = float(yxScale[0])
+                    # xOffset
+                    xOffset = controlBoundsComponentXOffsetRE.findall(line)
+                    if not xOffset:
+                        xOffset = [0]
+                    xOffset = int(xOffset[0])
+                    # yOffset
+                    yOffset = controlBoundsComponentYOffsetRE.findall(line)
+                    if not yOffset:
+                        yOffset = [0]
+                    yOffset = int(yOffset[0])
+                    if glyphName not in componentReferences:
+                        componentReferences[glyphName] = []
+                    componentReferences[glyphName].append((base, xScale, xyScale, yxScale, yScale, xOffset, yOffset))
+        # get the transformed component bounding boxes and update the glyphs
+        for glyphName, components in componentReferences.items():
+            glyphRect = glyphRects.get(glyphName, (None, None, None, None))
+            # XXX this doesn't handle nested components
+            for base, xScale, xyScale, yxScale, yScale, xOffset, yOffset in components:
+                # base glyph doesn't exist
+                if base not in glyphRects:
+                    continue
+                baseRect = glyphRects[base]
+                # base glyph has no points
+                if None in baseRect:
+                    continue
+                # transform the base rect
+                transform = Transform(xx=xScale, xy=xyScale, yx=yxScale, yy=yScale, dx=xOffset, dy=yOffset)
+                xMin, yMin, xMax, yMax = baseRect
+                (xMin, yMin), (xMax, yMax) = transform.transformPoints([(xMin, yMin), (xMax, yMax)])
+                componentRect = (xMin, yMin, xMax, yMax)
+                # update the glyph rect
+                if None in glyphRect:
+                    glyphRect = componentRect
+                else:
+                    glyphRect = unionRect(glyphRect, componentRect)
+            # store the updated rect
+            glyphRects[glyphName] = glyphRect
+        # work out the unified rect
+        fontRect = None
+        for glyphRect in glyphRects.values():
+            if fontRect is None:
+                fontRect = glyphRect
+            elif glyphRect is not None:
+                fontRect = unionRect(fontRect, glyphRect)
+        # done
+        return fontRect
+
+    controlPointBounds = property(_get_controlPointBounds, doc="The control bounds of all glyphs in the font. This only measures the point positions, it does not measure curves. So, curves without points at the extrema will not be properly measured.")
 
     # -----------
     # Sub-Objects
