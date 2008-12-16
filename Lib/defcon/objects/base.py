@@ -47,6 +47,9 @@ class BaseObject(object):
     def removeObserver(self, observer, notification):
         self.dispatcher.removeObserver(observer=observer, notification=notification, observable=self)
 
+    def hasObserver(self, observer, notification):
+        return self.dispatcher.hasObserver(observer=observer, notification=notification, observable=self)
+
     def _set_dirty(self, value):
         """
         >>> from defcon.test.testTools import NotificationTestObject

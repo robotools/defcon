@@ -23,6 +23,18 @@ class NotificationCenter(object):
         observer = weakref.ref(observer)
         del self._observables[notification][observable][observer]
 
+    def hasObserver(self, observer, notification, observable):
+        if observable is not None:
+            observable = weakref.ref(observable)
+        observer = weakref.ref(observer)
+        if not notification not in self._observables:
+            return False
+        if observable not in self._observables[notification]:
+            return False
+        if observer not in self._observables[notification][observer]:
+            return False
+        return True
+
     def postNotification(self, notification, observable, data=None):
         observableObj = observable
         if observable is not None:
