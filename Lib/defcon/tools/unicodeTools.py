@@ -1998,9 +1998,9 @@ def _parseRangeText(text):
     result = list(sorted(result))
     return result, orderedTags
 
-_scripts, orderedScripts = _parseRangeText(_scriptsText)
+scriptRanges, orderedScripts = _parseRangeText(_scriptsText)
 orderedScripts.append("Unknown")
-_blocks, orderedBlocks = _parseRangeText(_blocksText)
+blockRanges, orderedBlocks = _parseRangeText(_blocksText)
 
 orderedCategories = """Lu
 Ll
@@ -2090,13 +2090,13 @@ def category(value):
     return unicodedata.category(c)
 
 def script(value):
-    scriptName = _searchRanges(value, _scripts)
+    scriptName = _searchRanges(value, scriptRanges)
     if scriptName is None:
         scriptName = "Unknown"
     return scriptName
 
 def block(value):
-    blockName = _searchRanges(value, _blocks)
+    blockName = _searchRanges(value, blockRanges)
     if blockName is None:
         blockName = "No_Block"
     return blockName
