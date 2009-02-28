@@ -1,0 +1,5 @@
+include License.txt
+include Install.txt
+recursive-include documentation *
+recursive-include testData *
+recursive-include Lib *.py

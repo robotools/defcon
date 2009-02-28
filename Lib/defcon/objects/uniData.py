@@ -5,6 +5,40 @@ from defcon.objects.base import BaseDictObject
 
 class UnicodeData(BaseDictObject):
 
+    """
+    This object serves Unicode data for the font.
+
+    **This object posts the following notifications:**
+
+    ===================  ====
+    Name                 Note
+    ===================  ====
+    UnicodeData.Changed  Posted when the *dirty* attribute is set.
+    ===================  ====
+
+    This object behaves like a dict. The keys are Unicode values and the
+    values are lists of glyph names associated with that unicode value::
+
+        {
+            65 : ["A"],
+            66 : ["B"],
+        }
+
+    To get the list o glyph names associated with a particular Unicode
+    value, do this::
+
+        glyphList = unicodeData[65]
+
+    The objectdefines many more convenient ways of interacting
+    with this data.
+
+    .. warning::
+
+        Setting data into this object manually is *highly* discouraged.
+        The object automatically keeps itself in sync with the font and the
+        glyphs contained in the font. No manual intervention is required.
+    """
+
     _notificationName = "UnicodeData.Changed"
 
     def __init__(self):
@@ -18,21 +52,17 @@ class UnicodeData(BaseDictObject):
 
     def removeGlyphData(self, glyphName, values):
         """
-        >>> from defcon.objects.font import Font
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> path = getTestFontPath()
-        >>> font = Font(path)
-        >>> font.newGlyph("XXX")
-        >>> font.unicodeData.addGlyphData("XXX", [65])
-        >>> font.unicodeData.removeGlyphData("A", [65])
-        >>> font.unicodeData[65]
-        ['XXX']
+        Remove the data for the glyph with **glyphName** and
+        the Unicode values **values**.
+
+        This should never be called directly.
         """
         for value in values:
             if value not in self._dict:
                 continue
             glyphList = self._dict[value]
-            glyphList.remove(glyphName)
+            if glyphName in glyphList:
+                glyphList.remove(glyphName)
             if not glyphList:
                 del self._dict[value]
         # remove the forced reference to the glyph
@@ -45,17 +75,10 @@ class UnicodeData(BaseDictObject):
 
     def addGlyphData(self, glyphName, values):
         """
-        >>> from defcon.objects.font import Font
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> path = getTestFontPath()
-        >>> font = Font(path)
-        >>> font.newGlyph("XXX")
-        >>> font.unicodeData.addGlyphData("XXX", [1000])
-        >>> font.unicodeData[1000]
-        ['XXX']
-        >>> font.unicodeData.addGlyphData("XXX", [65])
-        >>> font.unicodeData[65]
-        ['A', 'XXX']
+        Add the data for the glyph with **glyphName** and
+        the Unicode values **values**.
+
+        This should never be called directly.
         """
         for value in values:
             # update unicode to glyph name
@@ -69,16 +92,6 @@ class UnicodeData(BaseDictObject):
             self.dispatcher.postNotification(notification=self._notificationName, observable=self)
 
     def __delitem__(self, value):
-        """
-        >>> from defcon.objects.font import Font
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> path = getTestFontPath()
-        >>> font = Font(path)
-        >>> del font.unicodeData[65]
-        >>> 65 in font.unicodeData
-        False
-        >>> font.unicodeData.glyphNameForUnicode(65)
-        """
         glyphList = self._dict.get(value)
         if glyphList is None:
             return
@@ -93,19 +106,6 @@ class UnicodeData(BaseDictObject):
             self.dispatcher.postNotification(notification=self._notificationName, observable=self)
 
     def __setitem__(self, value, glyphList):
-        """
-        >>> from defcon.objects.font import Font
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> path = getTestFontPath()
-        >>> font = Font(path)
-        >>> font.newGlyph("XXX")
-        >>> font.unicodeData[1000] = ["XXX"]
-        >>> font.unicodeData[1000]
-        ['XXX']
-        >>> font.unicodeData[65] = ["YYY"]
-        >>> font.unicodeData[65]
-        ['A', 'YYY']
-        """
         if value not in self._dict:
             self._dict[value] = []
         for glyphName in glyphList:
@@ -120,15 +120,20 @@ class UnicodeData(BaseDictObject):
 
     def clear(self):
         """
-        This will completely clear all stored data.
-        This should be done with extreme care under
-        very controlled circumstances.
+        Completely remove all stored data.
+
+        This should never be called directly.
         """
         self._dict.clear()
         self._forcedUnicodeToGlyphName.clear()
         self._glyphNameToForcedUnicode.clear()
 
     def update(self, other):
+        """
+        Update the data int this object with the data from **other**.
+
+        This should never be called directly.
+        """
         for value, glyphList in other.items():
             for glyphName in glyphList:
                 if glyphName in self._glyphNameToForcedUnicode:
@@ -176,12 +181,8 @@ class UnicodeData(BaseDictObject):
 
     def unicodeForGlyphName(self, glyphName):
         """
-        >>> from defcon.objects.font import Font
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> path = getTestFontPath()
-        >>> font = Font(path)
-        >>> font.unicodeData.unicodeForGlyphName("A")
-        65
+        Get the Unicode value for **glyphName**. Returns *None*
+        if no value is found.
         """
         font = self.getParent()
         if glyphName not in font:
@@ -194,12 +195,8 @@ class UnicodeData(BaseDictObject):
 
     def glyphNameForUnicode(self, value):
         """
-        >>> from defcon.objects.font import Font
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> path = getTestFontPath()
-        >>> font = Font(path)
-        >>> font.unicodeData.glyphNameForUnicode(65)
-        'A'
+        Get the first glyph assigned to the Unicode specified
+        as **value**. This will return *None* if no glyph is found.
         """
         glyphList = self.get(value)
         if not glyphList:
@@ -208,18 +205,8 @@ class UnicodeData(BaseDictObject):
 
     def pseudoUnicodeForGlyphName(self, glyphName):
         """
-        >>> from defcon.objects.font import Font
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> path = getTestFontPath()
-        >>> font = Font(path)
-        >>> font.unicodeData.pseudoUnicodeForGlyphName("A")
-        65
-        >>> font.newGlyph("A.foo")
-        >>> font.unicodeData.pseudoUnicodeForGlyphName("A.foo")
-        65
-        >>> font.newGlyph("B_A")
-        >>> font.unicodeData.pseudoUnicodeForGlyphName("B_A")
-        66
+        Get the pseudo-Unicode value for **glyphName**.
+        This will return *None* if nothing is found.
         """
         realValue = self.unicodeForGlyphName(glyphName)
         if realValue is not None:
@@ -237,6 +224,9 @@ class UnicodeData(BaseDictObject):
         return self.unicodeForGlyphName(base)
 
     def forcedUnicodeForGlyphName(self, glyphName):
+        """
+        Get the forced-Unicode value for **glyphName**.
+        """
         realValue = self.unicodeForGlyphName(glyphName)
         if realValue is not None:
             return realValue
@@ -245,6 +235,10 @@ class UnicodeData(BaseDictObject):
         return self._glyphNameToForcedUnicode[glyphName]
 
     def glyphNameForForcedUnicode(self, value):
+        """
+        Get the glyph name assigned to the forced-Unicode
+        specified by **value**.
+        """
         if value in self:
             glyphName = self[value]
             if isinstance(glyphName, list):
@@ -263,17 +257,9 @@ class UnicodeData(BaseDictObject):
 
     def scriptForGlyphName(self, glyphName, allowPseudoUnicode=True):
         """
-        >>> from defcon.objects.font import Font
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> path = getTestFontPath()
-        >>> font = Font(path)
-        >>> font.newGlyph("A.alt")
-        >>> font.unicodeData.scriptForGlyphName("A")
-        'Latin'
-        >>> font.unicodeData.scriptForGlyphName("A.alt")
-        'Latin'
-        >>> font.unicodeData.scriptForGlyphName("A.alt", False)
-        'Unknown'
+        Get the script for **glyphName**. If **allowPseudoUnicode** is
+        True, a pseudo-Unicode value will be used if needed. This will
+        return *None* if nothing can be found.
         """
         if allowPseudoUnicode:
             value = self.pseudoUnicodeForGlyphName(glyphName)
@@ -285,17 +271,9 @@ class UnicodeData(BaseDictObject):
 
     def blockForGlyphName(self, glyphName, allowPseudoUnicode=True):
         """
-        >>> from defcon.objects.font import Font
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> path = getTestFontPath()
-        >>> font = Font(path)
-        >>> font.newGlyph("A.alt")
-        >>> font.unicodeData.blockForGlyphName("A")
-        'Basic Latin'
-        >>> font.unicodeData.blockForGlyphName("A.alt")
-        'Basic Latin'
-        >>> font.unicodeData.blockForGlyphName("A.alt", False)
-        'No_Block'
+        Get the block for **glyphName**. If **allowPseudoUnicode** is
+        True, a pseudo-Unicode value will be used if needed. This will
+        return *None* if nothing can be found.
         """
         if allowPseudoUnicode:
             value = self.pseudoUnicodeForGlyphName(glyphName)
@@ -307,17 +285,9 @@ class UnicodeData(BaseDictObject):
 
     def categoryForGlyphName(self, glyphName, allowPseudoUnicode=True):
         """
-        >>> from defcon.objects.font import Font
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> path = getTestFontPath()
-        >>> font = Font(path)
-        >>> font.newGlyph("A.alt")
-        >>> font.unicodeData.categoryForGlyphName("A")
-        'Lu'
-        >>> font.unicodeData.categoryForGlyphName("A.alt")
-        'Lu'
-        >>> font.unicodeData.categoryForGlyphName("A.alt", False)
-        'Cn'
+        Get the category for **glyphName**. If **allowPseudoUnicode** is
+        True, a pseudo-Unicode value will be used if needed. This will
+        return *None* if nothing can be found.
         """
         if allowPseudoUnicode:
             value = self.pseudoUnicodeForGlyphName(glyphName)
@@ -329,31 +299,16 @@ class UnicodeData(BaseDictObject):
 
     def decompositionBaseForGlyphName(self, glyphName, allowPseudoUnicode=True):
         """
-        >>> from defcon.objects.font import Font
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> path = getTestFontPath()
-        >>> font = Font(path)
-        >>> font.newGlyph("Aacute")
-        >>> font["Aacute"].unicode = int("00C1", 16)
-        >>> font.unicodeData.decompositionBaseForGlyphName("Aacute", True)
-        'A'
-        >>> font.newGlyph("Aringacute")
-        >>> font["Aringacute"].unicode = int("01FA", 16)
-        >>> font.unicodeData.decompositionBaseForGlyphName("Aringacute", True)
-        'A'
-        >>> font.newGlyph("Aacute.alt")
-        >>> font.unicodeData.decompositionBaseForGlyphName("Aacute.alt", True)
-        'A'
-        >>> font.newGlyph("A.alt")
-        >>> font.unicodeData.decompositionBaseForGlyphName("Aacute.alt", True)
-        'A.alt'
+        Get the decomposition base for **glyphName**. If **allowPseudoUnicode**
+        is True, a pseudo-Unicode value will be used if needed. This will
+        return *glyphName* if nothing can be found.
         """
         if allowPseudoUnicode:
             uniValue = self.pseudoUnicodeForGlyphName(glyphName)
         else:
             uniValue = self.unicodeForGlyphName(glyphName)
         if uniValue is None:
-            return
+            return glyphName
         if uniValue is not None:
             font = self.getParent()
             decomposition = unicodeTools.decompositionBase(uniValue)
@@ -370,41 +325,23 @@ class UnicodeData(BaseDictObject):
 
     def closeRelativeForGlyphName(self, glyphName, allowPseudoUnicode=True):
         """
-        >>> from defcon.objects.font import Font
-        >>> font = Font()
-        >>> font.newGlyph("parenleft")
-        >>> font["parenleft"].unicode = int("0028", 16)
-        >>> font.newGlyph("parenright")
-        >>> font["parenright"].unicode = int("0029", 16)
-        >>> font.newGlyph("parenleft.alt")
-        >>> font.newGlyph("parenright.alt")
-        >>> font.unicodeData.closeRelativeForGlyphName("parenleft", True)
-        'parenright'
-        >>> font.unicodeData.closeRelativeForGlyphName("parenleft.alt", True)
-        'parenright.alt'
-        >>> del font["parenright.alt"]
-        >>> font.unicodeData.closeRelativeForGlyphName("parenleft.alt", True)
-        'parenright'
+        Get the close relative for **glyphName**. For example, if you
+        request the close relative of the glyph name for the character (,
+        you will be given the glyph name for the character ) if it exists
+        in the font. If **allowPseudoUnicode** is True, a pseudo-Unicode
+        value will be used if needed. This will return *None* if nothing
+        can be found.
         """
         return self._openCloseSearch(glyphName, allowPseudoUnicode, unicodeTools.closeRelative)
 
     def openRelativeForGlyphName(self, glyphName, allowPseudoUnicode=True):
         """
-        >>> from defcon.objects.font import Font
-        >>> font = Font()
-        >>> font.newGlyph("parenleft")
-        >>> font["parenleft"].unicode = int("0028", 16)
-        >>> font.newGlyph("parenright")
-        >>> font["parenright"].unicode = int("0029", 16)
-        >>> font.newGlyph("parenleft.alt")
-        >>> font.newGlyph("parenright.alt")
-        >>> font.unicodeData.openRelativeForGlyphName("parenright", True)
-        'parenleft'
-        >>> font.unicodeData.openRelativeForGlyphName("parenright.alt", True)
-        'parenleft.alt'
-        >>> del font["parenleft.alt"]
-        >>> font.unicodeData.openRelativeForGlyphName("parenright.alt", True)
-        'parenleft'
+        Get the open relative for **glyphName**. For example, if you
+        request the open relative of the glyph name for the character ),
+        you will be given the glyph name for the character ( if it exists
+        in the font. If **allowPseudoUnicode** is True, a pseudo-Unicode
+        value will be used if needed. This will return *None* if nothing
+        can be found.
         """
         return self._openCloseSearch(glyphName, allowPseudoUnicode, unicodeTools.openRelative)
 
@@ -444,42 +381,56 @@ class UnicodeData(BaseDictObject):
 
     def sortGlyphNames(self, glyphNames, sortDescriptors=[dict(type="unicode")]):
         """
-        This sorts the list of glyphs following the sort descriptors
-        provided in the sortDescriptors list. Ths works by iterating over
+        This sorts the list of **glyphNames** following the sort descriptors
+        provided in the **sortDescriptors** list. Ths works by iterating over
         the sort descriptors and subdividing. For example, if the first
         sort descriptor is a suffix type, internally, the result of the
-        sort will look something like this:
+        sort will look something like this::
+
             [
-                [glyphs with no suffix],
-                [glyphs with suffix 1],
-                [glyphs with suffix 2]
+                [glyphsWithNoSuffix],
+                [glyphsWith.suffix1],
+                [glyphsWith.suffix2]
             ]
+
         When the second sort descriptor is processed, the results of previous
         sorts are subdivided even further. For example, if the second
-        sort type is script:
+        sort type is script::
+
             [[
-                [glyphs with no suffix, script 1], [glyphs with no suffix, script 2],
-                [glyphs with suffix 1, script 1], [glyphs with suffix 1, script 2],
-                [glyphs with suffix 2, script 1], [glyphs with suffix 2, script 2]
+                [glyphsWithNoSuffix, script1], [glyphsWithNoSuffix, script2],
+                [glyphsWith.suffix1, script1], [glyphsWith.suffix1, script2],
+                [glyphsWith.suffix2, script1], [glyphsWith.suffix2, script2]
             ]]
-        And so on. The returned list will be flattened.
 
-        Sort Descriptor - A dict containing the following:
-        type - The type of sort to perform. See below for options.
-        ascending - Boolean representing if the glyphs should be in
-            ascending or descending order. Optional. The default is True.
-        allowPseudoUnicode - Boolean representing if pseudo Unicode
-            values are used. If not, real Unicode values will be used
-            if necessary. Optional. The default is False.
+        And so on. The returned list will be flattened into a list of glyph names.
 
-        Sort Types:
-        alphabetical - Self-explanitory.
-        unicode - Sort based on Unicode value.
-        script - Sort based on Unicode script.
-        category - Sort based on Unicode category.
-        block - Sort vased on Unicode block.
-        suffix - Sort based on glyph name suffix.
-        decompositionBase = Sort based on the base glyph defined in the decomposition rules.
+        Each item in **sortDescriptors** shoudl be a dict of the following form:
+
+        ==================  ===========
+        Key                 Description
+        ==================  ===========
+        type                The type of sort to perform. See below for options.
+        ascending           Boolean representing if the glyphs should be in
+                            ascending or descending order. Optional. The default is True.
+        allowPseudoUnicode  Boolean representing if pseudo-Unicode
+                            values are used. If not, real Unicode values will be used
+                            if necessary. Optional. The default is False.
+        ==================  ===========
+
+        *Available Sort Types:*
+
+        =================  ===========
+        Type               Description
+        =================  ===========
+        alphabetical       Self-explanitory.
+        unicode            Sort based on Unicode value.
+        script             Sort based on Unicode script.
+        category           Sort based on Unicode category.
+        block              Sort based on Unicode block.
+        suffix             Sort based on glyph name suffix.
+        decompositionBase  Sort based on the base glyph defined in the decomposition rules.
+        =================  ===========
         """
         blocks = [glyphNames]
         typeToMethod = dict(
@@ -701,6 +652,206 @@ def _findAvailablePUACode(existing, code=None):
         else:
             return _findAvailablePUACode(existing, code)
 
+
+# -----
+# Tests
+# -----
+
+def _testRemoveGlyphData():
+    """
+    >>> from defcon.objects.font import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath()
+    >>> font = Font(path)
+    >>> font.newGlyph("XXX")
+    >>> font.unicodeData.addGlyphData("XXX", [65])
+    >>> font.unicodeData.removeGlyphData("A", [65])
+    >>> font.unicodeData[65]
+    ['XXX']
+    """
+
+def _testAddGlyphData():
+    """
+    >>> from defcon.objects.font import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath()
+    >>> font = Font(path)
+    >>> font.newGlyph("XXX")
+    >>> font.unicodeData.addGlyphData("XXX", [1000])
+    >>> font.unicodeData[1000]
+    ['XXX']
+    >>> font.unicodeData.addGlyphData("XXX", [65])
+    >>> font.unicodeData[65]
+    ['A', 'XXX']
+    """
+
+def _testDelitem():
+    """
+    >>> from defcon.objects.font import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath()
+    >>> font = Font(path)
+    >>> del font.unicodeData[65]
+    >>> 65 in font.unicodeData
+    False
+    >>> font.unicodeData.glyphNameForUnicode(65)
+    """
+
+def _testSetitem():
+    """
+    >>> from defcon.objects.font import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath()
+    >>> font = Font(path)
+    >>> font.newGlyph("XXX")
+    >>> font.unicodeData[1000] = ["XXX"]
+    >>> font.unicodeData[1000]
+    ['XXX']
+    >>> font.unicodeData[65] = ["YYY"]
+    >>> font.unicodeData[65]
+    ['A', 'YYY']
+    """
+
+def _testUnicodeForGlyphName():
+    """
+    >>> from defcon.objects.font import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath()
+    >>> font = Font(path)
+    >>> font.unicodeData.unicodeForGlyphName("A")
+    65
+    """
+
+def _testGlyphNameForUnicode():
+    """
+    >>> from defcon.objects.font import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath()
+    >>> font = Font(path)
+    >>> font.unicodeData.glyphNameForUnicode(65)
+    'A'
+    """
+
+def _testPseudoUnicodeForGlyphName():
+    """
+    >>> from defcon.objects.font import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath()
+    >>> font = Font(path)
+    >>> font.unicodeData.pseudoUnicodeForGlyphName("A")
+    65
+    >>> font.newGlyph("A.foo")
+    >>> font.unicodeData.pseudoUnicodeForGlyphName("A.foo")
+    65
+    >>> font.newGlyph("B_A")
+    >>> font.unicodeData.pseudoUnicodeForGlyphName("B_A")
+    66
+    """
+
+def _testScriptForGlyphName():
+    """
+    >>> from defcon.objects.font import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath()
+    >>> font = Font(path)
+    >>> font.newGlyph("A.alt")
+    >>> font.unicodeData.scriptForGlyphName("A")
+    'Latin'
+    >>> font.unicodeData.scriptForGlyphName("A.alt")
+    'Latin'
+    >>> font.unicodeData.scriptForGlyphName("A.alt", False)
+    'Unknown'
+    """
+
+def _testBlockForGlyphName():
+    """
+    >>> from defcon.objects.font import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath()
+    >>> font = Font(path)
+    >>> font.newGlyph("A.alt")
+    >>> font.unicodeData.blockForGlyphName("A")
+    'Basic Latin'
+    >>> font.unicodeData.blockForGlyphName("A.alt")
+    'Basic Latin'
+    >>> font.unicodeData.blockForGlyphName("A.alt", False)
+    'No_Block'
+    """
+
+def _testCategoryForGlyphName():
+    """
+    >>> from defcon.objects.font import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath()
+    >>> font = Font(path)
+    >>> font.newGlyph("A.alt")
+    >>> font.unicodeData.categoryForGlyphName("A")
+    'Lu'
+    >>> font.unicodeData.categoryForGlyphName("A.alt")
+    'Lu'
+    >>> font.unicodeData.categoryForGlyphName("A.alt", False)
+    'Cn'
+    """
+
+def _testDecompositionBaseForGlyphName():
+    """
+    >>> from defcon.objects.font import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath()
+    >>> font = Font(path)
+    >>> font.newGlyph("Aacute")
+    >>> font["Aacute"].unicode = int("00C1", 16)
+    >>> font.unicodeData.decompositionBaseForGlyphName("Aacute", True)
+    'A'
+    >>> font.newGlyph("Aringacute")
+    >>> font["Aringacute"].unicode = int("01FA", 16)
+    >>> font.unicodeData.decompositionBaseForGlyphName("Aringacute", True)
+    'A'
+    >>> font.newGlyph("Aacute.alt")
+    >>> font.unicodeData.decompositionBaseForGlyphName("Aacute.alt", True)
+    'A'
+    >>> font.newGlyph("A.alt")
+    >>> font.unicodeData.decompositionBaseForGlyphName("Aacute.alt", True)
+    'A.alt'
+    """
+
+def _testCloseReleativeForGlyphName():
+    """
+    >>> from defcon.objects.font import Font
+    >>> font = Font()
+    >>> font.newGlyph("parenleft")
+    >>> font["parenleft"].unicode = int("0028", 16)
+    >>> font.newGlyph("parenright")
+    >>> font["parenright"].unicode = int("0029", 16)
+    >>> font.newGlyph("parenleft.alt")
+    >>> font.newGlyph("parenright.alt")
+    >>> font.unicodeData.closeRelativeForGlyphName("parenleft", True)
+    'parenright'
+    >>> font.unicodeData.closeRelativeForGlyphName("parenleft.alt", True)
+    'parenright.alt'
+    >>> del font["parenright.alt"]
+    >>> font.unicodeData.closeRelativeForGlyphName("parenleft.alt", True)
+    'parenright'
+    """
+
+def _testOpenRelativeForGlyphName():
+    """
+    >>> from defcon.objects.font import Font
+    >>> font = Font()
+    >>> font.newGlyph("parenleft")
+    >>> font["parenleft"].unicode = int("0028", 16)
+    >>> font.newGlyph("parenright")
+    >>> font["parenright"].unicode = int("0029", 16)
+    >>> font.newGlyph("parenleft.alt")
+    >>> font.newGlyph("parenright.alt")
+    >>> font.unicodeData.openRelativeForGlyphName("parenright", True)
+    'parenleft'
+    >>> font.unicodeData.openRelativeForGlyphName("parenright.alt", True)
+    'parenleft.alt'
+    >>> del font["parenleft.alt"]
+    >>> font.unicodeData.openRelativeForGlyphName("parenright.alt", True)
+    'parenleft'
+    """
 
 if __name__ == "__main__":
     import doctest

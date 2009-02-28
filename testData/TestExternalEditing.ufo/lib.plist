@@ -8,5 +8,26 @@
 		<string>B</string>
 		<string>C</string>
 	</array>
+	<key>org.robofab.postScriptHintData</key>
+	<dict>
+		<key>blueValues</key>
+		<array>
+		</array>
+		<key>familyBlues</key>
+		<array>
+		</array>
+		<key>familyOtherBlues</key>
+		<array>
+		</array>
+		<key>hStems</key>
+		<array>
+		</array>
+		<key>otherBlues</key>
+		<array>
+		</array>
+		<key>vStems</key>
+		<array>
+		</array>
+	</dict>
 </dict>
 </plist>

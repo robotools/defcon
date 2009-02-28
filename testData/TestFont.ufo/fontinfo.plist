@@ -30,8 +30,6 @@
 	<integer>1</integer>
 	<key>versionMinor</key>
 	<integer>0</integer>
-	<key>weightValue</key>
-	<integer>-1</integer>
 	<key>widthName</key>
 	<string>Normal</string>
 	<key>xHeight</key>

@@ -15,11 +15,11 @@
 	<key>fontStyle</key>
 	<integer>64</integer>
 	<key>italicAngle</key>
-	<real>0.0</real>
+	<integer>0</integer>
 	<key>msCharSet</key>
 	<integer>0</integer>
 	<key>slantAngle</key>
-	<real>0.0</real>
+	<integer>0</integer>
 	<key>ttVendor</key>
 	<string>pyrs</string>
 	<key>uniqueID</key>
@@ -30,10 +30,8 @@
 	<integer>1</integer>
 	<key>versionMinor</key>
 	<integer>0</integer>
-	<key>weightValue</key>
-	<integer>-1</integer>
 	<key>widthName</key>
-	<string>Normal</string>
+	<string>Medium (normal)</string>
 	<key>xHeight</key>
 	<integer>500</integer>
 	<key>year</key>

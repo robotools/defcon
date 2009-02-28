@@ -2,12 +2,13 @@ import os
 import re
 import weakref
 from fontTools.misc.arrayTools import unionRect
-from robofab.ufoLib import UFOReader, UFOWriter
+from robofab import ufoLib
 from defcon.objects.base import BaseObject
 from defcon.objects.glyph import Glyph
 from defcon.objects.info import Info
 from defcon.objects.kerning import Kerning
 from defcon.objects.groups import Groups
+from defcon.objects.features import Features
 from defcon.objects.lib import Lib
 from defcon.objects.uniData import UnicodeData
 from defcon.tools.notifications import NotificationCenter
@@ -91,11 +92,50 @@ controlBoundsComponentYOffsetRE = re.compile(
 
 class Font(BaseObject):
 
+    """
+    If loading from an existing UFO, **path** should be the path to the UFO.
+
+    If you subclass one of the sub objects, such as :class:`Glyph`,
+    the class must be registered when the font is created for defcon
+    to know about it. The **\*Class** arguments allow for individual
+    ovverrides. If None is provided for an argument, the defcon
+    appropriate class will be used.
+
+    **This object posts the following notifications:**
+
+    ===================  ====
+    Name                 Note
+    ===================  ====
+    Font.Changed         Posted when the *dirty* attribute is set.
+    Font.ReloadedGlyphs  Posted after the *reloadGlyphs* method has been called.
+    ===================  ====
+
+    The Font object has some dict like behavior. For example, to get a glyph::
+
+        glyph = font["aGlyphName"]
+
+    To iterate over all glyphs::
+
+        for glyph in font:
+
+    To get the number of glyphs::
+
+        glyphCount = len(font)
+
+    To find out if a font contains a particular glyph::
+
+        exists = "aGlyphName" in font
+
+    To remove a glyph::
+
+        del font["aGlyphName"]
+    """
+
     _notificationName = "Font.Changed"
 
     def __init__(self, path=None,
-                    kerningClass=None, infoClass=None, groupsClass=None, libClass=None,
-                    unicodeDataClass=None, glyphClass=None, glyphContourClass=None):
+                    kerningClass=None, infoClass=None, groupsClass=None, featuresClass=None, libClass=None, unicodeDataClass=None,
+                    glyphClass=None, glyphContourClass=None, glyphComponentClass=None, glyphAnchorClass=None):
         super(Font, self).__init__()
         if glyphClass is None:
             glyphClass = Glyph
@@ -105,6 +145,8 @@ class Font(BaseObject):
             kerningClass = Kerning
         if groupsClass is None:
             groupsClass = Groups
+        if featuresClass is None:
+            featuresClass = Features
         if libClass is None:
             libClass = Lib
         if unicodeDataClass is None:
@@ -114,13 +156,17 @@ class Font(BaseObject):
 
         self._glyphClass = glyphClass
         self._glyphContourClass = glyphContourClass
+        self._glyphComponentClass = glyphComponentClass
+        self._glyphAnchorClass = glyphAnchorClass
 
         self._kerningClass = kerningClass
         self._infoClass = infoClass
         self._groupsClass = groupsClass
+        self._featuresClass = featuresClass
         self._libClass = libClass
 
         self._path = path
+        self._ufoFormatVersion = None
 
         self._glyphs = {}
         self._glyphSet = None
@@ -130,25 +176,32 @@ class Font(BaseObject):
         self._kerning = None
         self._info = None
         self._groups = None
+        self._features = None
         self._lib = None
 
-        self.unicodeData = unicodeDataClass()
-        self.unicodeData.setParent(self)
+        self._unicodeData = unicodeDataClass()
+        self._unicodeData.setParent(self)
 
         self._dirty = False
 
         if path:
-            r = UFOReader(self._path)
-            self._glyphSet = r.getGlyphSet()
+            reader = ufoLib.UFOReader(self._path)
+            self._ufoFormatVersion = reader.formatVersion
+            self._glyphSet = reader.getGlyphSet()
             self._keys = set(self._glyphSet.keys())
-            self.unicodeData.update(r.getCharacterMapping())
+            self._unicodeData.update(reader.getCharacterMapping())
+            # if the UFO version is 1, do some conversion..
+            if self._ufoFormatVersion == 1:
+                self._convertFromFormatVersion1RoboFabData()
 
-        self.unicodeData.dispatcher = self.dispatcher
+        self._unicodeData.dispatcher = self.dispatcher
 
     def _loadGlyph(self, name):
         if self._glyphSet is None or not self._glyphSet.has_key(name):
             raise KeyError, '%s not in font' % name
-        glyph = self._glyphClass(contourClass=self._glyphContourClass)
+        glyph = self._glyphClass(contourClass=self._glyphContourClass,
+            componentClass=self._glyphComponentClass, anchorClass=self._glyphAnchorClass, libClass=self._libClass
+        )
         pointPen = glyph.getPointPen()
         self._glyphSet.readGlyph(glyphName=name, glyphObject=glyph, pointPen=pointPen)
         glyph.dirty = False
@@ -158,13 +211,6 @@ class Font(BaseObject):
         return glyph
 
     def _setParentDataInGlyph(self, glyph):
-        """
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> font = Font(getTestFontPath())
-        >>> glyph = font['A']
-        >>> id(glyph.getParent()) == id(font)
-        True
-        """
         glyph.setParent(self)
         glyph.dispatcher = self.dispatcher
         glyph.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Glyph.Changed")
@@ -173,23 +219,12 @@ class Font(BaseObject):
 
     def newGlyph(self, name):
         """
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> font = Font(getTestFontPath())
-        >>> font.newGlyph('NewGlyphTest')
-        >>> glyph = font['NewGlyphTest']
-        >>> glyph.name
-        'NewGlyphTest'
-        >>> glyph.dirty
-        True
-        >>> font.dirty
-        True
-        >>> keys = font.keys()
-        >>> keys.sort()
-        >>> keys
-        ['A', 'B', 'C', 'NewGlyphTest']
+        Create a new glyph with **name**. If a glyph with that
+        name already exists, the existing glyph will be replaced
+        with the new glyph.
         """
         if name in self:
-            self.unicodeData.removeGlyphData(name, self[name].unicodes)
+            self._unicodeData.removeGlyphData(name, self[name].unicodes)
         glyph = self._glyphClass(contourClass=self._glyphContourClass)
         glyph.name = name
         self._glyphs[name] = glyph
@@ -204,7 +239,11 @@ class Font(BaseObject):
 
     def insertGlyph(self, glyph, name=None):
         """
-        >>> "need insert glyph test!"
+        Insert **glyph** into the font. Optionally, the glyph
+        can be renamed at the same time by providing **name**.
+        If a glyph with the glyph name, or the name provided
+        as **name**, already exists, the existing glyph will
+        be replaced with the new glyph.
         """
         from copy import deepcopy
         source = glyph
@@ -219,25 +258,10 @@ class Font(BaseObject):
         dest.note = source.note
         dest.lib = deepcopy(source.lib)
         if dest.unicodes:
-            self.unicodeData.addGlyphData(name, dest.unicodes)
+            self._unicodeData.addGlyphData(name, dest.unicodes)
         return dest
 
     def __iter__(self):
-        """
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> font = Font(getTestFontPath())
-        >>> names = [glyph.name for glyph in font]
-        >>> names.sort()
-        >>> names
-        ['A', 'B', 'C']
-        >>> names = []
-        >>> for glyph1 in font:
-        ...     for glyph2 in font:
-        ...         names.append((glyph1.name, glyph2.name))
-        >>> names.sort()
-        >>> names
-        [('A', 'A'), ('A', 'B'), ('A', 'C'), ('B', 'A'), ('B', 'B'), ('B', 'C'), ('C', 'A'), ('C', 'B'), ('C', 'C')]
-        """
         names = self.keys()
         while names:
             name = names[0]
@@ -245,89 +269,14 @@ class Font(BaseObject):
             names = names[1:]
 
     def __getitem__(self, name):
-        """
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> font = Font(getTestFontPath())
-        >>> font['A'].name
-        'A'
-        >>> font['B'].name
-        'B'
-        >>> font['NotInFont']
-        Traceback (most recent call last):
-            ...
-        KeyError: 'NotInFont not in font'
-        """
         if name not in self._glyphs:
             self._loadGlyph(name)
         return self._glyphs[name]
 
     def __delitem__(self, name):
-        """
-        >>> from defcon.test.testTools import makeTestFontCopy, tearDownTestFontCopy
-        >>> import glob
-        >>> import os
-        >>> path = makeTestFontCopy()
-        >>> font = Font(path)
-        >>> del font['A']
-        >>> font.dirty
-        True
-        >>> font.newGlyph('NewGlyphTest')
-        >>> del font['NewGlyphTest']
-        >>> keys = font.keys()
-        >>> keys.sort()
-        >>> keys
-        ['B', 'C']
-        >>> len(font)
-        2
-        >>> 'A' in font
-        False
-        >>> font.save()
-        >>> fileNames = glob.glob(os.path.join(path, 'Glyphs', '*.glif'))
-        >>> fileNames = [os.path.basename(fileName) for fileName in fileNames]
-        >>> fileNames.sort()
-        >>> fileNames
-        ['B_.glif', 'C_.glif']
-        >>> del font['NotInFont']
-        Traceback (most recent call last):
-            ...
-        KeyError: 'NotInFont not in font'
-        >>> tearDownTestFontCopy()
-
-        # test saving externally deleted glyphs.
-        # del glyph. not dirty.
-        >>> path = makeTestFontCopy()
-        >>> font = Font(path)
-        >>> glyph = font["A"]
-        >>> glyphPath = os.path.join(path, "glyphs", "A_.glif")
-        >>> os.remove(glyphPath)
-        >>> r = font.testForExternalChanges()
-        >>> r["deletedGlyphs"]
-        ['A']
-        >>> del font["A"]
-        >>> font.save()
-        >>> os.path.exists(glyphPath)
-        False
-        >>> tearDownTestFontCopy()
-
-        # del glyph. dirty.
-        >>> path = makeTestFontCopy()
-        >>> font = Font(path)
-        >>> glyph = font["A"]
-        >>> glyph.dirty = True
-        >>> glyphPath = os.path.join(path, "glyphs", "A_.glif")
-        >>> os.remove(glyphPath)
-        >>> r = font.testForExternalChanges()
-        >>> r["deletedGlyphs"]
-        ['A']
-        >>> del font["A"]
-        >>> font.save()
-        >>> os.path.exists(glyphPath)
-        False
-        >>> tearDownTestFontCopy()
-        """
         if name not in self:
             raise KeyError, '%s not in font' % name
-        self.unicodeData.removeGlyphData(name, self[name].unicodes)
+        self._unicodeData.removeGlyphData(name, self[name].unicodes)
         if name in self._glyphs:
             del self._glyphs[name]
         if name in self._keys:
@@ -337,60 +286,14 @@ class Font(BaseObject):
         self.dirty = True
 
     def __len__(self):
-        """
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> font = Font(getTestFontPath())
-        >>> len(font)
-        3
-        
-        >>> font = Font()
-        >>> len(font)
-        0
-        """
         return len(self.keys())
 
     def __contains__(self, name):
-        """
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> font = Font(getTestFontPath())
-        >>> 'A' in font
-        True
-        >>> 'NotInFont' in font
-        False
-        
-        >>> font = Font()
-        >>> 'A' in font
-        False
-        """
         return name in self._keys
 
     def keys(self):
         """
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> font = Font(getTestFontPath())
-        >>> keys = font.keys()
-        >>> keys.sort()
-        >>> print keys
-        ['A', 'B', 'C']
-        >>> del font["A"]
-        >>> keys = font.keys()
-        >>> keys.sort()
-        >>> print keys
-        ['B', 'C']
-        >>> font.newGlyph("A")
-        >>> keys = font.keys()
-        >>> keys.sort()
-        >>> print keys
-        ['A', 'B', 'C']
-
-        >>> font = Font()
-        >>> font.keys()
-        []
-        >>> font.newGlyph("A")
-        >>> keys = font.keys()
-        >>> keys.sort()
-        >>> print keys
-        ['A']
+        The names of all glyphs in the font.
         """
         # this is not generated dynamically since we
         # support external editing. it must be fixed.
@@ -403,30 +306,9 @@ class Font(BaseObject):
     # ----------
 
     def _get_path(self):
-        """
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> path = getTestFontPath()
-        >>> font = Font(path)
-        >>> font.path == path
-        True
-
-        >>> font = Font()
-        >>> font.path == None
-        True
-        """
         return self._path
 
     def _set_path(self, path):
-        """
-        >>> import shutil
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> path1 = getTestFontPath()
-        >>> font = Font(path1)
-        >>> path2 = getTestFontPath("setPathTest.ufo")
-        >>> shutil.copytree(path1, path2)
-        >>> font.path = path2
-        >>> shutil.rmtree(path2)
-        """
         # the file must already exist
         assert os.path.exists(path)
         # the glyphs directory must already exist
@@ -440,42 +322,12 @@ class Font(BaseObject):
 
     path = property(_get_path, _set_path, doc="The location of the file on disk. Setting the path should only be done when the user has moved the file in the OS interface. Setting the path is not the same as a save operation.")
 
-    def _get_reversedCMAP(self):
-        import warnings
-        warnings.warn(
-            "Font.reversedCMAP is deprecated. Use the various methods in the Font.unicodeData object to get the reversed values.",
-            DeprecationWarning)
-        map = {}
-        for univalue, nameList in self.unicodeData.items():
-            for name in nameList:
-                if name not in map:
-                    map[name] = []
-                map[name].append(univalue)
-        return map
+    def _get_ufoFormatVersion(self):
+        return self._ufoFormatVersion
 
-    reversedCMAP = property(_get_reversedCMAP)
-
-    def _get_cmap(self):
-        import warnings
-        warnings.warn(
-            "Font.cmap is deprecated. Use the Font.unicodeData object.",
-            DeprecationWarning)
-        return self.unicodeData
-
-    cmap = property(_get_cmap)
+    ufoFormatVersion = property(_get_ufoFormatVersion, doc="The UFO format version that will be used when saving. This is taken from a loaded UFO during __init__. If this font was not loaded from a UFO, this will return None until the font has been saved.")
 
     def _get_glyphsWithOutlines(self):
-        """
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> font = Font(getTestFontPath())
-        >>> sorted(font.glyphsWithOutlines)
-        ['A', 'B']
-        >>> font = Font(getTestFontPath())
-        >>> for glyph in font:
-        ...    pass
-        >>> sorted(font.glyphsWithOutlines)
-        ['A', 'B']
-        """
         found = []
         # scan loaded glyphs
         for glyphName, glyph in self._glyphs.items():
@@ -506,18 +358,9 @@ class Font(BaseObject):
                 found.append(glyphName)
         return found
 
-    glyphsWithOutlines = property(_get_glyphsWithOutlines)
+    glyphsWithOutlines = property(_get_glyphsWithOutlines, doc="A list of glyphs containing outlines.")
 
     def _get_componentReferences(self):
-        """
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> font = Font(getTestFontPath())
-        >>> font.componentReferences
-        {'A': set(['C']), 'B': set(['C'])}
-        >>> glyph = font["C"]
-        >>> font.componentReferences
-        {'A': set(['C']), 'B': set(['C'])}
-        """
         found = {}
         # scan loaded glyphs
         for glyphName, glyph in self._glyphs.items():
@@ -546,15 +389,9 @@ class Font(BaseObject):
                 found[baseGlyph].add(glyphName)
         return found
 
-    componentReferences = property(_get_componentReferences)
+    componentReferences = property(_get_componentReferences, doc="A dict of describing the component relationshis in the font. The dictionary is of form ``{base glyph : [references]}``.")
 
     def _get_bounds(self):
-        """
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> font = Font(getTestFontPath())
-        >>> font.bounds
-        (0, 0, 700, 700)
-        """
         fontRect = None
         for glyph in self:
             glyphRect = glyph.bounds
@@ -566,23 +403,9 @@ class Font(BaseObject):
                 fontRect = unionRect(fontRect, glyphRect)
         return fontRect
 
-    bounds = property(_get_bounds, doc="The bounds of all glyphs in the font.")
+    bounds = property(_get_bounds, doc="The bounds of all glyphs in the font. This can be an expensive operation.")
 
     def _get_controlPointBounds(self):
-        """
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> font = Font(getTestFontPath())
-        >>> font.controlPointBounds
-        (0, 0, 700, 700)
-
-        #>>> font["A"].bounds
-        #(0, 0, 700, 700)
-        #>>> font["B"].bounds
-        #(0, 0, 700, 700)
-        #>>> font["C"].bounds
-        #(0.0, 0.0, 700.0, 700.0)
-        """
-        from fontTools.pens.boundsPen import ControlBoundsPen
         from fontTools.misc.transform import Transform
         # storage
         glyphRects = {}
@@ -591,9 +414,7 @@ class Font(BaseObject):
         for glyphName, glyph in self._glyphs.items():
             if glyphName in self._scheduledForDeletion:
                 continue
-            pen = ControlBoundsPen(self)
-            glyph.draw(pen)
-            glyphRect = pen.bounds
+            glyphRect = glyph.controlPointBounds
             if glyphRect:
                 glyphRects[glyphName] = glyphRect
         # scan glyphs that have not been loaded
@@ -709,7 +530,7 @@ class Font(BaseObject):
         # done
         return fontRect
 
-    controlPointBounds = property(_get_controlPointBounds, doc="The control bounds of all glyphs in the font. This only measures the point positions, it does not measure curves. So, curves without points at the extrema will not be properly measured.")
+    controlPointBounds = property(_get_controlPointBounds, doc="The control bounds of all glyphs in the font. This only measures the point positions, it does not measure curves. So, curves without points at the extrema will not be properly measured. This is an expensive operation.")
 
     # -----------
     # Sub-Objects
@@ -721,13 +542,14 @@ class Font(BaseObject):
             self._info.dispatcher = self.dispatcher
             self._info.setParent(self)
             if self._path is not None:
-                u = UFOReader(self._path)
-                u.readInfo(self._info)
+                reader = ufoLib.UFOReader(self._path)
+                reader.readInfo(self._info)
+                self._info.dirty = False
             self._info.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Info.Changed")
             self._stampInfoDataState()
         return self._info
 
-    info = property(_get_info)
+    info = property(_get_info, doc="The font's :class:`Info` object.")
 
     def _get_kerning(self):
         if self._kerning is None:
@@ -735,14 +557,15 @@ class Font(BaseObject):
             self._kerning.dispatcher = self.dispatcher
             self._kerning.setParent(self)
             if self._path is not None:
-                r = UFOReader(self._path)
-                d = r.readKerning()
+                reader = ufoLib.UFOReader(self._path)
+                d = reader.readKerning()
                 self._kerning.update(d)
+                self._kerning.dirty = False
             self._kerning.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Kerning.Changed")
             self._stampKerningDataState()
         return self._kerning
 
-    kerning = property(_get_kerning)
+    kerning = property(_get_kerning, doc="The font's :class:`Kerning` object.")
 
     def _get_groups(self):
         if self._groups is None:
@@ -750,14 +573,31 @@ class Font(BaseObject):
             self._groups.dispatcher = self.dispatcher
             self._groups.setParent(self)
             if self._path is not None:
-                r = UFOReader(self._path)
-                d = r.readGroups()
+                reader = ufoLib.UFOReader(self._path)
+                d = reader.readGroups()
                 self._groups.update(d)
+                self._groups.dirty = False
             self._groups.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Groups.Changed")
             self._stampGroupsDataState()
         return self._groups
 
-    groups = property(_get_groups)
+    groups = property(_get_groups, doc="The font's :class:`Groups` object.")
+
+    def _get_features(self):
+        if self._features is None:
+            self._features = self._featuresClass()
+            self._features.dispatcher = self.dispatcher
+            self._features.setParent(self)
+            if self._path is not None:
+                reader = ufoLib.UFOReader(self._path)
+                t = reader.readFeatures()
+                self._features.text = t
+                self._features.dirty = False
+            self._features.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Features.Changed")
+            self._stampFeaturesDataState()
+        return self._features
+
+    features = property(_get_features, doc="The font's :class:`Features` object.")
 
     def _get_lib(self):
         if self._lib is None:
@@ -765,72 +605,80 @@ class Font(BaseObject):
             self._lib.dispatcher = self.dispatcher
             self._lib.setParent(self)
             if self._path is not None:
-                r = UFOReader(self._path)
-                d = r.readLib()
+                reader = ufoLib.UFOReader(self._path)
+                d = reader.readLib()
                 self._lib.update(d)
             self._stampLibDataState()
         return self._lib
 
-    lib = property(_get_lib)
+    lib = property(_get_lib, doc="The font's :class:`Lib` object.")
+
+    def _get_unicodeData(self):
+        return self._unicodeData
+
+    unicodeData = property(_get_unicodeData, doc="The font's :class:`UnicodeData` object.")
 
     # -------
     # Methods
     # -------
 
-    def save(self, path=None):
+    def save(self, path=None, formatVersion=None):
         """
-        >>> from defcon.test.testTools import makeTestFontCopy, tearDownTestFontCopy, getTestFontPath, getTestFontCopyPath
-        >>> import glob
-        >>> import os
-        >>> path = makeTestFontCopy()
-        >>> font = Font(path)
-        >>> for glyph in font:
-        ...     glyph.dirty = True
-        >>> font.save()
-        >>> fileNames = glob.glob(os.path.join(path, 'Glyphs', '*.glif'))
-        >>> fileNames = [os.path.basename(fileName) for fileName in fileNames]
-        >>> fileNames.sort()
-        >>> fileNames
-        ['A_.glif', 'B_.glif', 'C_.glif']
-        >>> tearDownTestFontCopy()
+        Save the font to **path**. If path is None, the path
+        from the last save or when the font was first opened
+        will be used.
 
-        >>> path = getTestFontPath()
-        >>> font = Font(path)
-        >>> saveAsPath = getTestFontCopyPath(path)
-        >>> font.save(saveAsPath)
-        >>> fileNames = glob.glob(os.path.join(saveAsPath, 'Glyphs', '*.glif'))
-        >>> fileNames = [os.path.basename(fileName) for fileName in fileNames]
-        >>> fileNames.sort()
-        >>> fileNames
-        ['A_.glif', 'B_.glif', 'C_.glif']
-        >>> font.path == saveAsPath
-        True
-        >>> tearDownTestFontCopy(saveAsPath)
+        The UFO will be saved using the format found at ``ufoFormatVersion``.
+        This value is either the format version from the exising UFO or
+        the format version specified in a previous save. If neither of
+        these is available, the UFO will be written as format version 2.
+        If you wish to specifiy the format version for saving, pass
+        the desired number as the **formatVersion** argument.
         """
         saveAs = False
         if path is not None and path != self._path:
             saveAs = True
         else:
             path = self._path
+        ## work out the format version
+        # if None is given, fallback to the one that
+        # came in when the UFO was loaded
+        if formatVersion is None and self._ufoFormatVersion is not None:
+            formatVersion = self._ufoFormatVersion
+        # otherwise fallback to 2
+        elif self._ufoFormatVersion is None:
+            formatVersion = 2
         ## make a UFOWriter
-        ufoWriter = UFOWriter(path)
+        ufoWriter = ufoLib.UFOWriter(path, formatVersion=formatVersion)
         ## save objects
         saveInfo = False
         saveKerning = False
         saveGroups = False
-        saveLib = False
+        saveFeatures = False
+        ## lib should always be saved
+        saveLib = True
         # if in a save as, save all objects
         if saveAs:
             saveInfo = True
             saveKerning = True
             saveGroups = True
-            saveLib = True
-        # save info and kerning if they are dirty
+            saveFeatures = True
+        ## if changing ufo format versions, save all objects
+        if self._ufoFormatVersion != formatVersion:
+            saveInfo = True
+            saveKerning = True
+            saveGroups = True
+            saveFeatures = True
+        # save info, kerning and features if they are dirty
         if self._info is not None and self._info.dirty:
             saveInfo = True
         if self._kerning is not None and self._kerning.dirty:
             saveKerning = True
+        if self._features is not None and self._features.dirty:
+            saveFeatures = True
         # always save groups and lib if they are loaded
+        # as they contain sub-objects that may not notify
+        # the main object about changes.
         if self._groups is not None:
             saveGroups = True
         if self._lib is not None:
@@ -847,8 +695,17 @@ class Font(BaseObject):
         if saveGroups:
             ufoWriter.writeGroups(self.groups)
             self._stampGroupsDataState()
+        if saveFeatures and formatVersion > 1:
+            ufoWriter.writeFeatures(self.features.text)
+            self._stampFeaturesDataState()
         if saveLib:
-            ufoWriter.writeLib(dict(self.lib))
+            # if making format version 1, do some
+            # temporary down conversion before
+            # passing the lib to the writer
+            libCopy = dict(self.lib)
+            if formatVersion == 1:
+                self._convertToFormatVersion1RoboFabData(libCopy)
+            ufoWriter.writeLib(libCopy)
             self._stampLibDataState()
         ## save glyphs
         # for a save as operation, load all the glyphs
@@ -870,6 +727,7 @@ class Font(BaseObject):
         self._glyphSet = glyphSet
         self._scheduledForDeletion = []
         self._path = path
+        self._ufoFormatVersion = formatVersion
         self.dirty = False
 
     # ----------------------
@@ -881,18 +739,6 @@ class Font(BaseObject):
             self.dirty = True
 
     def _glyphNameChange(self, notification):
-        """
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> font = Font(getTestFontPath())
-        >>> glyph = font['A']
-        >>> glyph.name = 'NameChangeTest'
-        >>> keys = font.keys()
-        >>> keys.sort()
-        >>> keys
-        ['B', 'C', 'NameChangeTest']
-        >>> font.dirty
-        True
-        """
         data = notification.data
         oldName = data["oldName"]
         newName = data["newName"]
@@ -900,36 +746,16 @@ class Font(BaseObject):
         del self[oldName]
         self._glyphs[newName] = glyph
         self._keys.add(newName)
-        self.unicodeData.removeGlyphData(oldName, glyph.unicodes)
-        self.unicodeData.addGlyphData(newName, glyph.unicodes)
+        self._unicodeData.removeGlyphData(oldName, glyph.unicodes)
+        self._unicodeData.addGlyphData(newName, glyph.unicodes)
 
     def _glyphUnicodesChange(self, notification):
-        """
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> font = Font(getTestFontPath())
-        >>> glyph = font['A']
-        >>> glyph.unicodes = [123, 456]
-        >>> font.unicodeData[123]
-        ['A']
-        >>> font.unicodeData[456]
-        ['A']
-        >>> font.unicodeData[66]
-        ['B']
-        >>> font.unicodeData.get(65)
-
-        >>> font = Font(getTestFontPath())
-        >>> font.newGlyph("test")
-        >>> glyph = font["test"]
-        >>> glyph.unicodes = [65]
-        >>> font.unicodeData[65]
-        ['A', 'test']
-        """
         glyphName = notification.object.name
         data = notification.data
         oldValues = data["oldValues"]
         newValues = data["newValues"]
-        self.unicodeData.removeGlyphData(glyphName, oldValues)
-        self.unicodeData.addGlyphData(glyphName, newValues)
+        self._unicodeData.removeGlyphData(glyphName, oldValues)
+        self._unicodeData.addGlyphData(glyphName, newValues)
 
     # ---------------------
     # External Edit Support
@@ -947,13 +773,15 @@ class Font(BaseObject):
         path = os.path.join(self._path, fileName)
         # file is not in UFO
         if not os.path.exists(path):
-            return
+            text = None
+            modTime = -1
         # get the text
-        f = open(path, "rb")
-        text = f.read()
-        f.close()
-        # get the file modification time
-        modTime = os.stat(path).st_mtime
+        else:
+            f = open(path, "rb")
+            text = f.read()
+            f.close()
+            # get the file modification time
+            modTime = os.stat(path).st_mtime
         # store the data
         obj._dataOnDisk = text
         obj._dataOnDiskTimeStamp = modTime
@@ -966,6 +794,9 @@ class Font(BaseObject):
 
     def _stampGroupsDataState(self):
         self._stampFontDataState(self._groups, "groups.plist")
+
+    def _stampFeaturesDataState(self):
+        self._stampFontDataState(self._features, "features.fea")
 
     def _stampLibDataState(self):
         self._stampFontDataState(self._lib, "lib.plist")
@@ -992,123 +823,41 @@ class Font(BaseObject):
 
     def testForExternalChanges(self):
         """
-        >>> from plistlib import readPlist, writePlist
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> path = getTestFontPath("TestExternalEditing.ufo")
-        >>> font = Font(path)
+        Test the UFO for changes that occured outside of this font's
+        tree of objects. This returns a dictionary of values
+        indicating if the objects have changes on disk that are
+        not loaded. For example::
 
-        # load all the objects so that they get stamped
-        >>> i = font.info
-        >>> k = font.kerning
-        >>> g = font.groups
-        >>> l = font.lib
-        >>> g = font["A"]
+            {
+                "info" : False,
+                "kerning" : True,
+                "groups" : True,
+                "features" : False,
+                "lib" : False,
+                "modifiedGlyphs" : ["a", "a.alt"],
+                "addedGlyphs" : [],
+                "deletedGlyphs" : []
+            }
 
-        >>> d = font.testForExternalChanges()
-        >>> d["info"]
-        False
-        >>> d["kerning"]
-        False
-        >>> d["groups"]
-        False
-        >>> d["lib"]
-        False
-        >>> d["modifiedGlyphs"]
-        []
-        >>> d["addedGlyphs"]
-        []
-        >>> d["deletedGlyphs"]
-        []
-
-        # make a simple change to the kerning data
-        >>> path = os.path.join(font.path, "kerning.plist")
-        >>> f = open(path, "rb")
-        >>> t = f.read()
-        >>> f.close()
-        >>> t += " "
-        >>> f = open(path, "wb")
-        >>> f.write(t)
-        >>> f.close()
-        >>> os.utime(path, (k._dataOnDiskTimeStamp + 1, k._dataOnDiskTimeStamp + 1))
-
-        >>> d = font.testForExternalChanges()
-        >>> d["kerning"]
-        True
-        >>> d["info"]
-        False
-
-        # save the kerning data and test again
-        >>> font.kerning.dirty = True
-        >>> font.save()
-        >>> d = font.testForExternalChanges()
-        >>> d["kerning"]
-        False
-
-        # make a simple change to a glyph
-        >>> path = os.path.join(font.path, "glyphs", "A_.glif")
-        >>> f = open(path, "rb")
-        >>> t = f.read()
-        >>> f.close()
-        >>> t += " "
-        >>> f = open(path, "wb")
-        >>> f.write(t)
-        >>> f.close()
-        >>> os.utime(path, (g._dataOnDiskTimeStamp + 1, g._dataOnDiskTimeStamp + 1))
-        >>> d = font.testForExternalChanges()
-        >>> d["modifiedGlyphs"]
-        ['A']
-
-        # save the glyph and test again
-        >>> font["A"].dirty = True
-        >>> font.save()
-        >>> d = font.testForExternalChanges()
-        >>> d["modifiedGlyphs"]
-        []
-
-        # add a glyph
-        >>> path = os.path.join(font.path, "glyphs", "A_.glif")
-        >>> f = open(path, "rb")
-        >>> t = f.read()
-        >>> f.close()
-        >>> t = t.replace('<glyph name="A" format="1">', '<glyph name="XXX" format="1">')
-        >>> path = os.path.join(font.path, "glyphs", "XXX.glif")
-        >>> f = open(path, "wb")
-        >>> f.write(t)
-        >>> f.close()
-        >>> path = os.path.join(font.path, "glyphs", "contents.plist")
-        >>> plist = readPlist(path)
-        >>> savePlist = dict(plist)
-        >>> plist["XXX"] = "XXX.glif"
-        >>> writePlist(plist, path)
-        >>> d = font.testForExternalChanges()
-        >>> d["modifiedGlyphs"]
-        []
-        >>> d["addedGlyphs"]
-        [u'XXX']
-
-        # delete a glyph
-        >>> path = getTestFontPath("TestExternalEditing.ufo")
-        >>> font = Font(path)
-        >>> g = font["XXX"]
-        >>> path = os.path.join(font.path, "glyphs", "contents.plist")
-        >>> writePlist(savePlist, path)
-        >>> path = os.path.join(font.path, "glyphs", "XXX.glif")
-        >>> os.remove(path)
-        >>> d = font.testForExternalChanges()
-        >>> d["modifiedGlyphs"]
-        []
-        >>> d["deletedGlyphs"]
-        ['XXX']
+        It is important to keep in mind that the user could have created
+        conflicting data outside of the font's tree of objects. For example,
+        say the user has set ``font.info.unitsPerEm = 1000`` inside of the
+        font's :class:`Info` object and the user has not saved this change.
+        In the the font's fontinfo.plist file, the user sets the unitsPerEm value
+        to 2000. Which value is current? Which value is right? defcon leaves
+        this decision up to you.
         """
         infoChanged = self._testInfoForExternalModifications()
         kerningChanged = self._testKerningForExternalModifications()
         groupsChanged = self._testGroupsForExternalModifications()
+        featuresChanged = self._testFeaturesForExternalModifications()
         libChanged = self._testLibForExternalModifications()
         modifiedGlyphs, addedGlyphs, deletedGlyphs = self._testGlyphsForExternalModifications()
         return dict(
             info=infoChanged,
             kerning=kerningChanged,
             groups=groupsChanged,
+            features=featuresChanged,
             lib=libChanged,
             modifiedGlyphs=modifiedGlyphs,
             addedGlyphs=addedGlyphs,
@@ -1146,6 +895,9 @@ class Font(BaseObject):
     def _testGroupsForExternalModifications(self):
         return self._testFontDataForExternalModifications(self._groups, "groups.plist")
 
+    def _testFeaturesForExternalModifications(self):
+        return self._testFontDataForExternalModifications(self._features, "features.fea")
+
     def _testLibForExternalModifications(self):
         return self._testFontDataForExternalModifications(self._lib, "lib.plist")
 
@@ -1175,45 +927,27 @@ class Font(BaseObject):
                 # data mismatch
                 if text != glyph._dataOnDisk:
                     modifiedGlyphs.append(glyphName)
+        # add loaded glyphs to the keys
+        self._keys = self._keys | set(addedGlyphs)
         return modifiedGlyphs, addedGlyphs, deletedGlyphs
 
     # data reloading
 
     def reloadInfo(self):
         """
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> path = getTestFontPath("TestExternalEditing.ufo")
-        >>> font = Font(path)
-        >>> info = font.info
-
-        >>> path = os.path.join(font.path, "fontinfo.plist")
-        >>> f = open(path, "rb")
-        >>> t = f.read()
-        >>> f.close()
-        >>> t = t.replace("<integer>750</integer>", "<integer>751</integer>")
-        >>> f = open(path, "wb")
-        >>> f.write(t)
-        >>> f.close()
-
-        >>> info.ascender
-        750
-        >>> font.reloadInfo()
-        >>> info.ascender
-        751
-
-        >>> t = t.replace("<integer>751</integer>", "<integer>750</integer>")
-        >>> f = open(path, "wb")
-        >>> f.write(t)
-        >>> f.close()
+        Reload the data in the :class:`Info` object from the
+        fontinfo.plist file in the UFO.
         """
         if self._info is None:
             obj = self.info
         else:
-            r = UFOReader(self._path)
+            r = ufoLib.UFOReader(self._path)
             newInfo = Info()
             r.readInfo(newInfo)
             oldInfo = self._info
             for attr in dir(newInfo):
+                if attr in ufoLib.deprecatedFontInfoAttributesVersion2:
+                    continue
                 if attr.startswith("_"):
                     continue
                 if attr == "dirty":
@@ -1233,35 +967,13 @@ class Font(BaseObject):
 
     def reloadKerning(self):
         """
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> path = getTestFontPath("TestExternalEditing.ufo")
-        >>> font = Font(path)
-        >>> kerning = font.kerning
-
-        >>> path = os.path.join(font.path, "kerning.plist")
-        >>> f = open(path, "rb")
-        >>> t = f.read()
-        >>> f.close()
-        >>> t = t.replace("<integer>-100</integer>", "<integer>-101</integer>")
-        >>> f = open(path, "wb")
-        >>> f.write(t)
-        >>> f.close()
-
-        >>> kerning.items()
-        [(('A', 'A'), -100)]
-        >>> font.reloadKerning()
-        >>> kerning.items()
-        [(('A', 'A'), -101)]
-
-        >>> t = t.replace("<integer>-101</integer>", "<integer>-100</integer>")
-        >>> f = open(path, "wb")
-        >>> f.write(t)
-        >>> f.close()
+        Reload the data in the :class:`Kerning` object from the
+        kerning.plist file in the UFO.
         """
         if self._kerning is None:
             obj = self.kerning
         else:
-            r = UFOReader(self._path)
+            r = ufoLib.UFOReader(self._path)
             d = r.readKerning()
             self._kerning.clear()
             self._kerning.update(d)
@@ -1269,71 +981,40 @@ class Font(BaseObject):
 
     def reloadGroups(self):
         """
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> path = getTestFontPath("TestExternalEditing.ufo")
-        >>> font = Font(path)
-        >>> groups = font.groups
-
-        >>> path = os.path.join(font.path, "groups.plist")
-        >>> f = open(path, "rb")
-        >>> t = f.read()
-        >>> f.close()
-        >>> t = t.replace("<key>TestGroup</key>", "<key>XXX</key>")
-        >>> f = open(path, "wb")
-        >>> f.write(t)
-        >>> f.close()
-
-        >>> groups.keys()
-        ['TestGroup']
-        >>> font.reloadGroups()
-        >>> groups.keys()
-        ['XXX']
-
-        >>> t = t.replace("<key>XXX</key>", "<key>TestGroup</key>")
-        >>> f = open(path, "wb")
-        >>> f.write(t)
-        >>> f.close()
+        Reload the data in the :class:`Groups` object from the
+        groups.plist file in the UFO.
         """
         if self._groups is None:
             obj = self.groups
         else:
-            r = UFOReader(self._path)
+            r = ufoLib.UFOReader(self._path)
             d = r.readGroups()
             self._groups.clear()
             self._groups.update(d)
             self._stampGroupsDataState()
 
+    def reloadFeatures(self):
+        """
+        Reload the data in the :class:`Features` object from the
+        features.fea file in the UFO.
+        """
+        if self._features is None:
+            obj = self.features
+        else:
+            r = ufoLib.UFOReader(self._path)
+            text = r.readFeatures()
+            self._features.text = text
+            self._stampFeaturesDataState()
+
     def reloadLib(self):
         """
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> path = getTestFontPath("TestExternalEditing.ufo")
-        >>> font = Font(path)
-        >>> lib = font.lib
-
-        >>> path = os.path.join(font.path, "lib.plist")
-        >>> f = open(path, "rb")
-        >>> t = f.read()
-        >>> f.close()
-        >>> t = t.replace("<key>org.robofab.glyphOrder</key>", "<key>org.robofab.glyphOrder.XXX</key>")
-        >>> f = open(path, "wb")
-        >>> f.write(t)
-        >>> f.close()
-
-        >>> lib.keys()
-        ['org.robofab.glyphOrder']
-        >>> font.reloadLib()
-        >>> lib.keys()
-        ['org.robofab.glyphOrder.XXX']
-
-        >>> t = t.replace("<key>org.robofab.glyphOrder.XXX</key>", "<key>org.robofab.glyphOrder</key>")
-        >>> f = open(path, "wb")
-        >>> f.write(t)
-        >>> f.close()
+        Reload the data in the :class:`Lib` object from the
+        lib.plist file in the UFO.
         """
         if self._lib is None:
             obj = self.lib
         else:
-            r = UFOReader(self._path)
+            r = ufoLib.UFOReader(self._path)
             d = r.readLib()
             self._lib.clear()
             self._lib.update(d)
@@ -1341,34 +1022,10 @@ class Font(BaseObject):
 
     def reloadGlyphs(self, glyphNames):
         """
-        >>> from defcon.test.testTools import getTestFontPath
-        >>> path = getTestFontPath("TestExternalEditing.ufo")
-        >>> font = Font(path)
-        >>> glyph = font["A"]
-
-        >>> path = os.path.join(font.path, "glyphs", "A_.glif")
-        >>> f = open(path, "rb")
-        >>> t = f.read()
-        >>> f.close()
-        >>> t = t.replace('<advance width="700"/>', '<advance width="701"/>')
-        >>> f = open(path, "wb")
-        >>> f.write(t)
-        >>> f.close()
-
-        >>> glyph.width
-        700
-        >>> len(glyph)
-        2
-        >>> font.reloadGlyphs(["A"])
-        >>> glyph.width
-        701
-        >>> len(glyph)
-        2
-
-        >>> t = t.replace('<advance width="701"/>', '<advance width="700"/>')
-        >>> f = open(path, "wb")
-        >>> f.write(t)
-        >>> f.close()
+        Reload the glyphs listed in **glyphNames** from the
+        appropriate files within the UFO. When all of the
+        loading is complete, a *Font.ReloadedGlyphs* notification
+        will be posted.
         """
         for glyphName in glyphNames:
             if glyphName not in self._glyphs:
@@ -1402,6 +1059,686 @@ class Font(BaseObject):
                 glyph.dispatcher.postNotification(notification=glyph._notificationName, observable=glyph)
                 referenceChanges.add(reference)
 
+    # -----------------------------
+    # UFO Format Version Conversion
+    # -----------------------------
+
+    def _convertFromFormatVersion1RoboFabData(self):
+        # migrate features from the lib
+        features = []
+        classes = self.lib.get("org.robofab.opentype.classes")
+        if classes is not None:
+            del self.lib["org.robofab.opentype.classes"]
+            features.append(classes)
+        splitFeatures = self.lib.get("org.robofab.opentype.features")
+        if splitFeatures is not None:
+            order = self.lib.get("org.robofab.opentype.featureorder")
+            if order is None:
+                order = splitFeatures.keys()
+                order.sort()
+            else:
+                del self.lib["org.robofab.opentype.featureorder"]
+            del self.lib["org.robofab.opentype.features"]
+            for tag in order:
+                oneFeature = splitFeatures.get(tag)
+                if oneFeature is not None:
+                    features.append(oneFeature)
+        self.features.text = "\n".join(features)
+        # migrate hint data from the lib
+        hintData = self.lib.get("org.robofab.postScriptHintData")
+        if hintData is not None:
+            del self.lib["org.robofab.postScriptHintData"]
+            # settings
+            blueFuzz = hintData.get("blueFuzz")
+            if blueFuzz is not None:
+                self.info.postscriptBlueFuzz = blueFuzz
+            blueScale = hintData.get("blueScale")
+            if blueScale is not None:
+                self.info.postscriptBlueScale = blueScale
+            blueShift = hintData.get("blueShift")
+            if blueShift is not None:
+                self.info.postscriptBlueShift = blueShift
+            forceBold = hintData.get("forceBold")
+            if forceBold is not None:
+                self.info.postscriptForceBold = forceBold
+            # stems
+            vStems = hintData.get("vStems")
+            if vStems is not None:
+                self.info.postscriptStemSnapV = vStems
+            hStems = hintData.get("hStems")
+            if hStems is not None:
+                self.info.postscriptStemSnapH = hStems
+            # blues
+            bluePairs = [
+                ("postscriptBlueValues", "blueValues"),
+                ("postscriptOtherBlues", "otherBlues"),
+                ("postscriptFamilyBlues", "familyBlues"),
+                ("postscriptFamilyOtherBlues", "familyOtherBlues"),
+            ]
+            for infoAttr, libKey in bluePairs:
+                libValue = hintData.get(libKey)
+                if libValue is not None:
+                    value = []
+                    for i, j in libValue:
+                        value.append(i)
+                        value.append(j)
+                    setattr(self.info, infoAttr, value)
+
+    def _convertToFormatVersion1RoboFabData(self, libCopy):
+        from robofab.tools.fontlabFeatureSplitter import splitFeaturesForFontLab
+        # features
+        features = self.features.text
+        classes, features = splitFeaturesForFontLab(features)
+        if classes:
+            libCopy["org.robofab.opentype.classes"] = classes.strip() + "\n"
+        if features:
+            featureDict = {}
+            for featureName, featureText in features:
+                featureDict[featureName] = featureText.strip() + "\n"
+            libCopy["org.robofab.opentype.features"] = featureDict
+            libCopy["org.robofab.opentype.featureorder"] = [featureName for featureName, featureText in features]
+        # hint data
+        hintData = dict(
+            blueFuzz=self.info.postscriptBlueFuzz,
+            blueScale=self.info.postscriptBlueScale,
+            blueShift=self.info.postscriptBlueShift,
+            forceBold=self.info.postscriptForceBold,
+            vStems=self.info.postscriptStemSnapV,
+            hStems=self.info.postscriptStemSnapH
+        )
+        bluePairs = [
+            ("postscriptBlueValues", "blueValues"),
+            ("postscriptOtherBlues", "otherBlues"),
+            ("postscriptFamilyBlues", "familyBlues"),
+            ("postscriptFamilyOtherBlues", "familyOtherBlues"),
+        ]
+        for infoAttr, libKey in bluePairs:
+            values = getattr(self.info, infoAttr)
+            if values is not None:
+                finalValues = []
+                for value in values:
+                    if not finalValues or len(finalValues[-1]) == 2:
+                        finalValues.append([])
+                    finalValues[-1].append(value)
+                hintData[libKey] = finalValues
+        for key, value in hintData.items():
+            if value is None:
+                del hintData[key]
+        libCopy["org.robofab.postScriptHintData"] = hintData
+
+
+# -----
+# Tests
+# -----
+
+def _testSetParentDataInGlyph():
+    """
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> glyph = font['A']
+    >>> id(glyph.getParent()) == id(font)
+    True
+    """
+
+def _testNewGlyph():
+    """
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> font.newGlyph('NewGlyphTest')
+    >>> glyph = font['NewGlyphTest']
+    >>> glyph.name
+    'NewGlyphTest'
+    >>> glyph.dirty
+    True
+    >>> font.dirty
+    True
+    >>> keys = font.keys()
+    >>> keys.sort()
+    >>> keys
+    ['A', 'B', 'C', 'NewGlyphTest']
+    """
+
+def _testInsertGlyph():
+    """
+    >>> "need insert glyph test!"
+    """
+
+def _testIter():
+    """
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> names = [glyph.name for glyph in font]
+    >>> names.sort()
+    >>> names
+    ['A', 'B', 'C']
+    >>> names = []
+    >>> for glyph1 in font:
+    ...     for glyph2 in font:
+    ...         names.append((glyph1.name, glyph2.name))
+    >>> names.sort()
+    >>> names
+    [('A', 'A'), ('A', 'B'), ('A', 'C'), ('B', 'A'), ('B', 'B'), ('B', 'C'), ('C', 'A'), ('C', 'B'), ('C', 'C')]
+    """
+
+def _testGetitem():
+    """
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> font['A'].name
+    'A'
+    >>> font['B'].name
+    'B'
+    >>> font['NotInFont']
+    Traceback (most recent call last):
+        ...
+    KeyError: 'NotInFont not in font'
+    """
+
+def _testDelitem():
+    """
+    >>> from defcon.test.testTools import makeTestFontCopy, tearDownTestFontCopy
+    >>> import glob
+    >>> import os
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> del font['A']
+    >>> font.dirty
+    True
+    >>> font.newGlyph('NewGlyphTest')
+    >>> del font['NewGlyphTest']
+    >>> keys = font.keys()
+    >>> keys.sort()
+    >>> keys
+    ['B', 'C']
+    >>> len(font)
+    2
+    >>> 'A' in font
+    False
+    >>> font.save()
+    >>> fileNames = glob.glob(os.path.join(path, 'Glyphs', '*.glif'))
+    >>> fileNames = [os.path.basename(fileName) for fileName in fileNames]
+    >>> fileNames.sort()
+    >>> fileNames
+    ['B_.glif', 'C_.glif']
+    >>> del font['NotInFont']
+    Traceback (most recent call last):
+        ...
+    KeyError: 'NotInFont not in font'
+    >>> tearDownTestFontCopy()
+
+    # test saving externally deleted glyphs.
+    # del glyph. not dirty.
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> glyph = font["A"]
+    >>> glyphPath = os.path.join(path, "glyphs", "A_.glif")
+    >>> os.remove(glyphPath)
+    >>> r = font.testForExternalChanges()
+    >>> r["deletedGlyphs"]
+    ['A']
+    >>> del font["A"]
+    >>> font.save()
+    >>> os.path.exists(glyphPath)
+    False
+    >>> tearDownTestFontCopy()
+
+    # del glyph. dirty.
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> glyph = font["A"]
+    >>> glyph.dirty = True
+    >>> glyphPath = os.path.join(path, "glyphs", "A_.glif")
+    >>> os.remove(glyphPath)
+    >>> r = font.testForExternalChanges()
+    >>> r["deletedGlyphs"]
+    ['A']
+    >>> del font["A"]
+    >>> font.save()
+    >>> os.path.exists(glyphPath)
+    False
+    >>> tearDownTestFontCopy()
+    """
+
+def _testLen():
+    """
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> len(font)
+    3
+    
+    >>> font = Font()
+    >>> len(font)
+    0
+    """
+
+def _testContains():
+    """
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> 'A' in font
+    True
+    >>> 'NotInFont' in font
+    False
+    
+    >>> font = Font()
+    >>> 'A' in font
+    False
+    """
+
+def _testKeys():
+    """
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> keys = font.keys()
+    >>> keys.sort()
+    >>> print keys
+    ['A', 'B', 'C']
+    >>> del font["A"]
+    >>> keys = font.keys()
+    >>> keys.sort()
+    >>> print keys
+    ['B', 'C']
+    >>> font.newGlyph("A")
+    >>> keys = font.keys()
+    >>> keys.sort()
+    >>> print keys
+    ['A', 'B', 'C']
+
+    >>> font = Font()
+    >>> font.keys()
+    []
+    >>> font.newGlyph("A")
+    >>> keys = font.keys()
+    >>> keys.sort()
+    >>> print keys
+    ['A']
+    """
+
+def _testPath():
+    """
+    # get
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath()
+    >>> font = Font(path)
+    >>> font.path == path
+    True
+
+    >>> font = Font()
+    >>> font.path == None
+    True
+
+    # set
+    >>> import shutil
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path1 = getTestFontPath()
+    >>> font = Font(path1)
+    >>> path2 = getTestFontPath("setPathTest.ufo")
+    >>> shutil.copytree(path1, path2)
+    >>> font.path = path2
+    >>> shutil.rmtree(path2)
+    """
+
+def _testGlyphWithOutlines():
+    """
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> sorted(font.glyphsWithOutlines)
+    ['A', 'B']
+    >>> font = Font(getTestFontPath())
+    >>> for glyph in font:
+    ...    pass
+    >>> sorted(font.glyphsWithOutlines)
+    ['A', 'B']
+    """
+
+def _testComponentReferences():
+    """
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> font.componentReferences
+    {'A': set(['C']), 'B': set(['C'])}
+    >>> glyph = font["C"]
+    >>> font.componentReferences
+    {'A': set(['C']), 'B': set(['C'])}
+    """
+
+def _testBounds():
+    """
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> font.bounds
+    (0, 0, 700, 700)
+    """
+
+def _testControlPointBounds():
+    """
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> font.controlPointBounds
+    (0, 0, 700, 700)
+    """
+
+def _testSave():
+    """
+    >>> from defcon.test.testTools import makeTestFontCopy, tearDownTestFontCopy, getTestFontPath, getTestFontCopyPath
+    >>> import glob
+    >>> import os
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> for glyph in font:
+    ...     glyph.dirty = True
+    >>> font.save()
+    >>> fileNames = glob.glob(os.path.join(path, 'Glyphs', '*.glif'))
+    >>> fileNames = [os.path.basename(fileName) for fileName in fileNames]
+    >>> fileNames.sort()
+    >>> fileNames
+    ['A_.glif', 'B_.glif', 'C_.glif']
+    >>> tearDownTestFontCopy()
+
+    >>> path = getTestFontPath()
+    >>> font = Font(path)
+    >>> saveAsPath = getTestFontCopyPath(path)
+    >>> font.save(saveAsPath)
+    >>> fileNames = glob.glob(os.path.join(saveAsPath, 'Glyphs', '*.glif'))
+    >>> fileNames = [os.path.basename(fileName) for fileName in fileNames]
+    >>> fileNames.sort()
+    >>> fileNames
+    ['A_.glif', 'B_.glif', 'C_.glif']
+    >>> font.path == saveAsPath
+    True
+    >>> tearDownTestFontCopy(saveAsPath)
+    """
+
+def _testGlyphNameChange():
+    """
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> glyph = font['A']
+    >>> glyph.name = 'NameChangeTest'
+    >>> keys = font.keys()
+    >>> keys.sort()
+    >>> keys
+    ['B', 'C', 'NameChangeTest']
+    >>> font.dirty
+    True
+    """
+
+def _testGlyphUnicodesChanged():
+    """
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> glyph = font['A']
+    >>> glyph.unicodes = [123, 456]
+    >>> font.unicodeData[123]
+    ['A']
+    >>> font.unicodeData[456]
+    ['A']
+    >>> font.unicodeData[66]
+    ['B']
+    >>> font.unicodeData.get(65)
+
+    >>> font = Font(getTestFontPath())
+    >>> font.newGlyph("test")
+    >>> glyph = font["test"]
+    >>> glyph.unicodes = [65]
+    >>> font.unicodeData[65]
+    ['A', 'test']
+    """
+
+def _testTestForExternalChanges():
+    """
+    >>> from plistlib import readPlist, writePlist
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath("TestExternalEditing.ufo")
+    >>> font = Font(path)
+
+    # load all the objects so that they get stamped
+    >>> i = font.info
+    >>> k = font.kerning
+    >>> g = font.groups
+    >>> l = font.lib
+    >>> g = font["A"]
+
+    >>> d = font.testForExternalChanges()
+    >>> d["info"]
+    False
+    >>> d["kerning"]
+    False
+    >>> d["groups"]
+    False
+    >>> d["lib"]
+    False
+    >>> d["modifiedGlyphs"]
+    []
+    >>> d["addedGlyphs"]
+    []
+    >>> d["deletedGlyphs"]
+    []
+
+    # make a simple change to the kerning data
+    >>> path = os.path.join(font.path, "kerning.plist")
+    >>> f = open(path, "rb")
+    >>> t = f.read()
+    >>> f.close()
+    >>> t += " "
+    >>> f = open(path, "wb")
+    >>> f.write(t)
+    >>> f.close()
+    >>> os.utime(path, (k._dataOnDiskTimeStamp + 1, k._dataOnDiskTimeStamp + 1))
+
+    >>> d = font.testForExternalChanges()
+    >>> d["kerning"]
+    True
+    >>> d["info"]
+    False
+
+    # save the kerning data and test again
+    >>> font.kerning.dirty = True
+    >>> font.save()
+    >>> d = font.testForExternalChanges()
+    >>> d["kerning"]
+    False
+
+    # make a simple change to a glyph
+    >>> path = os.path.join(font.path, "glyphs", "A_.glif")
+    >>> f = open(path, "rb")
+    >>> t = f.read()
+    >>> f.close()
+    >>> t += " "
+    >>> f = open(path, "wb")
+    >>> f.write(t)
+    >>> f.close()
+    >>> os.utime(path, (g._dataOnDiskTimeStamp + 1, g._dataOnDiskTimeStamp + 1))
+    >>> d = font.testForExternalChanges()
+    >>> d["modifiedGlyphs"]
+    ['A']
+
+    # save the glyph and test again
+    >>> font["A"].dirty = True
+    >>> font.save()
+    >>> d = font.testForExternalChanges()
+    >>> d["modifiedGlyphs"]
+    []
+
+    # add a glyph
+    >>> path = os.path.join(font.path, "glyphs", "A_.glif")
+    >>> f = open(path, "rb")
+    >>> t = f.read()
+    >>> f.close()
+    >>> t = t.replace('<glyph name="A" format="1">', '<glyph name="XXX" format="1">')
+    >>> path = os.path.join(font.path, "glyphs", "XXX.glif")
+    >>> f = open(path, "wb")
+    >>> f.write(t)
+    >>> f.close()
+    >>> path = os.path.join(font.path, "glyphs", "contents.plist")
+    >>> plist = readPlist(path)
+    >>> savePlist = dict(plist)
+    >>> plist["XXX"] = "XXX.glif"
+    >>> writePlist(plist, path)
+    >>> d = font.testForExternalChanges()
+    >>> d["modifiedGlyphs"]
+    []
+    >>> d["addedGlyphs"]
+    [u'XXX']
+
+    # delete a glyph
+    >>> path = getTestFontPath("TestExternalEditing.ufo")
+    >>> font = Font(path)
+    >>> g = font["XXX"]
+    >>> path = os.path.join(font.path, "glyphs", "contents.plist")
+    >>> writePlist(savePlist, path)
+    >>> path = os.path.join(font.path, "glyphs", "XXX.glif")
+    >>> os.remove(path)
+    >>> d = font.testForExternalChanges()
+    >>> d["modifiedGlyphs"]
+    []
+    >>> d["deletedGlyphs"]
+    ['XXX']
+    """
+
+def _testReloadInfo():
+    """
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath("TestExternalEditing.ufo")
+    >>> font = Font(path)
+    >>> info = font.info
+
+    >>> path = os.path.join(font.path, "fontinfo.plist")
+    >>> f = open(path, "rb")
+    >>> t = f.read()
+    >>> f.close()
+    >>> t = t.replace("<integer>750</integer>", "<integer>751</integer>")
+    >>> f = open(path, "wb")
+    >>> f.write(t)
+    >>> f.close()
+
+    >>> info.ascender
+    750
+    >>> font.reloadInfo()
+    >>> info.ascender
+    751
+
+    >>> t = t.replace("<integer>751</integer>", "<integer>750</integer>")
+    >>> f = open(path, "wb")
+    >>> f.write(t)
+    >>> f.close()
+    """
+
+def _testReloadKerning():
+    """
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath("TestExternalEditing.ufo")
+    >>> font = Font(path)
+    >>> kerning = font.kerning
+
+    >>> path = os.path.join(font.path, "kerning.plist")
+    >>> f = open(path, "rb")
+    >>> t = f.read()
+    >>> f.close()
+    >>> t = t.replace("<integer>-100</integer>", "<integer>-101</integer>")
+    >>> f = open(path, "wb")
+    >>> f.write(t)
+    >>> f.close()
+
+    >>> kerning.items()
+    [(('A', 'A'), -100)]
+    >>> font.reloadKerning()
+    >>> kerning.items()
+    [(('A', 'A'), -101)]
+
+    >>> t = t.replace("<integer>-101</integer>", "<integer>-100</integer>")
+    >>> f = open(path, "wb")
+    >>> f.write(t)
+    >>> f.close()
+    """
+
+def _testReloadGroups():
+    """
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath("TestExternalEditing.ufo")
+    >>> font = Font(path)
+    >>> groups = font.groups
+
+    >>> path = os.path.join(font.path, "groups.plist")
+    >>> f = open(path, "rb")
+    >>> t = f.read()
+    >>> f.close()
+    >>> t = t.replace("<key>TestGroup</key>", "<key>XXX</key>")
+    >>> f = open(path, "wb")
+    >>> f.write(t)
+    >>> f.close()
+
+    >>> groups.keys()
+    ['TestGroup']
+    >>> font.reloadGroups()
+    >>> groups.keys()
+    ['XXX']
+
+    >>> t = t.replace("<key>XXX</key>", "<key>TestGroup</key>")
+    >>> f = open(path, "wb")
+    >>> f.write(t)
+    >>> f.close()
+    """
+
+def _testReloadLib():
+    """
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath("TestExternalEditing.ufo")
+    >>> font = Font(path)
+    >>> lib = font.lib
+
+    >>> path = os.path.join(font.path, "lib.plist")
+    >>> f = open(path, "rb")
+    >>> t = f.read()
+    >>> f.close()
+    >>> t = t.replace("<key>org.robofab.glyphOrder</key>", "<key>org.robofab.glyphOrder.XXX</key>")
+    >>> f = open(path, "wb")
+    >>> f.write(t)
+    >>> f.close()
+
+    >>> lib.keys()
+    ['org.robofab.glyphOrder']
+    >>> font.reloadLib()
+    >>> lib.keys()
+    ['org.robofab.postScriptHintData', 'org.robofab.glyphOrder.XXX']
+
+    >>> t = t.replace("<key>org.robofab.glyphOrder.XXX</key>", "<key>org.robofab.glyphOrder</key>")
+    >>> f = open(path, "wb")
+    >>> f.write(t)
+    >>> f.close()
+    """
+
+def _testReloadGlyphs():
+    """
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath("TestExternalEditing.ufo")
+    >>> font = Font(path)
+    >>> glyph = font["A"]
+
+    >>> path = os.path.join(font.path, "glyphs", "A_.glif")
+    >>> f = open(path, "rb")
+    >>> t = f.read()
+    >>> f.close()
+    >>> t = t.replace('<advance width="700"/>', '<advance width="701"/>')
+    >>> f = open(path, "wb")
+    >>> f.write(t)
+    >>> f.close()
+
+    >>> glyph.width
+    700
+    >>> len(glyph)
+    2
+    >>> font.reloadGlyphs(["A"])
+    >>> glyph.width
+    701
+    >>> len(glyph)
+    2
+
+    >>> t = t.replace('<advance width="701"/>', '<advance width="700"/>')
+    >>> f = open(path, "wb")
+    >>> f.write(t)
+    >>> f.close()
+    """
 
 if __name__ == "__main__":
     import doctest
