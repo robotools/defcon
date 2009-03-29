@@ -374,19 +374,20 @@ class Font(BaseObject):
                     found[baseGlyph] = set()
                 found[baseGlyph].add(glyphName)
         # scan glyphs that have not been loaded
-        glyphsPath = os.path.join(self.path, "glyphs")
-        for glyphName, fileName in self._glyphSet.contents.items():
-            if glyphName in self._glyphs or glyphName in self._scheduledForDeletion:
-                continue
-            glyphPath = os.path.join(glyphsPath, fileName)
-            f = open(glyphPath, "rb")
-            data = f.read()
-            f.close()
-            baseGlyphs = componentSearchRE.findall(data)
-            for baseGlyph in baseGlyphs:
-                if baseGlyph not in found:
-                    found[baseGlyph] = set()
-                found[baseGlyph].add(glyphName)
+        if self.path is not None:
+            glyphsPath = os.path.join(self.path, "glyphs")
+            for glyphName, fileName in self._glyphSet.contents.items():
+                if glyphName in self._glyphs or glyphName in self._scheduledForDeletion:
+                    continue
+                glyphPath = os.path.join(glyphsPath, fileName)
+                f = open(glyphPath, "rb")
+                data = f.read()
+                f.close()
+                baseGlyphs = componentSearchRE.findall(data)
+                for baseGlyph in baseGlyphs:
+                    if baseGlyph not in found:
+                        found[baseGlyph] = set()
+                    found[baseGlyph].add(glyphName)
         return found
 
     componentReferences = property(_get_componentReferences, doc="A dict of describing the component relationshis in the font. The dictionary is of form ``{base glyph : [references]}``.")
