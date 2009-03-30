@@ -2057,7 +2057,11 @@ for line in _openClosePairText.splitlines():
 
 def decompositionBase(value):
     letterCategories = ("Ll", "Lu", "Lt", "Lo")
-    c = unichr(value)
+    try:
+        c = unichr(value)
+    # see not in category function
+    except ValueError:
+        return -1
     decomposition = unicodedata.decomposition(c)
     if decomposition.startswith("<"):
         return -1
@@ -2086,8 +2090,14 @@ def closeRelative(value):
     return _openToClose.get(value)
 
 def category(value):
-    c = unichr(value)
-    return unicodedata.category(c)
+    try:
+        c = unichr(value)
+        return unicodedata.category(c)
+    # values larger than Python can use to create a
+    # unichr will raise a value error. when this happens,
+    # return Cn.
+    except ValueError:
+        return "Cn"
 
 def script(value):
     scriptName = _searchRanges(value, scriptRanges)
