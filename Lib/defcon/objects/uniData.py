@@ -405,7 +405,7 @@ class UnicodeData(BaseDictObject):
 
         And so on. The returned list will be flattened into a list of glyph names.
 
-        Each item in **sortDescriptors** shoudl be a dict of the following form:
+        Each item in **sortDescriptors** should be a dict of the following form:
 
         ==================  ===========
         Key                 Description
