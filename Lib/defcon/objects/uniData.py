@@ -416,6 +416,7 @@ class UnicodeData(BaseDictObject):
         allowPseudoUnicode  Boolean representing if pseudo-Unicode
                             values are used. If not, real Unicode values will be used
                             if necessary. Optional. The default is False.
+        function            A function. Used only for **custom** sort types. See details below.
         ==================  ===========
 
         *Available Sort Types:*
@@ -430,7 +431,35 @@ class UnicodeData(BaseDictObject):
         block              Sort based on Unicode block.
         suffix             Sort based on glyph name suffix.
         decompositionBase  Sort based on the base glyph defined in the decomposition rules.
+        custom             Sort using a custom function. See details below.
         =================  ===========
+
+        *Sorting with a custom function:*
+        If the builtin sort types don't do exactly what you need, you can use a **custom** sort type
+        that contains an arbitrary function that handles sorting externally. This follows the same
+        sorting logic as detailed above. The custom sort type can be used in conjunction with the
+        builtin sort types.
+
+        The function should follow this form::
+
+            mySortFunction(font, glyphNames, ascending=True, allowPseudoUnicode=False)
+
+        The **ascending** and **allowPseudoUnicode** arguments will be the values defined
+        in the sort descriptors.
+
+        The function should return a list of lists of glyph names.
+
+        An example::
+
+            def sortByE(font, glyphNames, ascending=True, allowsPseudoUnicodes=False):
+                startsWithE = []
+                doesNotStartWithE = []
+                for glyphName in glyphNames:
+                    if glyphName.startswith("startsWithE"):
+                        startsWithE.append(glyphName)
+                    else:
+                        doesNotStartWithE.append(glyphName)
+                return [startsWithE, doesNotStartWithE]
         """
         blocks = [glyphNames]
         typeToMethod = dict(
@@ -440,17 +469,19 @@ class UnicodeData(BaseDictObject):
             block=self._sortByBlock,
             script=self._sortByScript,
             suffix=self._sortBySuffix,
-            decompositionBase=self._sortByDecompositionBase
+            decompositionBase=self._sortByDecompositionBase,
+            custom=self._sortByCustomFunction
         )
         for sortDescriptor in sortDescriptors:
             sortType = sortDescriptor["type"]
             ascending = sortDescriptor.get("ascending", True)
             allowPseudoUnicode = sortDescriptor.get("allowPseudoUnicode", False)
+            function = sortDescriptor.get("function", None)
             sortMethod = typeToMethod[sortType]
 
             newBlocks = []
             for block in blocks:
-                sortedBlock = self._sortRecurse(blocks, sortMethod, ascending, allowPseudoUnicode)
+                sortedBlock = self._sortRecurse(blocks, sortMethod, ascending, allowPseudoUnicode, function)
                 newBlocks.append(sortedBlock)
             blocks = newBlocks
         return self._flattenSortResult(blocks)
@@ -464,17 +495,20 @@ class UnicodeData(BaseDictObject):
                 final.append(i)
         return final
 
-    def _sortRecurse(self, blocks, sortMethod, ascending, allowPseudoUnicode):
+    def _sortRecurse(self, blocks, sortMethod, ascending, allowPseudoUnicode, function):
         if not blocks:
             return []
         if not isinstance(list(blocks)[0], basestring):
             sortedBlocks = []
             for block in blocks:
-                block = self._sortRecurse(block, sortMethod, ascending, allowPseudoUnicode)
+                block = self._sortRecurse(block, sortMethod, ascending, allowPseudoUnicode, function)
                 sortedBlocks.append(block)
             return sortedBlocks
         else:
-            return sortMethod(blocks, ascending, allowPseudoUnicode)
+            if sortMethod == self._sortByCustomFunction:
+                return sortMethod(blocks, ascending, allowPseudoUnicode, function)
+            else:
+                return sortMethod(blocks, ascending, allowPseudoUnicode)
 
     def _sortByAlphabet(self, glyphNames, ascending, allowPseudoUnicode):
         result = sorted(glyphNames)
@@ -602,6 +636,8 @@ class UnicodeData(BaseDictObject):
             sortedResult = list(reversed(sortedResult))
         return sortedResult
 
+    def _sortByCustomFunction(self, glyphNames, ascending, allowPseudoUnicode, function):
+        return function(self.getParent(), glyphNames, ascending, allowPseudoUnicode)
 
 # -----
 # Tools
