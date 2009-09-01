@@ -158,6 +158,18 @@ class BaseDictObject(BaseObject):
         del self._dict[key]
         self.dirty = True
 
+    def __copy__(self):
+        import copy
+        obj = self.__class__()
+        obj.update(copy.copy(self._dict))
+        return obj
+
+    def __deepcopy__(self, memo={}):
+        import copy
+        obj = self.__class__()
+        obj.update(copy.deepcopy(self._dict, memo))
+        return obj
+
     def get(self, key, default=None):
         return self._dict.get(key, default)
 
