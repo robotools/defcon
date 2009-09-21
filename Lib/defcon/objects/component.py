@@ -33,7 +33,7 @@ class Component(BaseObject):
         glyph = self.getParent()
         if glyph is None:
             return None
-        font = self.getParent()
+        font = glyph.getParent()
         if font is None:
             return None
         pen = BoundsPen(font)
@@ -47,7 +47,7 @@ class Component(BaseObject):
         glyph = self.getParent()
         if glyph is None:
             return None
-        font = self.getParent()
+        font = glyph.getParent()
         if font is None:
             return None
         pen = ControlBoundsPen(font)
