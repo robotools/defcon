@@ -1,6 +1,5 @@
 from fontTools.misc import bezierTools
 from defcon.objects.base import BaseObject
-from defcon.objects.point import Point
 from defcon.tools import bezierMath
 
 
@@ -36,12 +35,16 @@ class Contour(BaseObject):
 
     _notificationName = "Contour.Changed"
 
-    def __init__(self):
+    def __init__(self, pointClass=None):
         super(Contour, self).__init__()
         self._points = []
         self._boundsCache = None
         self._controlPointBoundsCache = None
         self._clockwiseCache = None
+        if pointClass is None:
+            from point import Point
+            pointClass = Point
+        self._pointClass = pointClass
 
     def _destroyBoundsCache(self):
         self._boundsCache = None
@@ -272,7 +275,7 @@ class Contour(BaseObject):
                 lastPoints = []
             else:
                 lastPoints = self._points[lastPointIndex:]
-            newPoints = [Point(pos, segmentType=segmentType, smooth=smooth) for pos, segmentType, smooth in pointsToInsert]
+            newPoints = [self._pointClass(pos, segmentType=segmentType, smooth=smooth) for pos, segmentType, smooth in pointsToInsert]
             self._points = firstPoints + newPoints + lastPoints
             self.dirty = True
         return insertionPoint, pointWillBeSmooth
@@ -346,7 +349,7 @@ class Contour(BaseObject):
             if not nextSegment[-1].segmentType == "curve":
                 nextSegment[-1].segmentType = "curve"
                 pointIndex = self._points.index(nextSegment[-1])
-                newPoints = [Point((result[0][0], result[0][1])), Point((result[1][0], result[1][1]))]
+                newPoints = [self._pointClass((result[0][0], result[0][1])), self._pointClass((result[1][0], result[1][1]))]
                 if pointIndex == 0:
                     self._points.extend(newPoints)
                 else:
@@ -384,7 +387,7 @@ class Contour(BaseObject):
         Standard point pen *addPoint* method.
         This should not be used externally.
         """
-        point = Point((x, y), segmentType=segmentType, smooth=smooth, name=name)
+        point = self._pointClass((x, y), segmentType=segmentType, smooth=smooth, name=name)
         self._points.append(point)
         self._destroyBoundsCache()
         self._clockwiseCache = None

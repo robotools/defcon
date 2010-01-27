@@ -7,7 +7,7 @@ class GlyphObjectPointPen(AbstractPointPen):
         self._contour = None
 
     def beginPath(self):
-        self._contour = self._glyph.contourClass()
+        self._contour = self._glyph.contourClass(pointClass=self._glyph.pointClass)
 
     def endPath(self):
         if len(self._contour) == 1:

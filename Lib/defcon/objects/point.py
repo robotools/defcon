@@ -14,7 +14,7 @@ class Point(object):
         self._name = name
 
     def __repr__(self):
-        return "<Point position: (%s, %s) type: %s smooth: %s name: %s>" % (self.x, self.y, str(self.segmentType), str(self.smooth), str(self.name))
+        return "<%s position: (%s, %s) type: %s smooth: %s name: %s>" % (self.__class__.__name__, self.x, self.y, str(self.segmentType), str(self.smooth), str(self.name))
 
     def _get_segmentType(self):
         return self._segmentType

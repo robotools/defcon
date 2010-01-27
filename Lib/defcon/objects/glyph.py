@@ -47,7 +47,7 @@ class Glyph(BaseObject):
 
     _notificationName = "Glyph.Changed"
 
-    def __init__(self, contourClass=None, componentClass=None, anchorClass=None, libClass=None):
+    def __init__(self, contourClass=None, pointClass=None, componentClass=None, anchorClass=None, libClass=None):
         super(Glyph, self).__init__()
 
         self._parent = None
@@ -72,6 +72,9 @@ class Glyph(BaseObject):
         if contourClass is None:
             from contour import Contour
             contourClass = Contour
+        if pointClass is None:
+            from point import Point
+            pointClass = Point
         if componentClass is None:
             from component import Component
             componentClass = Component
@@ -83,6 +86,7 @@ class Glyph(BaseObject):
             libClass = Lib
 
         self._contourClass = contourClass
+        self._pointClass = pointClass
         self._componentClass = componentClass
         self._anchorClass = anchorClass
 
@@ -119,6 +123,11 @@ class Glyph(BaseObject):
         return self._contourClass
 
     contourClass = property(_get_contourClass, doc="The class used for contours.")
+
+    def _get_pointClass(self):
+        return self._pointClass
+
+    pointClass = property(_get_pointClass, doc="The class used for points.")
 
     def _get_componentClass(self):
         return self._componentClass
