@@ -18,9 +18,13 @@ class Features(BaseObject):
     _notificationName = "Features.Changed"
 
     def __init__(self):
+        super(Features, self).__init__()
+        self._dirty = False
         self._text = None
 
     def _set_text(self, value):
+        if self._text == value:
+            return
         self._text = value
         self.dirty = True
 
