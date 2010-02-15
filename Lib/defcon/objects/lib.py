@@ -36,6 +36,10 @@ class Lib(BaseDictObject):
     """
 
     _notificationName = "Lib.Changed"
+    beginUndoNotificationName = "Lib.BeginUndo"
+    endUndoNotificationName = "Lib.EndUndo"
+    beginRedoNotificationName = "Lib.BeginRedo"
+    endRedoNotificationName = "Lib.EndRedo"
 
 
 if __name__ == "__main__":

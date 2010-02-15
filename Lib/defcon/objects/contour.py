@@ -50,6 +50,27 @@ class Contour(BaseObject):
         self._boundsCache = None
         self._controlPointBoundsCache = None
 
+    def _setParentDataInPoints(self):
+        dispatcher = self.dispatcher
+        for point in self._points:
+            self._setParentDataInPoint(point)
+
+    def _setParentDataInPoint(self, point, dispatcher=None):
+        point.setParent(self)
+        dispatcher = self.dispatcher
+        point.dispatcher = dispatcher
+        if dispatcher is not None:
+            point.addObserver(self, "_pointChanged", "Point.Changed")
+
+    def _removeParentDataInPoints(self):
+        for point in self._points:
+            self._removeParentDataInPoint(point)
+
+    def _removeParentDataInPoint(self, point):
+        point.setParent(None)
+        point.removeObserver(self, "Point.Changed")
+        point.dispatcher = None
+
     # ----------
     # Attributes
     # ----------
@@ -146,6 +167,21 @@ class Contour(BaseObject):
             yield point
             index += 1
 
+    def clear(self):
+        """
+        Clear the contents of the contour.
+
+        This posts a *Contour.Changed* notification.
+        """
+        # remove the subscriptions, etc.
+        self._removeParentDataInPoints()
+        # clear the internal storage
+        self._points = []
+        # reset the clockwise cache
+        self._clockwiseCache = None
+        # post a dirty notification
+        self.dirty = True
+
     def reverse(self):
         """
         Reverse the direction of the contour.
@@ -162,9 +198,10 @@ class Contour(BaseObject):
         # clear the points in this contour
         # and copy the points from the other
         # contour to this contour.
+        self.clear()
         self._points = list(otherContour._points)
-        # reset the clockwise cache
-        self._clockwiseCache = None
+        self._setParentDataInPoints()
+        # post a notification
         self.dirty = True
 
     def move(self, (x, y)):
@@ -388,6 +425,10 @@ class Contour(BaseObject):
         This should not be used externally.
         """
         point = self._pointClass((x, y), segmentType=segmentType, smooth=smooth, name=name)
+        self._addPoint(point)
+
+    def _addPoint(self, point):
+        self._setParentDataInPoint(point)
         self._points.append(point)
         self._destroyBoundsCache()
         self._clockwiseCache = None
@@ -409,6 +450,30 @@ class Contour(BaseObject):
         for point in self._points:
             pointPen.addPoint((point.x, point.y), segmentType=point.segmentType, smooth=point.smooth, name=point.name)
         pointPen.endPath()
+
+    # ----
+    # Undo
+    # ----
+
+    def getDataToSerializeForUndo(self):
+        data = dict(
+            points=[point.getDataToSerializeForUndo() for point in self._points]
+        )
+        return data
+
+    def loadDeserializedDataFromUndo(self, data):
+        for pointData in data["points"]:
+            point = self._pointClass((0, 0))
+            point.loadDeserializedDataFromUndo(pointData)
+            self._addPoint(point)
+        self._setParentDataInPoints()
+
+    # ----------------------
+    # Notification Callbacks
+    # ----------------------
+
+    def _pointChanged(self, notification):
+        self.dirty = True
 
 
 # -----

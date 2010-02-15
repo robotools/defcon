@@ -37,6 +37,10 @@ class Kerning(BaseDictObject):
     """
 
     _notificationName = "Kerning.Changed"
+    beginUndoNotificationName = "Kerning.BeginUndo"
+    endUndoNotificationName = "Kerning.EndUndo"
+    beginRedoNotificationName = "Kerning.BeginRedo"
+    endRedoNotificationName = "Kerning.EndRedo"
 
     def get(self, pair, default=0):
         return super(Kerning, self).get(pair, default)

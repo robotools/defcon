@@ -75,6 +75,23 @@ class Anchor(BaseObject):
         pointPen.addPoint((self.x, self.y), segmentType="move", smooth=False, name=self.name)
         pointPen.endPath()
 
+    # ----
+    # Undo
+    # ----
+
+    def getDataToSerializeForUndo(self):
+        data = dict(
+            x=self.x,
+            y=self.y,
+            name=self.name
+        )
+        return data
+
+    def loadDeserializedDataFromUndo(self, data):
+        self.x = data["x"]
+        self.y = data["y"]
+        self.name = data["name"]
+
 
 if __name__ == "__main__":
     import doctest

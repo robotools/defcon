@@ -4,6 +4,8 @@ class NotificationCenter(object):
 
     def __init__(self):
         self._observables = {}
+        self._holds = {}
+        self._disabled = {}
 
     def addObserver(self, observer, methodName, notification, observable):
         """
@@ -23,10 +25,10 @@ class NotificationCenter(object):
         if observable is not None:
             observable = weakref.ref(observable)
         observer = weakref.ref(observer)
-        if not self._observables.has_key(notification):
+        if notification not in self._observables:
             self._observables[notification] = {}
         observableDict = self._observables[notification]
-        if not observableDict.has_key(observable):
+        if observable not in observableDict:
             observableDict[observable] = {}
         observerDict = observableDict[observable]
         observerDict[observer] = methodName
@@ -36,7 +38,7 @@ class NotificationCenter(object):
         Remove an observer from this notification dispatcher.
 
         * **observer** A registered object.
-        * **notification** The notification that teh observer was registered
+        * **notification** The notification that the observer was registered
           to be notified of.
         * **observable** The object being observed.
         """
@@ -47,7 +49,8 @@ class NotificationCenter(object):
 
     def hasObserver(self, observer, notification, observable):
         """
-        Returns a boolean indicating is the **observer** is registered for **notification** posted by **observable**.
+        Returns a boolean indicating is the **observer** is registered
+        for **notification** posted by **observable**.
         """
         if observable is not None:
             observable = weakref.ref(observable)
@@ -62,18 +65,37 @@ class NotificationCenter(object):
 
     def postNotification(self, notification, observable, data=None):
         """
-        Post a notification to all objects observing **notification** in **observable**.
+        Post a notification to all objects observing **notification**
+        in **observable**.
 
         * **notification** The name of the notification.
         * **observable** The object that the notification belongs to.
         * **data** Arbitrary data that will be stored in the :class:`Notification` object.
 
-        This will create a :class:`Notification` object and post it to all relevant observers.
+        This will create a :class:`Notification` object and post it to
+        all relevant observers.
         """
         observableObj = observable
         if observable is not None:
             observable = weakref.ref(observable)
-        if self._observables.has_key(notification):
+        # disabled
+        if (observable, notification) in self._disabled:
+            return
+        if observable in self._disabled:
+            return
+        # held
+        if (observable, notification) in self._holds:
+            n = (notification, observable, data)
+            if self._holds[observable, notification]["notifications"] and self._holds[observable, notification]["notifications"][-1] != n:
+                self._holds[observable, notification]["notifications"].append(n)
+            return
+        if observable in self._holds:
+            n = (notification, observable, data)
+            if self._holds[observable]["notifications"] and self._holds[observable]["notifications"][-1] != n:
+                self._holds[observable]["notifications"].append(n)
+            return
+        # post
+        if notification in self._observables:
             for observableRef, observerDict in self._observables[notification].items():
                 if observable == observableRef:
                     for observerRef, methodName in observerDict.items():
@@ -81,6 +103,120 @@ class NotificationCenter(object):
                         callback = getattr(observer, methodName)
                         n = Notification(notification, observableRef, data)
                         callback(n)
+
+    def holdNotificationsForObservable(self, observable, notification=None):
+        """
+        Hold all notifications posted to all objects observing
+        **notification** in **observable**.
+
+        * **observable** The object that the notification belongs to.
+        * **notification** The name of the notification. This is optional.
+          If no *notification* is given, *all* notifications for *observable*
+          will be held.
+
+        Held notifications will be posted after the a matching *notification*
+        and *observable* have been passed to :meth:`Notification.releaseHeldNotificationsForObservable`.
+        This object will retain a count of how many times it has been told to
+        hold notifications for *notification* and *observable*. It will not
+        post the notifications until the *notification* and *observable*
+        have been released the same number of times.
+        """
+        observable = weakref.ref(observable)
+        if notification is not None:
+            key = (observable, notification)
+        else:
+            key = observable
+        if key not in self._holds:
+            self._holds[key] = dict(holdCount=0, notifications=set())
+        self._holds[key]["holdCount"] += 1
+
+    def releaseHeldNotificationsForObservable(self, observable, notification=None):
+        """
+        Release all held notifications posted to all objects observing
+        **notification** in **observable**.
+
+        * **observable** The object that the notification belongs to.
+        * **notification** The name of the notification. This is optional.
+        """
+        observableObj = observable
+        observable = weakref.ref(observable)
+        if notification is not None:
+            key = (observable, notification)
+        else:
+            key = observable
+        self._holds[key]["holdCount"] -= 1
+        if self._holds[key]["holdCount"] == 0:
+            notifications = self._holds[key]["notifications"]
+            del self._holds[key]
+            for notification, o, data in notifications:
+                self.postNotification(notification, observableObj, data)
+
+    def areNotificationsHeldForObservable(self, observable, notification=None):
+        """
+        Returns a boolean indicating if notifications posted to all objects observing
+        **notification** in **observable** are being held.
+
+        * **observable** The object that the notification belongs to.
+        * **notification** The name of the notification. This is optional.
+        """
+        if (observable, notification) in self._holds:
+            return True
+        return weakref.ref(observable) in self._holds
+
+    def disableNotificationsForObservable(self, observable, notification=None):
+        """
+        Disable all notifications posted to all objects observing
+        **notification** in **observable**.
+
+        * **observable** The object that the notification belongs to.
+        * **notification** The name of the notification. This is optional.
+          If no *notification* is given, *all* notifications for *observable*
+          will be disabled.
+
+        This object will retain a count of how many times it has been told to
+        disable notifications for *notification* and *observable*. It will not
+        enable new notifications until the *notification* and *observable*
+        have been released the same number of times.
+        """
+        observable = weakref.ref(observable)
+        if notification is not None:
+            key = (observable, notification)
+        else:
+            key = observable
+        if key not in self._disabled:
+            self._disabled[key] = 0
+        self._disabled[key] += 1
+
+    def enableNotificationsForObservable(self, observable, notification=None):
+        """
+        Enable notifications posted to all objects observing
+        **notification** in **observable**.
+
+        * **observable** The object that the notification belongs to.
+        * **notification** The name of the notification. This is optional.
+        """
+        observableObj = observable
+        observable = weakref.ref(observable)
+        if notification is not None:
+            key = (observable, notification)
+        else:
+            key = observable
+        self._disabled[key] -= 1
+        if self._disabled[key] == 0:
+            del self._disabled[key]
+
+    def areNotificationsDisabledForObservable(self, observable, notification=None):
+        """
+        Returns a boolean indicating if notifications posted to all objects observing
+        **notification** in **observable** are disabled.
+
+        * **observable** The object that the notification belongs to.
+        * **notification** The name of the notification. This is optional.
+        """
+        if (observable, notification) in self._disabled:
+            return True
+        return weakref.ref(observable) in self._disabled
+
 
 
 class Notification(object):
@@ -91,6 +227,9 @@ class Notification(object):
         self._name = name
         self._objRef = objRef
         self._data = data
+
+    def __repr__(self):
+        return "<Notification: %s %s>" % (self.name, repr(self.object))
 
     def _get_name(self):
         return self._name

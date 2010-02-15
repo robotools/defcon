@@ -16,6 +16,10 @@ class Features(BaseObject):
     """
 
     _notificationName = "Features.Changed"
+    beginUndoNotificationName = "Features.BeginUndo"
+    endUndoNotificationName = "Features.EndUndo"
+    beginRedoNotificationName = "Features.BeginRedo"
+    endRedoNotificationName = "Features.EndRedo"
 
     def __init__(self):
         super(Features, self).__init__()
