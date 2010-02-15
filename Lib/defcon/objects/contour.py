@@ -457,7 +457,7 @@ class Contour(BaseObject):
 
     def getDataToSerializeForUndo(self):
         data = dict(
-            points=[point.serializeForUndo() for point in self._points]
+            points=[point.serializeForUndo(pack=False) for point in self._points]
         )
         return data
 

@@ -297,7 +297,7 @@ class BaseObject(object):
 
     # serialization
 
-    def serializeForUndo(self):
+    def serializeForUndo(self, pack=True):
         from cPickle import dumps
         import zlib
         # make the data dict
@@ -305,11 +305,12 @@ class BaseObject(object):
             serializedData=self.getDataToSerializeForUndo(),
             customData=self.getCustomDataToSerializeForUndo()
         )
-        # pickle
-        data = dumps(data, 0)
-        # compress
-        data = zlib.compress(data, 9)
-        return data
+        if pack:
+            # pickle
+            data = dumps(data, 0)
+            # compress
+            data = zlib.compress(data, 9)
+        return dict(packed=pack, data=data)
 
     def getDataToSerializeForUndo(self):
         raise NotImplementedError
@@ -322,10 +323,13 @@ class BaseObject(object):
     def deserializeFromUndo(self, data):
         from cPickle import loads
         import zlib
-        # decompress
-        data = zlib.decompress(data)
-        # unpickle
-        data = loads(data)
+        packed = data["packed"]
+        data = data["data"]
+        if packed:
+            # decompress
+            data = zlib.decompress(data)
+            # unpickle
+            data = loads(data)
         # hold notifications
         self.holdNotifications()
         # deserialize basic data

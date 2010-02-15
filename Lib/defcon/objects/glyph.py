@@ -666,13 +666,13 @@ class Glyph(BaseObject):
 
     def getDataToSerializeForUndo(self):
         data = dict(
-            contours=[contour.serializeForUndo() for contour in self._contours],
-            components=[component.serializeForUndo() for component in self._components],
-            anchors=[anchor.serializeForUndo() for anchor in self._anchors],
+            contours=[contour.serializeForUndo(pack=False) for contour in self._contours],
+            components=[component.serializeForUndo(pack=False) for component in self._components],
+            anchors=[anchor.serializeForUndo(pack=False) for anchor in self._anchors],
             name=self.name,
             unicodes=self.unicodes,
             width=self.width,
-            lib=self.lib.serializeForUndo()
+            lib=self.lib.serializeForUndo(pack=False)
         )
         return data
 
