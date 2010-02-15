@@ -16,7 +16,7 @@ class Component(BaseObject):
     ==========================  ====
     """
 
-    _notificationName = "Component.Changed"
+    changeNotificationName = "Component.Changed"
 
     def __init__(self):
         super(Component, self).__init__()

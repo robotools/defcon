@@ -22,12 +22,11 @@ class BaseObject(object):
     Keep in mind that subclasses will not post these same notifications.
     """
 
-    _notificationName = "BaseObject.Changed"
+    changeNotificationName = "BaseObject.Changed"
     beginUndoNotificationName = "BaseObject.BeginUndo"
     endUndoNotificationName = "BaseObject.EndUndo"
     beginRedoNotificationName = "BaseObject.BeginRedo"
     endRedoNotificationName = "BaseObject.EndRedo"
-
 
     def __init__(self):
         self._parent = None
@@ -35,6 +34,15 @@ class BaseObject(object):
         self._dataOnDisk = None
         self._dataOnDiskTimeStamp = None
         self._undoManager = None
+        # handle the old _notificationName attribute
+        if hasattr(self, "_notificationName"):
+            from warnings import warn
+            warn(
+                "_notificationName has been deprecated. Use changeNotificationName instead.",
+                DeprecationWarning
+            )
+            self.changeNotificationName = self._notificationName
+        self._notificationName = self.changeNotificationName
 
     # ------
     # Parent
@@ -206,7 +214,7 @@ class BaseObject(object):
     def _set_dirty(self, value):
         self._dirty = value
         if self._dispatcher is not None:
-            self.dispatcher.postNotification(notification=self._notificationName, observable=self)
+            self.dispatcher.postNotification(notification=self.changeNotificationName, observable=self)
 
     def _get_dirty(self):
         return self._dirty

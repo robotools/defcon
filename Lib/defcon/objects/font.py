@@ -131,7 +131,7 @@ class Font(BaseObject):
         del font["aGlyphName"]
     """
 
-    _notificationName = "Font.Changed"
+    changeNotificationName = "Font.Changed"
 
     def __init__(self, path=None,
                     kerningClass=None, infoClass=None, groupsClass=None, featuresClass=None, libClass=None, unicodeDataClass=None,
@@ -1066,7 +1066,7 @@ class Font(BaseObject):
                     continue
                 glyph = self._glyphs[reference]
                 glyph.destroyAllRepresentations(None)
-                glyph.dispatcher.postNotification(notification=glyph._notificationName, observable=glyph)
+                glyph.dispatcher.postNotification(notification=glyph.changeNotificationName, observable=glyph)
                 referenceChanges.add(reference)
 
     # -----------------------------

@@ -35,7 +35,7 @@ class Lib(BaseDictObject):
     `UFO specification <http://unifiedfontobject.org/filestructure/lib.html>`_.
     """
 
-    _notificationName = "Lib.Changed"
+    changeNotificationName = "Lib.Changed"
     beginUndoNotificationName = "Lib.BeginUndo"
     endUndoNotificationName = "Lib.EndUndo"
     beginRedoNotificationName = "Lib.BeginRedo"

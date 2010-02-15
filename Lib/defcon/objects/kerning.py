@@ -36,7 +36,7 @@ class Kerning(BaseDictObject):
     exceptions, etc. This may change in the future.
     """
 
-    _notificationName = "Kerning.Changed"
+    changeNotificationName = "Kerning.Changed"
     beginUndoNotificationName = "Kerning.BeginUndo"
     endUndoNotificationName = "Kerning.EndUndo"
     beginRedoNotificationName = "Kerning.BeginRedo"

@@ -23,7 +23,7 @@ class Info(BaseObject):
     from the `UFO specification <http://unifiedfontobject.org/filestructure/fontinfo.html>`_.
     """
 
-    _notificationName = "Info.Changed"
+    changeNotificationName = "Info.Changed"
     beginUndoNotificationName = "Info.BeginUndo"
     endUndoNotificationName = "Info.EndUndo"
     beginRedoNotificationName = "Info.BeginRedo"

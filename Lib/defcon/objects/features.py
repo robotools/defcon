@@ -15,7 +15,7 @@ class Features(BaseObject):
     ================  ====
     """
 
-    _notificationName = "Features.Changed"
+    changeNotificationName = "Features.Changed"
     beginUndoNotificationName = "Features.BeginUndo"
     endUndoNotificationName = "Features.EndUndo"
     beginRedoNotificationName = "Features.BeginRedo"

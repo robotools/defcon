@@ -45,7 +45,7 @@ class Glyph(BaseObject):
     use the ``components`` and ``anchors`` attributes.
     """
 
-    _notificationName = "Glyph.Changed"
+    changeNotificationName = "Glyph.Changed"
     beginUndoNotificationName = "Glyph.BeginUndo"
     endUndoNotificationName = "Glyph.EndUndo"
     beginRedoNotificationName = "Glyph.BeginRedo"

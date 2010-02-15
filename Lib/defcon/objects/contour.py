@@ -33,7 +33,7 @@ class Contour(BaseObject):
     use the ``components`` and ``anchors`` attributes.
     """
 
-    _notificationName = "Contour.Changed"
+    changeNotificationName = "Contour.Changed"
 
     def __init__(self, pointClass=None):
         super(Contour, self).__init__()

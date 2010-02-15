@@ -14,7 +14,7 @@ class Point(BaseObject):
     =============  ====
     """
 
-    _notificationName = "Point.Changed"
+    changeNotificationName = "Point.Changed"
 
     __slots__ = ["_x", "_y", "_segmentType", "_smooth", "_name"]
 

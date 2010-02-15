@@ -14,7 +14,7 @@ class Anchor(BaseObject):
     ==============  ====
     """
 
-    _notificationName = "Anchor.Changed"
+    changeNotificationName = "Anchor.Changed"
 
     def __init__(self):
         super(Anchor, self).__init__()
