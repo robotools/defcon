@@ -457,14 +457,14 @@ class Contour(BaseObject):
 
     def getDataToSerializeForUndo(self):
         data = dict(
-            points=[point.getDataToSerializeForUndo() for point in self._points]
+            points=[point.serializeForUndo() for point in self._points]
         )
         return data
 
     def loadDeserializedDataFromUndo(self, data):
         for pointData in data["points"]:
             point = self._pointClass((0, 0))
-            point.loadDeserializedDataFromUndo(pointData)
+            point.deserializeFromUndo(pointData)
             self._addPoint(point)
         self._setParentDataInPoints()
 
