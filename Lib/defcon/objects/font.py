@@ -618,6 +618,7 @@ class Font(BaseObject):
                 reader = ufoLib.UFOReader(self._path)
                 d = reader.readLib()
                 self._lib.update(d)
+            self._lib.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Lib.Changed")
             self._stampLibDataState()
         return self._lib
 
