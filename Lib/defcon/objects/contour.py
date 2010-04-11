@@ -50,27 +50,6 @@ class Contour(BaseObject):
         self._boundsCache = None
         self._controlPointBoundsCache = None
 
-    def _setParentDataInPoints(self):
-        dispatcher = self.dispatcher
-        for point in self._points:
-            self._setParentDataInPoint(point)
-
-    def _setParentDataInPoint(self, point, dispatcher=None):
-        point.setParent(self)
-        dispatcher = self.dispatcher
-        point.dispatcher = dispatcher
-        if dispatcher is not None:
-            point.addObserver(self, "_pointChanged", "Point.Changed")
-
-    def _removeParentDataInPoints(self):
-        for point in self._points:
-            self._removeParentDataInPoint(point)
-
-    def _removeParentDataInPoint(self, point):
-        point.setParent(None)
-        point.removeObserver(self, "Point.Changed")
-        point.dispatcher = None
-
     # ----------
     # Attributes
     # ----------
@@ -173,8 +152,6 @@ class Contour(BaseObject):
 
         This posts a *Contour.Changed* notification.
         """
-        # remove the subscriptions, etc.
-        self._removeParentDataInPoints()
         # clear the internal storage
         self._points = []
         # reset the clockwise cache
@@ -200,7 +177,6 @@ class Contour(BaseObject):
         # contour to this contour.
         self.clear()
         self._points = list(otherContour._points)
-        self._setParentDataInPoints()
         # post a notification
         self.dirty = True
 
@@ -428,7 +404,6 @@ class Contour(BaseObject):
         self._addPoint(point)
 
     def _addPoint(self, point):
-        self._setParentDataInPoint(point)
         self._points.append(point)
         self._destroyBoundsCache()
         self._clockwiseCache = None
@@ -466,14 +441,6 @@ class Contour(BaseObject):
             point = self._pointClass((0, 0))
             point.deserializeFromUndo(pointData)
             self._addPoint(point)
-        self._setParentDataInPoints()
-
-    # ----------------------
-    # Notification Callbacks
-    # ----------------------
-
-    def _pointChanged(self, notification):
-        self.dirty = True
 
 
 # -----

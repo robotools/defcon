@@ -1,25 +1,12 @@
-from defcon.objects.base import BaseObject
-
-class Point(BaseObject):
+class Point(object):
 
     """
     This object represents a single point.
-
-    **This object posts the following notifications:**
-
-    =============  ====
-    Name           Note
-    =============  ====
-    Point.Changed  Posted when the *dirty* attribute is set.
-    =============  ====
     """
-
-    changeNotificationName = "Point.Changed"
 
     __slots__ = ["_x", "_y", "_segmentType", "_smooth", "_name"]
 
     def __init__(self, (x, y), segmentType=None, smooth=False, name=None):
-        super(Point, self).__init__()
         self._x = x
         self._y = y
         self._segmentType = segmentType
@@ -34,7 +21,6 @@ class Point(BaseObject):
 
     def _set_segmentType(self, value):
         self._segmentType = value
-        self.dirty = True
 
     segmentType = property(_get_segmentType, _set_segmentType, doc="The segment type. The positibilies are *move*, *line*, *curve*, *qcurve* and *None* (indicating that this is an off-curve point).")
 
@@ -43,7 +29,6 @@ class Point(BaseObject):
 
     def _set_x(self, value):
         self._x = value
-        self.dirty = True
 
     x = property(_get_x, _set_x, doc="The x coordinate.")
 
@@ -52,7 +37,6 @@ class Point(BaseObject):
 
     def _set_y(self, value):
         self._y = value
-        self.dirty = True
 
     y = property(_get_y, _set_y, doc="The y coordinate.")
 
@@ -61,7 +45,6 @@ class Point(BaseObject):
 
     def _set_smooth(self, value):
         self._smooth = value
-        self.dirty = True
 
     smooth = property(_get_smooth, _set_smooth, doc="A boolean indicating the smooth state of the point.")
 
@@ -70,7 +53,6 @@ class Point(BaseObject):
 
     def _set_name(self, value):
         self._name = value
-        self.dirty = True
 
     name = property(_get_name, _set_name, doc="An arbitrary name for the point.")
 
@@ -80,7 +62,6 @@ class Point(BaseObject):
         """
         self.x += x
         self.y += y
-        self.dirty = True
 
     # ----
     # Undo

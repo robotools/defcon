@@ -350,14 +350,12 @@ class Glyph(BaseObject):
         if dispatcher is not None:
             contour.dispatcher = dispatcher
             contour.addObserver(observer=self, methodName="_outlineContentChanged", notification="Contour.Changed")
-        contour._setParentDataInPoints()
 
     def _removeParentDataInContour(self, contour):
         contour.setParent(None)
         if contour._dispatcher is not None:
             contour.removeObserver(observer=self, notification="Contour.Changed")
             contour._dispatcher = None
-        contour._removeParentDataInPoints()
 
     def _setParentDataInComponent(self, component):
         component.setParent(self)
