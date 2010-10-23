@@ -86,12 +86,12 @@ class NotificationCenter(object):
         # held
         if (observable, notification) in self._holds:
             n = (notification, observable, data)
-            if self._holds[observable, notification]["notifications"] and self._holds[observable, notification]["notifications"][-1] != n:
+            if not self._holds[observable, notification]["notifications"] or self._holds[observable, notification]["notifications"][-1] != n:
                 self._holds[observable, notification]["notifications"].append(n)
             return
         if observable in self._holds:
             n = (notification, observable, data)
-            if self._holds[observable]["notifications"] and self._holds[observable]["notifications"][-1] != n:
+            if not self._holds[observable]["notifications"] or self._holds[observable]["notifications"][-1] != n:
                 self._holds[observable]["notifications"].append(n)
             return
         # post
@@ -100,6 +100,14 @@ class NotificationCenter(object):
                 if observable == observableRef:
                     for observerRef, methodName in observerDict.items():
                         observer = observerRef()
+                        # disabled for observer
+                        if self._disabled:
+                            if (observableRef, notification, observerRef) in self._disabled:
+                                continue
+                            elif (observableRef, observerRef) in self._disabled:
+                                continue
+                            elif (notification, observerRef) in self._disabled:
+                                continue
                         callback = getattr(observer, methodName)
                         n = Notification(notification, observableRef, data)
                         callback(n)
@@ -127,7 +135,7 @@ class NotificationCenter(object):
         else:
             key = observable
         if key not in self._holds:
-            self._holds[key] = dict(holdCount=0, notifications=set())
+            self._holds[key] = dict(holdCount=0, notifications=[])
         self._holds[key]["holdCount"] += 1
 
     def releaseHeldNotificationsForObservable(self, observable, notification=None):
@@ -163,15 +171,18 @@ class NotificationCenter(object):
             return True
         return weakref.ref(observable) in self._holds
 
-    def disableNotificationsForObservable(self, observable, notification=None):
+    def disableNotificationsForObservable(self, observable, notification=None, observer=None):
         """
-        Disable all notifications posted to all objects observing
-        **notification** in **observable**.
+        Disable all posts of **notification** from **observable** posted
+        to **observer** observing.
 
         * **observable** The object that the notification belongs to.
         * **notification** The name of the notification. This is optional.
           If no *notification* is given, *all* notifications for *observable*
-          will be disabled.
+          will be disabled for *observer*.
+        * **observer** The specific observer to not send posts to. If no
+          *observer* is given, the appropriate notifications will not
+          be posted to any observers.
 
         This object will retain a count of how many times it has been told to
         disable notifications for *notification* and *observable*. It will not
@@ -179,44 +190,57 @@ class NotificationCenter(object):
         have been released the same number of times.
         """
         observable = weakref.ref(observable)
-        if notification is not None:
-            key = (observable, notification)
-        else:
-            key = observable
+        if observer is not None:
+            observer = weakref.ref(observer)
+        key = self._makeDisableKey(observable, notification=notification, observer=observer)
         if key not in self._disabled:
             self._disabled[key] = 0
         self._disabled[key] += 1
 
-    def enableNotificationsForObservable(self, observable, notification=None):
+    def enableNotificationsForObservable(self, observable, notification=None, observer=None):
         """
         Enable notifications posted to all objects observing
         **notification** in **observable**.
 
         * **observable** The object that the notification belongs to.
         * **notification** The name of the notification. This is optional.
+        * **observer** The observer. This is optional.
         """
         observableObj = observable
         observable = weakref.ref(observable)
-        if notification is not None:
-            key = (observable, notification)
-        else:
-            key = observable
+        if observer is not None:
+            observer = weakref.ref(observer)
+        key = self._makeDisableKey(observable, notification=notification, observer=observer)
         self._disabled[key] -= 1
         if self._disabled[key] == 0:
             del self._disabled[key]
 
-    def areNotificationsDisabledForObservable(self, observable, notification=None):
+    def areNotificationsDisabledForObservable(self, observable, notification=None, observer=None):
         """
         Returns a boolean indicating if notifications posted to all objects observing
         **notification** in **observable** are disabled.
 
         * **observable** The object that the notification belongs to.
         * **notification** The name of the notification. This is optional.
+        * **observer** The observer. This is optional.
         """
-        if (observable, notification) in self._disabled:
-            return True
-        return weakref.ref(observable) in self._disabled
+        observable = weakref.ref(observable)
+        if observer is not None:
+            observer = weakref.ref(observer)
+        key = self._makeDisableKey(observable, notification=notification, observer=observer)
+        return key in self._disabled
 
+    def _makeDisableKey(self, observable, notification=None, observer=None):
+        key = [observable]
+        if notification is not None:
+            key.append(notification)
+        if observer is not None:
+            key.append(observer)
+        if len(key) == 1:
+            key = key[0]
+        else:
+            key = tuple(key)
+        return key
 
 
 class Notification(object):
