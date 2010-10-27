@@ -180,6 +180,7 @@ class NotificationCenter(object):
         """
         if observable is not None:
             observable = weakref.ref(observable)
+        key = self._makeHoldAndDisableKey(observable=observable, notification=notification)
         return key in self._holds
 
     def disableNotifications(self, observable=None, notification=None, observer=None):
@@ -380,6 +381,44 @@ def _testHoldNotifications():
     A Observable1
     """
 
+def _testAreNotificationsHeld():
+    """
+    >>> center = NotificationCenter()
+    >>> observable1 = _TestObservable(center, "Observable1")
+    >>> observable2 = _TestObservable(center, "Observable2")
+    >>> observer = _TestObserver()
+    >>> center.addObserver(observer, "notificationCallback", "A", observable1)
+    >>> center.addObserver(observer, "notificationCallback", "B", observable2)
+
+    # all held
+    >>> center.holdNotifications()
+    >>> center.areNotificationsHeld()
+    True
+    >>> center.releaseHeldNotifications()
+    >>> center.areNotificationsHeld()
+    False
+
+    # observable off
+    >>> center.holdNotifications(observable=observable1)
+    >>> center.areNotificationsHeld(observable=observable1)
+    True
+    >>> center.areNotificationsHeld(observable=observable2)
+    False
+    >>> center.releaseHeldNotifications(observable=observable1)
+    >>> center.areNotificationsHeld(observable=observable1)
+    False
+
+    # notification off
+    >>> center.holdNotifications(notification="A")
+    >>> center.areNotificationsHeld(notification="A")
+    True
+    >>> center.areNotificationsHeld(notification="B")
+    False
+    >>> center.releaseHeldNotifications(notification="A")
+    >>> center.areNotificationsHeld(notification="A")
+    False
+    """
+
 def _testDisableNotifications():
     """
     >>> center = NotificationCenter()
@@ -419,6 +458,44 @@ def _testDisableNotifications():
     >>> center.enableNotifications(notification="A")
     >>> observable1.postNotification("A")
     A Observable1
+    """
+
+def _testAreNotificationsDisabled():
+    """
+    >>> center = NotificationCenter()
+    >>> observable1 = _TestObservable(center, "Observable1")
+    >>> observable2 = _TestObservable(center, "Observable2")
+    >>> observer = _TestObserver()
+    >>> center.addObserver(observer, "notificationCallback", "A", observable1)
+    >>> center.addObserver(observer, "notificationCallback", "B", observable2)
+
+    # all off
+    >>> center.disableNotifications()
+    >>> center.areNotificationsDisabled()
+    True
+    >>> center.enableNotifications()
+    >>> center.areNotificationsDisabled()
+    False
+
+    # observable off
+    >>> center.disableNotifications(observable=observable1)
+    >>> center.areNotificationsDisabled(observable=observable1)
+    True
+    >>> center.areNotificationsDisabled(observable=observable2)
+    False
+    >>> center.enableNotifications(observable=observable1)
+    >>> center.areNotificationsDisabled(observable=observable1)
+    False
+
+    # notification off
+    >>> center.disableNotifications(notification="A")
+    >>> center.areNotificationsDisabled(notification="A")
+    True
+    >>> center.areNotificationsDisabled(notification="B")
+    False
+    >>> center.enableNotifications(notification="A")
+    >>> center.areNotificationsDisabled(notification="A")
+    False
     """
 
 if __name__ == "__main__":
