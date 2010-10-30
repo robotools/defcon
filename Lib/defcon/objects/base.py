@@ -151,12 +151,12 @@ class BaseObject(object):
         This is a convenience method that does the same thing as::
 
             dispatcher = anObject.dispatcher
-            dispatcher.holdNotificationsForObservable(
+            dispatcher.holdNotifications(
                 observable=anObject, notification=notification)
         """
         dispatcher = self.dispatcher
         if dispatcher is not None:
-            dispatcher.holdNotificationsForObservable(observable=self, notification=notification)
+            dispatcher.holdNotifications(observable=self, notification=notification)
 
     def releaseHeldNotifications(self, notification=None):
         """
@@ -167,14 +167,14 @@ class BaseObject(object):
         This is a convenience method that does the same thing as::
 
             dispatcher = anObject.dispatcher
-            dispatcher.releaseHeldNotificationsForObservable(
+            dispatcher.releaseHeldNotifications(
                 observable=anObject, notification=notification)
         """
         dispatcher = self.dispatcher
         if dispatcher is not None:
-            dispatcher.releaseHeldNotificationsForObservable(observable=self, notification=notification)
+            dispatcher.releaseHeldNotifications(observable=self, notification=notification)
 
-    def disableNotifications(self, notification=None):
+    def disableNotifications(self, notification=None, observer=None):
         """
         Disable this object's notifications until told to resume them.
 
@@ -184,14 +184,14 @@ class BaseObject(object):
         This is a convenience method that does the same thing as::
 
             dispatcher = anObject.dispatcher
-            dispatcher.disableNotificationsForObservable(
-                observable=anObject, notification=notification)
+            dispatcher.disableNotifications(
+                observable=anObject, notification=notification, observer=observer)
         """
         dispatcher = self.dispatcher
         if dispatcher is not None:
-            dispatcher.disableNotificationsForObservable(observable=self, notification=notification)
+            dispatcher.disableNotifications(observable=self, notification=notification, observer=observer)
 
-    def enableNotifications(self, notification=None):
+    def enableNotifications(self, notification=None, observer=None):
         """
         Enable this object's notifications.
 
@@ -200,12 +200,12 @@ class BaseObject(object):
         This is a convenience method that does the same thing as::
 
             dispatcher = anObject.dispatcher
-            dispatcher.enableNotificationsForObservable(
-                observable=anObject, notification=notification)
+            dispatcher.enableNotifications(
+                observable=anObject, notification=notification, observer=observer)
         """
         dispatcher = self.dispatcher
         if dispatcher is not None:
-            dispatcher.enableNotificationsForObservable(observable=self, notification=notification)
+            dispatcher.enableNotifications(observable=self, notification=notification, observer=observer)
 
     # -----
     # Dirty
