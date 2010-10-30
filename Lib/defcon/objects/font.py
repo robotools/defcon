@@ -885,6 +885,9 @@ class Font(BaseObject):
         path = os.path.join(self._path, fileName)
         # file is not in UFO
         if not os.path.exists(path):
+            # if there was data in the file before
+            if obj._dataOnDisk:
+                return True
             return False
         # mod time mismatch
         modTime = os.stat(path).st_mtime
