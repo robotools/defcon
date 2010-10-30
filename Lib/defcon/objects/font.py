@@ -1040,7 +1040,7 @@ class Font(BaseObject):
         """
         for glyphName in glyphNames:
             if glyphName not in self._glyphs:
-                self.loadGlyph(glyphName)
+                self._loadGlyph(glyphName)
             else:
                 glyph = self._glyphs[glyphName]
                 glyph.destroyAllRepresentations(None)
