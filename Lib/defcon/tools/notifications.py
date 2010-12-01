@@ -247,10 +247,7 @@ class NotificationCenter(object):
         return key in self._disabled
 
     def _makeHoldAndDisableKey(self, observable, notification=None, observer=None):
-        key = [observable]
-        key.append(notification)
-        key.append(observer)
-        key = tuple(key)
+        key = (observable, observer, notification)
         return key
 
 
