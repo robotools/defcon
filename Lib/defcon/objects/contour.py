@@ -152,12 +152,16 @@ class Contour(BaseObject):
 
         This posts a *Contour.Changed* notification.
         """
+        self._clear()
+
+    def _clear(self, postNotification=True):
         # clear the internal storage
         self._points = []
         # reset the clockwise cache
         self._clockwiseCache = None
         # post a dirty notification
-        self.dirty = True
+        if postNotification:
+            self.dirty = True
 
     def reverse(self):
         """
@@ -175,7 +179,7 @@ class Contour(BaseObject):
         # clear the points in this contour
         # and copy the points from the other
         # contour to this contour.
-        self.clear()
+        self._clear(postNotification=False)
         self._points = list(otherContour._points)
         # post a notification
         self.dirty = True
