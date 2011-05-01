@@ -1,6 +1,5 @@
 from fontTools.misc import bezierTools
 from defcon.objects.base import BaseObject
-from defcon.objects.point import Point
 from defcon.tools import bezierMath
 
 
@@ -34,14 +33,18 @@ class Contour(BaseObject):
     use the ``components`` and ``anchors`` attributes.
     """
 
-    _notificationName = "Contour.Changed"
+    changeNotificationName = "Contour.Changed"
 
-    def __init__(self):
+    def __init__(self, pointClass=None):
         super(Contour, self).__init__()
         self._points = []
         self._boundsCache = None
         self._controlPointBoundsCache = None
         self._clockwiseCache = None
+        if pointClass is None:
+            from point import Point
+            pointClass = Point
+        self._pointClass = pointClass
 
     def _destroyBoundsCache(self):
         self._boundsCache = None
@@ -143,6 +146,23 @@ class Contour(BaseObject):
             yield point
             index += 1
 
+    def clear(self):
+        """
+        Clear the contents of the contour.
+
+        This posts a *Contour.Changed* notification.
+        """
+        self._clear()
+
+    def _clear(self, postNotification=True):
+        # clear the internal storage
+        self._points = []
+        # reset the clockwise cache
+        self._clockwiseCache = None
+        # post a dirty notification
+        if postNotification:
+            self.dirty = True
+
     def reverse(self):
         """
         Reverse the direction of the contour.
@@ -159,9 +179,9 @@ class Contour(BaseObject):
         # clear the points in this contour
         # and copy the points from the other
         # contour to this contour.
+        self._clear(postNotification=False)
         self._points = list(otherContour._points)
-        # reset the clockwise cache
-        self._clockwiseCache = None
+        # post a notification
         self.dirty = True
 
     def move(self, (x, y)):
@@ -272,7 +292,7 @@ class Contour(BaseObject):
                 lastPoints = []
             else:
                 lastPoints = self._points[lastPointIndex:]
-            newPoints = [Point(pos, segmentType=segmentType, smooth=smooth) for pos, segmentType, smooth in pointsToInsert]
+            newPoints = [self._pointClass(pos, segmentType=segmentType, smooth=smooth) for pos, segmentType, smooth in pointsToInsert]
             self._points = firstPoints + newPoints + lastPoints
             self.dirty = True
         return insertionPoint, pointWillBeSmooth
@@ -346,7 +366,7 @@ class Contour(BaseObject):
             if not nextSegment[-1].segmentType == "curve":
                 nextSegment[-1].segmentType = "curve"
                 pointIndex = self._points.index(nextSegment[-1])
-                newPoints = [Point((result[0][0], result[0][1])), Point((result[1][0], result[1][1]))]
+                newPoints = [self._pointClass((result[0][0], result[0][1])), self._pointClass((result[1][0], result[1][1]))]
                 if pointIndex == 0:
                     self._points.extend(newPoints)
                 else:
@@ -384,7 +404,10 @@ class Contour(BaseObject):
         Standard point pen *addPoint* method.
         This should not be used externally.
         """
-        point = Point((x, y), segmentType=segmentType, smooth=smooth, name=name)
+        point = self._pointClass((x, y), segmentType=segmentType, smooth=smooth, name=name)
+        self._addPoint(point)
+
+    def _addPoint(self, point):
         self._points.append(point)
         self._destroyBoundsCache()
         self._clockwiseCache = None
@@ -406,6 +429,22 @@ class Contour(BaseObject):
         for point in self._points:
             pointPen.addPoint((point.x, point.y), segmentType=point.segmentType, smooth=point.smooth, name=point.name)
         pointPen.endPath()
+
+    # ----
+    # Undo
+    # ----
+
+    def getDataToSerializeForUndo(self):
+        data = dict(
+            points=[point.serializeForUndo(pack=False) for point in self._points]
+        )
+        return data
+
+    def loadDeserializedDataFromUndo(self, data):
+        for pointData in data["points"]:
+            point = self._pointClass((0, 0))
+            point.deserializeFromUndo(pointData)
+            self._addPoint(point)
 
 
 # -----

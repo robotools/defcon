@@ -131,11 +131,11 @@ class Font(BaseObject):
         del font["aGlyphName"]
     """
 
-    _notificationName = "Font.Changed"
+    changeNotificationName = "Font.Changed"
 
     def __init__(self, path=None,
                     kerningClass=None, infoClass=None, groupsClass=None, featuresClass=None, libClass=None, unicodeDataClass=None,
-                    glyphClass=None, glyphContourClass=None, glyphComponentClass=None, glyphAnchorClass=None):
+                    glyphClass=None, glyphContourClass=None, glyphPointClass=None, glyphComponentClass=None, glyphAnchorClass=None):
         super(Font, self).__init__()
         if glyphClass is None:
             glyphClass = Glyph
@@ -156,6 +156,7 @@ class Font(BaseObject):
 
         self._glyphClass = glyphClass
         self._glyphContourClass = glyphContourClass
+        self._glyphPointClass = glyphPointClass
         self._glyphComponentClass = glyphComponentClass
         self._glyphAnchorClass = glyphAnchorClass
 
@@ -196,12 +197,20 @@ class Font(BaseObject):
 
         self._unicodeData.dispatcher = self.dispatcher
 
+    def _instantiateGlyphObject(self):
+        glyph = self._glyphClass(
+            contourClass=self._glyphContourClass,
+            pointClass=self._glyphPointClass,
+            componentClass=self._glyphComponentClass,
+            anchorClass=self._glyphAnchorClass,
+            libClass=self._libClass
+        )
+        return glyph
+
     def _loadGlyph(self, name):
         if self._glyphSet is None or not self._glyphSet.has_key(name):
             raise KeyError, '%s not in font' % name
-        glyph = self._glyphClass(contourClass=self._glyphContourClass,
-            componentClass=self._glyphComponentClass, anchorClass=self._glyphAnchorClass, libClass=self._libClass
-        )
+        glyph = self._instantiateGlyphObject()
         pointPen = glyph.getPointPen()
         self._glyphSet.readGlyph(glyphName=name, glyphObject=glyph, pointPen=pointPen)
         glyph.dirty = False
@@ -225,7 +234,7 @@ class Font(BaseObject):
         """
         if name in self:
             self._unicodeData.removeGlyphData(name, self[name].unicodes)
-        glyph = self._glyphClass(contourClass=self._glyphContourClass)
+        glyph = self._instantiateGlyphObject()
         glyph.name = name
         self._glyphs[name] = glyph
         self._setParentDataInGlyph(glyph)
@@ -609,6 +618,7 @@ class Font(BaseObject):
                 reader = ufoLib.UFOReader(self._path)
                 d = reader.readLib()
                 self._lib.update(d)
+            self._lib.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Lib.Changed")
             self._stampLibDataState()
         return self._lib
 
@@ -875,6 +885,9 @@ class Font(BaseObject):
         path = os.path.join(self._path, fileName)
         # file is not in UFO
         if not os.path.exists(path):
+            # if there was data in the file before
+            if obj._dataOnDisk:
+                return True
             return False
         # mod time mismatch
         modTime = os.stat(path).st_mtime
@@ -1030,7 +1043,7 @@ class Font(BaseObject):
         """
         for glyphName in glyphNames:
             if glyphName not in self._glyphs:
-                self.loadGlyph(glyphName)
+                self._loadGlyph(glyphName)
             else:
                 glyph = self._glyphs[glyphName]
                 glyph.destroyAllRepresentations(None)
@@ -1057,7 +1070,7 @@ class Font(BaseObject):
                     continue
                 glyph = self._glyphs[reference]
                 glyph.destroyAllRepresentations(None)
-                glyph.dispatcher.postNotification(notification=glyph._notificationName, observable=glyph)
+                glyph.dispatcher.postNotification(notification=glyph.changeNotificationName, observable=glyph)
                 referenceChanges.add(reference)
 
     # -----------------------------

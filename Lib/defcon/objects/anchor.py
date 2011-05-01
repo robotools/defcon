@@ -14,7 +14,7 @@ class Anchor(BaseObject):
     ==============  ====
     """
 
-    _notificationName = "Anchor.Changed"
+    changeNotificationName = "Anchor.Changed"
 
     def __init__(self):
         super(Anchor, self).__init__()
@@ -27,6 +27,7 @@ class Anchor(BaseObject):
 
     def _set_x(self, value):
         self._x = value
+        self.dirty = True
 
     x = property(_get_x, _set_x, doc="The x coordinate. Setting this will post an *Anchor.Changed* notification.")
 
@@ -35,6 +36,7 @@ class Anchor(BaseObject):
 
     def _set_y(self, value):
         self._y = value
+        self.dirty = True
 
     y = property(_get_y, _set_y, doc="The y coordinate. Setting this will post an *Anchor.Changed* notification.")
 
@@ -43,6 +45,7 @@ class Anchor(BaseObject):
 
     def _set_name(self, value):
         self._name = value
+        self.dirty = True
 
     name = property(_get_name, _set_name, doc="The name of the anchor. Setting this will post an *Anchor.Changed* notification.")
 
@@ -71,6 +74,23 @@ class Anchor(BaseObject):
         pointPen.beginPath()
         pointPen.addPoint((self.x, self.y), segmentType="move", smooth=False, name=self.name)
         pointPen.endPath()
+
+    # ----
+    # Undo
+    # ----
+
+    def getDataToSerializeForUndo(self):
+        data = dict(
+            x=self.x,
+            y=self.y,
+            name=self.name
+        )
+        return data
+
+    def loadDeserializedDataFromUndo(self, data):
+        self.x = data["x"]
+        self.y = data["y"]
+        self.name = data["name"]
 
 
 if __name__ == "__main__":

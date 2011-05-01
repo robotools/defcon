@@ -14,7 +14,7 @@ class Point(object):
         self._name = name
 
     def __repr__(self):
-        return "<Point position: (%s, %s) type: %s smooth: %s name: %s>" % (self.x, self.y, str(self.segmentType), str(self.smooth), str(self.name))
+        return "<%s position: (%s, %s) type: %s smooth: %s name: %s>" % (self.__class__.__name__, self.x, self.y, str(self.segmentType), str(self.smooth), str(self.name))
 
     def _get_segmentType(self):
         return self._segmentType
@@ -60,8 +60,29 @@ class Point(object):
         """
         Move the component by **(x, y)**.
         """
-        self._x += x
-        self._y += y
+        self.x += x
+        self.y += y
+
+    # ----
+    # Undo
+    # ----
+
+    def getDataToSerializeForUndo(self):
+        data = dict(
+            x=self.x,
+            y=self.y,
+            segmentType=self.segmentType,
+            smooth=self.smooth,
+            name=self.name
+        )
+        return data
+
+    def loadDeserializedDataFromUndo(self, data):
+        self.x = data["x"]
+        self.y = data["y"]
+        self.segmentType = data["segmentType"]
+        self.smooth = data["smooth"]
+        self.name = data["name"]
 
 
 if __name__ == "__main__":

@@ -45,9 +45,13 @@ class Glyph(BaseObject):
     use the ``components`` and ``anchors`` attributes.
     """
 
-    _notificationName = "Glyph.Changed"
+    changeNotificationName = "Glyph.Changed"
+    beginUndoNotificationName = "Glyph.BeginUndo"
+    endUndoNotificationName = "Glyph.EndUndo"
+    beginRedoNotificationName = "Glyph.BeginRedo"
+    endRedoNotificationName = "Glyph.EndRedo"
 
-    def __init__(self, contourClass=None, componentClass=None, anchorClass=None, libClass=None):
+    def __init__(self, contourClass=None, pointClass=None, componentClass=None, anchorClass=None, libClass=None):
         super(Glyph, self).__init__()
 
         self._parent = None
@@ -72,6 +76,9 @@ class Glyph(BaseObject):
         if contourClass is None:
             from contour import Contour
             contourClass = Contour
+        if pointClass is None:
+            from point import Point
+            pointClass = Point
         if componentClass is None:
             from component import Component
             componentClass = Component
@@ -83,6 +90,7 @@ class Glyph(BaseObject):
             libClass = Lib
 
         self._contourClass = contourClass
+        self._pointClass = pointClass
         self._componentClass = componentClass
         self._anchorClass = anchorClass
 
@@ -119,6 +127,11 @@ class Glyph(BaseObject):
         return self._contourClass
 
     contourClass = property(_get_contourClass, doc="The class used for contours.")
+
+    def _get_pointClass(self):
+        return self._pointClass
+
+    pointClass = property(_get_pointClass, doc="The class used for points.")
 
     def _get_componentClass(self):
         return self._componentClass
@@ -500,10 +513,11 @@ class Glyph(BaseObject):
 
         This posts a *Glyph.Changed* notification.
         """
-        self._contours = []
-        self._components = []
-        self._anchors = []
-        self.dirty = True
+        self.holdNotifications()
+        self.clearContours()
+        self.clearComponents()
+        self.clearAnchors()
+        self.releaseHeldNotifications()
 
     def clearContours(self):
         """
@@ -511,9 +525,10 @@ class Glyph(BaseObject):
 
         This posts a *Glyph.Changed* notification.
         """
-        if self._contours:
-            self._contours = []
-            self.dirty = True
+        self.holdNotifications()
+        for contour in reversed(self._contours):
+            self.removeContour(contour)
+        self.releaseHeldNotifications()
 
     def clearComponents(self):
         """
@@ -521,9 +536,10 @@ class Glyph(BaseObject):
 
         This posts a *Glyph.Changed* notification.
         """
-        if self._components:
-            self._components = []
-            self.dirty = True
+        self.holdNotifications()
+        for component in reversed(self._components):
+            self.removeComponent(component)
+        self.releaseHeldNotifications()
 
     def clearAnchors(self):
         """
@@ -531,9 +547,10 @@ class Glyph(BaseObject):
 
         This posts a *Glyph.Changed* notification.
         """
-        if self._anchors:
-            self._anchors = []
-            self.dirty = True
+        self.holdNotifications()
+        for anchor in reversed(self._anchors):
+            self.removeAnchor(anchor)
+        self.releaseHeldNotifications()
 
     def move(self, (x, y)):
         """
@@ -645,41 +662,42 @@ class Glyph(BaseObject):
     # Undo
     # ----
 
-#    def prepareUndo(self):
-#        """
-#        add the current state of the glyph to the undo manager
-#        """
-#        raise NotImplementedError
-#
-#    def assignUndoTitle(self):
-#        """
-#        add a title string to the last undo state
-#        """
-#        raise NotImplementedError
-#
-#    def undo(self):
-#        """
-#        revert to the previous glyph state
-#        """
-#        raise NotImplementedError
-#
-#    def redo(self):
-#        """
-#        undo the last undo
-#        """
-#        raise NotImplementedError
-#
-#    def clearUndoStack(self):
-#        """
-#        remove all undoable glyph states
-#        """
-#        raise NotImplementedError
-#
-#    def clearRedoStack(self):
-#        """
-#        remove all redoable glyph states
-#        """
-#        raise NotImplementedError
+    def getDataToSerializeForUndo(self):
+        data = dict(
+            contours=[contour.serializeForUndo(pack=False) for contour in self._contours],
+            components=[component.serializeForUndo(pack=False) for component in self._components],
+            anchors=[anchor.serializeForUndo(pack=False) for anchor in self._anchors],
+            name=self.name,
+            unicodes=self.unicodes,
+            width=self.width,
+            lib=self.lib.serializeForUndo(pack=False)
+        )
+        return data
+
+    def loadDeserializedDataFromUndo(self, data):
+        # clear contours, components, anchors
+        self.clear()
+        # contours
+        for contourData in data["contours"]:
+            contour = self.contourClass(pointClass=self.pointClass)
+            contour.deserializeFromUndo(contourData)
+            self.appendContour(contour)
+        # components
+        for componentData in data["components"]:
+            component = self.componentClass()
+            component.deserializeFromUndo(componentData)
+            self.appendComponent(component)
+        # anchors
+        for anchorData in data["anchors"]:
+            anchor = self.anchorClass()
+            anchor.deserializeFromUndo(anchorData)
+            self.appendAnchor(anchor)
+        # basic attributes
+        self.name = data["name"]
+        self.unicodes = data["unicodes"]
+        self.width = data["width"]
+        # lib
+        self.lib.deserializeFromUndo(data["lib"])
 
     # ----------------------
     # Notification Callbacks

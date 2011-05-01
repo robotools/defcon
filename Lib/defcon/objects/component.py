@@ -16,7 +16,7 @@ class Component(BaseObject):
     ==========================  ====
     """
 
-    _notificationName = "Component.Changed"
+    changeNotificationName = "Component.Changed"
 
     def __init__(self):
         super(Component, self).__init__()
@@ -33,7 +33,7 @@ class Component(BaseObject):
         glyph = self.getParent()
         if glyph is None:
             return None
-        font = self.getParent()
+        font = glyph.getParent()
         if font is None:
             return None
         pen = BoundsPen(font)
@@ -47,7 +47,7 @@ class Component(BaseObject):
         glyph = self.getParent()
         if glyph is None:
             return None
-        font = self.getParent()
+        font = glyph.getParent()
         if font is None:
             return None
         pen = ControlBoundsPen(font)
@@ -126,6 +126,21 @@ class Component(BaseObject):
         pen = PointInsidePen(glyphSet=font, testPoint=(x, y), evenOdd=evenOdd)
         self.draw(pen)
         return pen.getResult()
+
+    # ----
+    # Undo
+    # ----
+
+    def getDataToSerializeForUndo(self):
+        data = dict(
+            baseGlyph=self.baseGlyph,
+            transformation=self.transformation
+        )
+        return data
+
+    def loadDeserializedDataFromUndo(self, data):
+        self.baseGlyph = data["baseGlyph"]
+        self.transformation = data["transformation"]
 
 
 if __name__ == "__main__":
