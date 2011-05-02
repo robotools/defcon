@@ -4,90 +4,13 @@ import weakref
 from fontTools.misc.arrayTools import unionRect
 from robofab import ufoLib
 from defcon.objects.base import BaseObject
-from defcon.objects.glyph import Glyph
+from defcon.objects.layer import LayerSet, Layer
 from defcon.objects.info import Info
 from defcon.objects.kerning import Kerning
 from defcon.objects.groups import Groups
 from defcon.objects.features import Features
 from defcon.objects.lib import Lib
-from defcon.objects.uniData import UnicodeData
 from defcon.tools.notifications import NotificationCenter
-
-
-# regular expressions used by various search methods
-outlineSearchPointRE = re.compile(
-    "<\s*point\s+" # <point
-    "[^>]+"        # anything except >
-    ">"            # >
-)
-
-componentSearchRE = re.compile(
-    "<\s*component\s+"  # <component
-    "[^>]*?"            # anything except >
-    "base\s*=\s*[\"\']" # base="
-    "(.*?)"             # glyph name
-    "[\"\']"            # "
-)
-
-controlBoundsPointRE = re.compile(
-    "<\s*point\s+"
-    "[^>]+"
-    ">"
-)
-controlBoundsPointXRE = re.compile(
-    "\s+"
-    "x\s*=\s*"
-    "[\"\']"
-    "([-\d]+)"
-    "[\"\']"
-)
-controlBoundsPointYRE = re.compile(
-    "\s+"
-    "y\s*=\s*"
-    "[\"\']"
-    "([-\d]+)"
-    "[\"\']"
-)
-controlBoundsComponentRE = re.compile(
-    "<\s*component\s+"
-    "[^>]*?"
-    ">"
-)
-controlBoundsComponentBaseRE = re.compile(
-    "base\s*=\s*[\"\']"
-    "(.*?)"
-    "[\"\']"
-)
-controlBoundsComponentXScaleRE = re.compile(
-    "xScale\s*=\s*[\"\']"
-    "([-.\d]+)"
-    "[\"\']"
-)
-controlBoundsComponentYScaleRE = re.compile(
-    "yScale\s*=\s*[\"\']"
-    "([-.\d]+)"
-    "[\"\']"
-)
-controlBoundsComponentXYScaleRE = re.compile(
-    "xyScale\s*=\s*[\"\']"
-    "([-.\d]+)"
-    "[\"\']"
-)
-controlBoundsComponentYXScaleRE = re.compile(
-    "yxScale\s*=\s*[\"\']"
-    "([-.\d]+)"
-    "[\"\']"
-)
-controlBoundsComponentXOffsetRE = re.compile(
-    "xOffset\s*=\s*[\"\']"
-    "([-\d]+)"
-    "[\"\']"
-)
-controlBoundsComponentYOffsetRE = re.compile(
-    "yOffset\s*=\s*[\"\']"
-    "([-\d]+)"
-    "[\"\']"
-)
 
 
 class Font(BaseObject):
@@ -135,10 +58,13 @@ class Font(BaseObject):
 
     def __init__(self, path=None,
                     kerningClass=None, infoClass=None, groupsClass=None, featuresClass=None, libClass=None, unicodeDataClass=None,
+                    layerSetClass=None, layerClass=None,
                     glyphClass=None, glyphContourClass=None, glyphPointClass=None, glyphComponentClass=None, glyphAnchorClass=None):
         super(Font, self).__init__()
-        if glyphClass is None:
-            glyphClass = Glyph
+        if layerSetClass is None:
+            layerSetClass = LayerSet
+        if layerClass is None:
+            layerClass = Layer
         if infoClass is None:
             infoClass = Info
         if kerningClass is None:
@@ -149,11 +75,10 @@ class Font(BaseObject):
             featuresClass = Features
         if libClass is None:
             libClass = Lib
-        if unicodeDataClass is None:
-            unicodeDataClass = UnicodeData
 
         self._dispatcher = NotificationCenter()
 
+        self._layerClass = layerClass
         self._glyphClass = glyphClass
         self._glyphContourClass = glyphContourClass
         self._glyphPointClass = glyphPointClass
@@ -169,146 +94,107 @@ class Font(BaseObject):
         self._path = path
         self._ufoFormatVersion = None
 
-        self._glyphs = {}
-        self._glyphSet = None
-        self._scheduledForDeletion = []
-        self._keys = set()
-
         self._kerning = None
         self._info = None
         self._groups = None
         self._features = None
         self._lib = None
-
-        self._unicodeData = unicodeDataClass()
-        self._unicodeData.setParent(self)
+        self._layers = layerSetClass()
 
         self._dirty = False
 
         if path:
             reader = ufoLib.UFOReader(self._path)
             self._ufoFormatVersion = reader.formatVersion
-            self._glyphSet = reader.getGlyphSet()
-            self._keys = set(self._glyphSet.keys())
-            self._unicodeData.update(reader.getCharacterMapping())
+            # go ahead and load the layers
+            for name, directory in reader.getLayerContents():
+                glyphSet = reader.getGlyphSet(name)
+                layer = self._newLayer(name, directory=directory, glyphSet=glyphSet)
             # if the UFO version is 1, do some conversion..
             if self._ufoFormatVersion == 1:
                 self._convertFromFormatVersion1RoboFabData()
 
-        self._unicodeData.dispatcher = self.dispatcher
+        # XXX this isn't right.
+        # need to figure out how to indicate that a layer is the main layer beyond the name.
+        if self._layers.getDefaultLayer() is None:
+            layer = self.newLayer(None)
+            self._layers.setDefaultLayer(layer)
 
-    def _instantiateGlyphObject(self):
-        glyph = self._glyphClass(
-            contourClass=self._glyphContourClass,
-            pointClass=self._glyphPointClass,
-            componentClass=self._glyphComponentClass,
-            anchorClass=self._glyphAnchorClass,
-            libClass=self._libClass
-        )
-        return glyph
-
-    def _loadGlyph(self, name):
-        if self._glyphSet is None or not self._glyphSet.has_key(name):
-            raise KeyError, '%s not in font' % name
-        glyph = self._instantiateGlyphObject()
-        pointPen = glyph.getPointPen()
-        self._glyphSet.readGlyph(glyphName=name, glyphObject=glyph, pointPen=pointPen)
-        glyph.dirty = False
-        self._glyphs[name] = glyph
-        self._setParentDataInGlyph(glyph)
-        self._stampGlyphDataState(glyph)
-        return glyph
-
-    def _setParentDataInGlyph(self, glyph):
-        glyph.setParent(self)
-        glyph.dispatcher = self.dispatcher
-        glyph.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Glyph.Changed")
-        glyph.addObserver(observer=self, methodName="_glyphNameChange", notification="Glyph.NameChanged")
-        glyph.addObserver(observer=self, methodName="_glyphUnicodesChange", notification="Glyph.UnicodesChanged")
+    # ------
+    # Glyphs
+    # ------
 
     def newGlyph(self, name):
         """
-        Create a new glyph with **name**. If a glyph with that
-        name already exists, the existing glyph will be replaced
-        with the new glyph.
+        Create a new glyph with **name** in the font's main layer.
+        If a glyph with that name already exists, the existing
+        glyph will be replaced with the new glyph.
         """
-        if name in self:
-            self._unicodeData.removeGlyphData(name, self[name].unicodes)
-        glyph = self._instantiateGlyphObject()
-        glyph.name = name
-        self._glyphs[name] = glyph
-        self._setParentDataInGlyph(glyph)
-        self.dirty = True
-        # a glyph by the same name could be
-        # scheduled for deletion
-        if name in self._scheduledForDeletion:
-            self._scheduledForDeletion.remove(name)
-        # keep the keys up to date
-        self._keys.add(name)
+        return self._glyphSet.newGlyph(name)
 
     def insertGlyph(self, glyph, name=None):
         """
-        Insert **glyph** into the font. Optionally, the glyph
-        can be renamed at the same time by providing **name**.
-        If a glyph with the glyph name, or the name provided
-        as **name**, already exists, the existing glyph will
-        be replaced with the new glyph.
+        Insert **glyph** into the font's main layer.
+        Optionally, the glyph can be renamed at the same time by
+        providing **name**. If a glyph with the glyph name, or
+        the name provided as **name**, already exists, the existing
+        glyph will be replaced with the new glyph.
         """
-        from copy import deepcopy
-        source = glyph
-        if name is None:
-            name = source.name
-        self.newGlyph(name)
-        dest = self[name]
-        pointPen = dest.getPointPen()
-        source.drawPoints(pointPen)
-        dest.width = source.width
-        dest.unicodes = list(source.unicodes)
-        dest.note = source.note
-        dest.lib = deepcopy(source.lib)
-        if dest.unicodes:
-            self._unicodeData.addGlyphData(name, dest.unicodes)
-        return dest
+        return self._glyphSet.insertGlyph(glyph, name=name)
 
     def __iter__(self):
-        names = self.keys()
+        names = self._glyphSet.keys()
         while names:
             name = names[0]
-            yield self[name]
+            yield self._glyphSet[name]
             names = names[1:]
 
     def __getitem__(self, name):
-        if name not in self._glyphs:
-            self._loadGlyph(name)
-        return self._glyphs[name]
+        return self._glyphSet[name]
 
     def __delitem__(self, name):
-        if name not in self:
-            raise KeyError, '%s not in font' % name
-        self._unicodeData.removeGlyphData(name, self[name].unicodes)
-        if name in self._glyphs:
-            del self._glyphs[name]
-        if name in self._keys:
-            self._keys.remove(name)
-        if self._glyphSet is not None and name in self._glyphSet:
-            self._scheduledForDeletion.append(name)
-        self.dirty = True
+        del self._glyphSet[name]
 
     def __len__(self):
-        return len(self.keys())
+        return len(self._glyphSet)
 
     def __contains__(self, name):
-        return name in self._keys
+        return name in self._glyphSet
 
     def keys(self):
-        """
-        The names of all glyphs in the font.
-        """
-        # this is not generated dynamically since we
-        # support external editing. it must be fixed.
-        names = self._keys
-        names = names - set(self._scheduledForDeletion)
-        return list(names)
+        return self._glyphSet.keys()
+
+    # ------
+    # Layers
+    # ------
+
+    def newLayer(self, name):
+        return self._newLayer(name)
+
+    def _newLayer(self, name, directory=None, glyphSet=None):
+        layer = self._instantiateLayer(name, glyphSet)
+        layer._directory = directory
+        self._setParentDataInLayer(layer)
+        self._layers.append(layer)
+        return layer
+
+    def _instantiateLayerObject(self, name, glyphSet):
+        layer = self._layerClass(
+            glyphSet=glyphSet,
+            libClass=self._libClass,
+            unicodeDataClass=self._unicodeDataClass,
+            glyphClass=self._glyphClass,
+            glyphContourClass=self._glyphContourClass,
+            glyphPointClass=self._glyphPointClass,
+            glyphComponentClass=self._glyphComponentClass,
+            glyphAnchorClass=self._glyphAnchorClass
+        )
+        return layer
+
+    def _instantiateLayerObject(self, glyph):
+        layer.setParent(self)
+        layer.dispatcher = self.dispatcher
+        layer.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Layer.Changed")
 
     # ----------
     # Attributes
@@ -318,6 +204,7 @@ class Font(BaseObject):
         return self._path
 
     def _set_path(self, path):
+        # XXX: this needs to be reworked for layers
         # the file must already exist
         assert os.path.exists(path)
         # the glyphs directory must already exist
@@ -336,215 +223,39 @@ class Font(BaseObject):
 
     ufoFormatVersion = property(_get_ufoFormatVersion, doc="The UFO format version that will be used when saving. This is taken from a loaded UFO during __init__. If this font was not loaded from a UFO, this will return None until the font has been saved.")
 
-    def _get_glyphsWithOutlines(self):
-        found = []
-        # scan loaded glyphs
-        for glyphName, glyph in self._glyphs.items():
-            if glyphName in self._scheduledForDeletion:
-                continue
-            if len(glyph):
-                found.append(glyphName)
-        # scan glyphs that have not been loaded
-        glyphsPath = os.path.join(self.path, "glyphs")
-        for glyphName, fileName in self._glyphSet.contents.items():
-            if glyphName in self._glyphs or glyphName in self._scheduledForDeletion:
-                continue
-            glyphPath = os.path.join(glyphsPath, fileName)
-            f = open(glyphPath, "rb")
-            data = f.read()
-            f.close()
-            containsPoints = False
-            # use an re to extract all points
-            points = outlineSearchPointRE.findall(data)
-            # skip all moves, as individual moves
-            # are anchors and therefore not part
-            # of an outline.
-            for point in points:
-                if 'type="move"' not in point:
-                    containsPoints = True
-                    break
-            if containsPoints:
-                found.append(glyphName)
-        return found
+    def _get_glyphSet(self):
+        return self._layers.getDefaultLayer()
 
-    glyphsWithOutlines = property(_get_glyphsWithOutlines, doc="A list of glyphs containing outlines.")
+    _glyphSet = property(_get_glyphSet, doc="Convenience for getting the main layer.")
+
+    def _get_glyphsWithOutlines(self):
+        return self._glyphSet.glyphsWithOutlines
+
+    glyphsWithOutlines = property(_get_glyphsWithOutlines, doc="A list of glyphs containing outlines in the font's main layer.")
 
     def _get_componentReferences(self):
-        found = {}
-        # scan loaded glyphs
-        for glyphName, glyph in self._glyphs.items():
-            if glyphName in self._scheduledForDeletion:
-                continue
-            if not glyph.components:
-                continue
-            for component in glyph.components:
-                baseGlyph = component.baseGlyph
-                if baseGlyph not in found:
-                    found[baseGlyph] = set()
-                found[baseGlyph].add(glyphName)
-        # scan glyphs that have not been loaded
-        if self.path is not None:
-            glyphsPath = os.path.join(self.path, "glyphs")
-            for glyphName, fileName in self._glyphSet.contents.items():
-                if glyphName in self._glyphs or glyphName in self._scheduledForDeletion:
-                    continue
-                glyphPath = os.path.join(glyphsPath, fileName)
-                f = open(glyphPath, "rb")
-                data = f.read()
-                f.close()
-                baseGlyphs = componentSearchRE.findall(data)
-                for baseGlyph in baseGlyphs:
-                    if baseGlyph not in found:
-                        found[baseGlyph] = set()
-                    found[baseGlyph].add(glyphName)
-        return found
+        return self._glyphSet.componentReferences
 
-    componentReferences = property(_get_componentReferences, doc="A dict of describing the component relationshis in the font. The dictionary is of form ``{base glyph : [references]}``.")
+    componentReferences = property(_get_componentReferences, doc="A dict of describing the component relationships in the font's main layer. The dictionary is of form ``{base glyph : [references]}``.")
 
     def _get_bounds(self):
-        fontRect = None
-        for glyph in self:
-            glyphRect = glyph.bounds
-            if glyphRect is None:
-                continue
-            if fontRect is None:
-                fontRect = glyphRect
-            else:
-                fontRect = unionRect(fontRect, glyphRect)
-        return fontRect
+        return self._glyphSet.bounds
 
-    bounds = property(_get_bounds, doc="The bounds of all glyphs in the font. This can be an expensive operation.")
+    bounds = property(_get_bounds, doc="The bounds of all glyphs in the font's main layer. This can be an expensive operation.")
 
     def _get_controlPointBounds(self):
-        from fontTools.misc.transform import Transform
-        # storage
-        glyphRects = {}
-        componentReferences = {}
-        # scan loaded glyphs
-        for glyphName, glyph in self._glyphs.items():
-            if glyphName in self._scheduledForDeletion:
-                continue
-            glyphRect = glyph.controlPointBounds
-            if glyphRect:
-                glyphRects[glyphName] = glyphRect
-        # scan glyphs that have not been loaded
-        if self.path is not None:
-            glyphsPath = os.path.join(self.path, "glyphs")
-            for glyphName, fileName in self._glyphSet.contents.items():
-                if glyphName in self._glyphs or glyphName in self._scheduledForDeletion:
-                    continue
-                # get the GLIF text
-                glyphPath = os.path.join(glyphsPath, fileName)
-                f = open(glyphPath, "rb")
-                data = f.read()
-                f.close()
-                # get the point bounding box
-                xMin = None
-                xMax = None
-                yMin = None
-                yMax = None
-                for line in controlBoundsPointRE.findall(data):
-                    x = controlBoundsPointXRE.findall(line)
-                    if not x:
-                        continue
-                    y = controlBoundsPointYRE.findall(line)
-                    if not y:
-                        continue
-                    x = int(x[0])
-                    if xMin is None:
-                        xMin = xMax = x
-                    if xMin > x:
-                        xMin = x
-                    if xMax < x:
-                        xMax = x
-                    y = int(y[0])
-                    if yMin is None:
-                        yMin = yMax = y
-                    if yMin > y:
-                        yMin = y
-                    if yMax < y:
-                        yMax = y
-                glyphRect = (xMin, yMin, xMax, yMax)
-                if None not in glyphRect:
-                    glyphRects[glyphName] = glyphRect
-                # get all component references
-                for line in controlBoundsComponentRE.findall(data):
-                    base = controlBoundsComponentBaseRE.findall(line)
-                    if not base:
-                        continue
-                    base = base[0]
-                    # xScale
-                    xScale = controlBoundsComponentXScaleRE.findall(line)
-                    if not xScale:
-                        xScale = [1]
-                    xScale = float(xScale[0])
-                    # yScale
-                    yScale = controlBoundsComponentYScaleRE.findall(line)
-                    if not yScale:
-                        yScale = [1]
-                    yScale = float(yScale[0])
-                    # xyScale
-                    xyScale = controlBoundsComponentXYScaleRE.findall(line)
-                    if not xyScale:
-                        xyScale = [0]
-                    xyScale = float(xyScale[0])
-                    # yxScale
-                    yxScale = controlBoundsComponentYXScaleRE.findall(line)
-                    if not yxScale:
-                        yxScale = [0]
-                    yxScale = float(yxScale[0])
-                    # xOffset
-                    xOffset = controlBoundsComponentXOffsetRE.findall(line)
-                    if not xOffset:
-                        xOffset = [0]
-                    xOffset = int(xOffset[0])
-                    # yOffset
-                    yOffset = controlBoundsComponentYOffsetRE.findall(line)
-                    if not yOffset:
-                        yOffset = [0]
-                    yOffset = int(yOffset[0])
-                    if glyphName not in componentReferences:
-                        componentReferences[glyphName] = []
-                    componentReferences[glyphName].append((base, xScale, xyScale, yxScale, yScale, xOffset, yOffset))
-        # get the transformed component bounding boxes and update the glyphs
-        for glyphName, components in componentReferences.items():
-            glyphRect = glyphRects.get(glyphName, (None, None, None, None))
-            # XXX this doesn't handle nested components
-            for base, xScale, xyScale, yxScale, yScale, xOffset, yOffset in components:
-                # base glyph doesn't exist
-                if base not in glyphRects:
-                    continue
-                baseRect = glyphRects[base]
-                # base glyph has no points
-                if None in baseRect:
-                    continue
-                # transform the base rect
-                transform = Transform(xx=xScale, xy=xyScale, yx=yxScale, yy=yScale, dx=xOffset, dy=yOffset)
-                xMin, yMin, xMax, yMax = baseRect
-                (xMin, yMin), (xMax, yMax) = transform.transformPoints([(xMin, yMin), (xMax, yMax)])
-                componentRect = (xMin, yMin, xMax, yMax)
-                # update the glyph rect
-                if None in glyphRect:
-                    glyphRect = componentRect
-                else:
-                    glyphRect = unionRect(glyphRect, componentRect)
-            # store the updated rect
-            glyphRects[glyphName] = glyphRect
-        # work out the unified rect
-        fontRect = None
-        for glyphRect in glyphRects.values():
-            if fontRect is None:
-                fontRect = glyphRect
-            elif glyphRect is not None:
-                fontRect = unionRect(fontRect, glyphRect)
-        # done
-        return fontRect
+        return self._glyphSet.controlPointBounds
 
-    controlPointBounds = property(_get_controlPointBounds, doc="The control bounds of all glyphs in the font. This only measures the point positions, it does not measure curves. So, curves without points at the extrema will not be properly measured. This is an expensive operation.")
+    controlPointBounds = property(_get_controlPointBounds, doc="The control bounds of all glyphs in the font's main layer. This only measures the point positions, it does not measure curves. So, curves without points at the extrema will not be properly measured. This is an expensive operation.")
 
     # -----------
     # Sub-Objects
     # -----------
+
+    def _get_layers(self):
+        return self._layers
+
+    info = property(_get_info, doc="The font's :class:`LayerSet` object.")
 
     def _get_info(self):
         if self._info is None:
@@ -625,7 +336,7 @@ class Font(BaseObject):
     lib = property(_get_lib, doc="The font's :class:`Lib` object.")
 
     def _get_unicodeData(self):
-        return self._unicodeData
+        return self._glyphSet._unicodeData
 
     unicodeData = property(_get_unicodeData, doc="The font's :class:`UnicodeData` object.")
 
@@ -748,25 +459,6 @@ class Font(BaseObject):
     def _objectDirtyStateChange(self, notification):
         if notification.object.dirty:
             self.dirty = True
-
-    def _glyphNameChange(self, notification):
-        data = notification.data
-        oldName = data["oldName"]
-        newName = data["newName"]
-        glyph = self._glyphs[oldName]
-        del self[oldName]
-        self._glyphs[newName] = glyph
-        self._keys.add(newName)
-        self._unicodeData.removeGlyphData(oldName, glyph.unicodes)
-        self._unicodeData.addGlyphData(newName, glyph.unicodes)
-
-    def _glyphUnicodesChange(self, notification):
-        glyphName = notification.object.name
-        data = notification.data
-        oldValues = data["oldValues"]
-        newValues = data["newValues"]
-        self._unicodeData.removeGlyphData(glyphName, oldValues)
-        self._unicodeData.addGlyphData(glyphName, newValues)
 
     # ---------------------
     # External Edit Support
