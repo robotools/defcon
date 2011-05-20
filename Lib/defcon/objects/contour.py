@@ -171,7 +171,7 @@ class Contour(BaseObject):
         """
         from robofab.pens.reverseContourPointPen import ReverseContourPointPen
         # put the current points in another contour
-        otherContour = Contour()
+        otherContour = self.__class__(self._pointClass)
         # draw the points in this contour through
         # the reversing pen.
         reversePen = ReverseContourPointPen(otherContour)
