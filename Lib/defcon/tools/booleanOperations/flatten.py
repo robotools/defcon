@@ -60,7 +60,7 @@ class FlattenPen(BasePen):
         currentPoint = self.contours[-1][-1]["original"][-1]
         if pt == currentPoint:
             return
-        segment = _segment(type="line", original=[currentPoint, pt], flat=[self._prepPoint(pt)])
+        segment = _segment(type="line", original=[pt], flat=[self._prepPoint(pt)])
         self.contours[-1].append(segment)
 
     def _curveToOne(self, pt1, pt2, pt3):
@@ -78,11 +78,10 @@ class FlattenPen(BasePen):
             return
         # a usable curve
         if self._qCurveConversion:
-            segment = _segment(type="qcurve", original=[currentPoint] + self._qCurveConversion)
+            segment = _segment(type="qcurve", original=self._qCurveConversion)
         else:
-            segment = _segment(type="qcurve", original=[currentPoint, pt1, pt2, pt3])
+            segment = _segment(type="curve", original=[pt1, pt2, pt3])
         flattened = segment["flat"]
-        flattened.append(self.contours[-1][-1]["flat"][-1])
         step = 1.0 / maxSteps
         factors = range(0, maxSteps + 1)
         for i in factors[1:]:
@@ -97,9 +96,11 @@ class FlattenPen(BasePen):
 
     def _closePath(self):
         self.lineTo(self.contours[-1][0]["original"][-1])
+        self.endPath()
 
     def _endPath(self):
-        pass
+        if self.contours[-1][0]["flat"][0] == self.contours[-1][-1]["flat"][-1]:
+            del self.contours[-1][-1]["flat"][-1]
 
     def addComponent(self, glyphName, transformation):
         pass
