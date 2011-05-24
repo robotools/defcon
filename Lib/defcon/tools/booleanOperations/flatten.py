@@ -52,7 +52,7 @@ class FlattenPen(BasePen):
         return (x, y)
 
     def _moveTo(self, pt):
-        self.contours.append([])
+        self.contours.append(Contour())
         segment = _segment(type="move", original=[pt], flat=[self._prepPoint(pt)])
         self.contours[-1].append(segment)
 
@@ -103,6 +103,26 @@ class FlattenPen(BasePen):
 
     def addComponent(self, glyphName, transformation):
         pass
+
+
+class Contour(list):
+
+    def _get_original(self):
+        all = []
+        for segment in self:
+            all.append((segment["type"], segment["original"]))
+        return all
+
+    original = property(_get_original)
+
+    def _get_flattened(self):
+        all = []
+        for segment in self:
+            all += segment["flat"]
+        return all
+
+    flattened = property(_get_flattened)
+
 
 # -----------------
 # Support Functions

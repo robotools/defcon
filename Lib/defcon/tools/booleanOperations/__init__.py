@@ -3,9 +3,6 @@ from flatten import FlattenPen
 from pyClipper import PolyClipper # XXX this isn't the real thing
 
 
-import pprint
-
-
 class BooleanOperationManager(object):
 
     def __init__(self):
@@ -29,13 +26,10 @@ class BooleanOperationManager(object):
             contour.draw(flattenPen)
         return flattenPen.contours
 
-    def _getClipperContours(self, contourDicts):
+    def _getClipperContours(self, preppedContours):
         clipperContours = []
-        for contourDict in contourDicts:
-            contour = []
-            for segment in contourDict:
-                contour += segment["flat"]
-            clipperContours.append(dict(coordinates=contour))
+        for contour in preppedContours:
+            clipperContours.append(dict(coordinates=contour.flattened))
         return clipperContours
 
     def _drawResult(self, contours, outPen):
