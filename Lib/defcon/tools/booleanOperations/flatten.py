@@ -1,18 +1,6 @@
 """
 The curve to flattened segments code was forked and modified from
 RoboFab's filterPen. That code was written by Erik van Blokland.
-
-The major modifications:
-- an out pen is not used
-- doubles are always filtered
-- there is no support for line splitting
-- components are ignored
-- a cache of flat -> curve is maintained
-- floats are not supported by the Clipper library,
-  so there is an option for scaling the contour
-  during flattening
-
-
 """
 
 import math
@@ -21,17 +9,6 @@ from fontTools.pens.basePen import BasePen
 # ----------------
 # Curve Flattening
 # ----------------
-
-def _segment(type=None, original=None, flat=None):
-    if flat is None:
-        flat = []
-    d = dict(
-        type=type,
-        original=original,
-        flat=flat
-    )
-    return d
-
 
 class FlattenPen(BasePen):
 
@@ -53,18 +30,16 @@ class FlattenPen(BasePen):
 
     def _moveTo(self, pt):
         self.contours.append(Contour())
-        segment = _segment(type="move", original=[pt], flat=[self._prepPoint(pt)])
-        self.contours[-1].append(segment)
+        self.contours[-1].addSegment(type="move", original=[pt], flat=[self._prepPoint(pt)])
 
     def _lineTo(self, pt):
-        currentPoint = self.contours[-1][-1]["original"][-1]
+        currentPoint = self.contours[-1][-1].original[-1]
         if pt == currentPoint:
             return
-        segment = _segment(type="line", original=[pt], flat=[self._prepPoint(pt)])
-        self.contours[-1].append(segment)
+        self.contours[-1].addSegment(type="line", original=[pt], flat=[self._prepPoint(pt)])
 
     def _curveToOne(self, pt1, pt2, pt3):
-        currentPoint = self.contours[-1][-1]["original"][-1]
+        currentPoint = self.contours[-1][-1].original[-1]
         # a false curve
         falseCurve = (pt1 == currentPoint) and (pt2 == pt3)
         if falseCurve:
@@ -78,16 +53,15 @@ class FlattenPen(BasePen):
             return
         # a usable curve
         if self._qCurveConversion:
-            segment = _segment(type="qcurve", original=self._qCurveConversion)
+            segment = self.contours[-1].addSegment(type="qcurve", original=self._qCurveConversion)
         else:
-            segment = _segment(type="curve", original=[pt1, pt2, pt3])
-        flattened = segment["flat"]
+            segment = self.contours[-1].addSegment(type="curve", original=[pt1, pt2, pt3])
+        flattened = segment.flat
         step = 1.0 / maxSteps
         factors = range(0, maxSteps + 1)
         for i in factors[1:]:
             pt = _getCubicPoint(i * step, currentPoint, pt1, pt2, pt3)
             flattened.append(self._prepPoint(pt))
-        self.contours[-1].append(segment)
 
     def _qCurveToOne(self, pt1, pt2):
         self._qCurveConversion = [pt1, pt2]
@@ -95,23 +69,38 @@ class FlattenPen(BasePen):
         self._qCurveConversion = None
 
     def _closePath(self):
-        self.lineTo(self.contours[-1][0]["original"][-1])
+        firstPoint = self.contours[-1][0].original[-1]
+        self.lineTo(firstPoint)
         self.endPath()
 
     def _endPath(self):
-        if self.contours[-1][0]["flat"][0] == self.contours[-1][-1]["flat"][-1]:
-            del self.contours[-1][-1]["flat"][-1]
+        # remove a final point that is on top of the move
+        # Clipper removes this point, so we need to
+        # do so as well to ensure that the segments match
+        firstPoint = self.contours[-1][0].flat[0]
+        lastPoint = self.contours[-1][-1].flat[-1]
+        if firstPoint == lastPoint:
+            del self.contours[-1][-1].flat[-1]
 
     def addComponent(self, glyphName, transformation):
         pass
 
 
+# -------
+# Objects
+# -------
+
 class Contour(list):
+
+    def addSegment(self, type=None, original=None, flat=None):
+        segment = Segment(type=type, original=original, flat=flat)
+        self.append(segment)
+        return segment
 
     def _get_original(self):
         all = []
         for segment in self:
-            all.append((segment["type"], segment["original"]))
+            all.append((segment.type, segment.original))
         return all
 
     original = property(_get_original)
@@ -119,10 +108,25 @@ class Contour(list):
     def _get_flattened(self):
         all = []
         for segment in self:
-            all += segment["flat"]
+            all += segment.flat
         return all
 
     flattened = property(_get_flattened)
+
+
+class Segment(object):
+
+    def __init__(self, type=None, original=None, flat=None):
+        if flat is None:
+            flat = []
+        # segment type
+        self.type = type
+        # original segment points
+        self.original = original
+        # flattened segment points
+        self.flat = flat
+        # final points
+        self.final = None
 
 
 # -----------------

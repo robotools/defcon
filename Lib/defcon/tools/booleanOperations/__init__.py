@@ -3,10 +3,17 @@ from flatten import FlattenPen
 from pyClipper import PolyClipper # XXX this isn't the real thing
 
 
+"""
+general suggestions:
+- contours should only be sent here if they actually overlap.
+  this can be checked easily using contour bounds.
+- only closed contours should be sent here.
+"""
+
+
 class BooleanOperationManager(object):
 
     def __init__(self):
-        self._curveToFlatCache = {}
         self._scale = 100000
         self._inverseScale = .00001
 
