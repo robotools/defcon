@@ -1,14 +1,175 @@
-"""
-The curve to flattened segments code was forked and modified from
-RoboFab's filterPen. That code was written by Erik van Blokland.
-"""
-
 import math
 from fontTools.pens.basePen import BasePen
+
+# -------
+# Objects
+# -------
+
+class Contour(list):
+
+    # ----------
+    # Attributes
+    # ----------
+
+    # finalized state
+
+    def _get_final(self):
+        for segment in self:
+            if not segment.final:
+                return False
+        return True
+
+    final = property(_get_final)
+
+    # original segments
+
+    def _get_original(self):
+        all = []
+        for segment in self:
+            all.append((segment.type, segment.original))
+        return all
+
+    original = property(_get_original)
+
+    # flattened segments
+
+    def _get_flat(self):
+        all = []
+        for segment in self:
+            all += segment.flat
+        return all
+
+    flat = property(_get_flat)
+
+    # --------
+    # Segments
+    # --------
+
+    def addSegment(self, type=None, original=None, flat=None):
+        segment = Segment(type=type, original=original, flat=flat)
+        self.append(segment)
+        return segment
+
+    def _setPrevPoints(self):
+        for index, segment in enumerate(self):
+            segment.prevPoint = self[index - 1].original[-1]
+            segment.prevFlatPoint = self[index - 1].flat[-1]
+
+    def tryToReplaceFlattenedWithOriginalSegment(self, segment):
+        changed = self._tryToReplaceFlattenedWithOriginalSegment(segment)
+        if not changed:
+            changed = self._tryToReplaceFlattenedWithOriginalSegment(segment, reverse=True)
+
+    def _tryToReplaceFlattenedWithOriginalSegment(self, segment, reverse=False):
+        flattened = self.flat
+        # quickly test if the edges of the segment are even in this contour
+        prevPoint = segment.prevFlatPoint
+        if prevPoint not in flattened:
+            return False
+        lastPoint = segment.flat[-1]
+        if lastPoint not in flattened:
+            return False
+        # make a copy of the segments in this contour
+        selfSegments = list(self)
+        if reverse:
+            selfSegments = list(reversed(selfSegments))
+        # get all instances of the previous point
+        prevPointIndexes = []
+        for index, flatSegment in enumerate(selfSegments):
+            if flatSegment.final or flatSegment.type != "flat":
+                continue
+            if prevPoint in flatSegment.flat:
+                prevPointIndexes.append(index)
+        # work through the points after the found points
+        segmentLength = len(segment.flat)
+        for prevPointIndex in prevPointIndexes:
+            start = prevPointIndex + 1
+            end = start + segmentLength
+            selfSlice = selfSegments[start:end]
+            wrapAround = None
+            if len(selfSlice) < segmentLength:
+                wrapAround = end - len(selfSegments)
+                selfSlice += selfSegments[:wrapAround]
+            haveMatch = True
+            reason = None
+            for index, selfSegment in enumerate(selfSlice):
+                # segment has already been changed
+                if selfSegment.final or selfSegment.type != "flat":
+                    haveMatch = False
+                    reason = selfSegment.final, selfSegment.type
+                    break
+                # points don't match
+                selfPoint = selfSegment.flat[0]
+                segmentPoint = segment.flat[index]
+                if selfPoint != segmentPoint:
+                    haveMatch = False
+                    reason = 2
+                    break
+            # replace if a match has been found
+            if haveMatch:
+                print segment.type
+                del self[start:end]
+                self.insert(start, segment)
+                if wrapAround:
+                    del self[:wrapAround]
+                # finish the segment
+                segment.final = segment.original
+                if reverse:
+                    segment.final = [segment.prevPoint] + list(reversed(segment.final[1:]))
+                segment.used = True
+                return True
+        # didn't do anything
+        return False
+
+    # ------
+    # Output
+    # ------
+
+    def draw(self, pen):
+        for segment in self:
+            instruction = segment.type
+            points = segment.final
+            if instruction == "move":
+                pen.moveTo(points[0])
+            elif instruction == "line":
+                pen.lineTo(points[0])
+            elif instruction == "curve":
+                pen.curveTo(*points)
+            elif instruction == "qcurve":
+                pen.qCurveTo(*points)
+        pen.closePath()
+
+
+class Segment(object):
+
+    def __init__(self, type=None, original=None, flat=None):
+        if flat is None:
+            flat = []
+        # segment type
+        self.type = type
+        # original segment points
+        self.prevPoint = None
+        self.original = original
+        # flattened segment points
+        self.prevFlatPoint = None
+        self.flat = flat
+        # final points
+        self.final = None
+        # used
+        self.used = False
+
+    def __repr__(self):
+        return "<Segment: type=%s>" % self.type
+
 
 # ----------------
 # Curve Flattening
 # ----------------
+
+"""
+The curve flattening code was forked and modified from RoboFab's FilterPen.
+That code was written by Erik van Blokland.
+"""
 
 class FlattenPen(BasePen):
 
@@ -71,67 +232,14 @@ class FlattenPen(BasePen):
     def _closePath(self):
         firstPoint = self.contours[-1][0].original[-1]
         self.lineTo(firstPoint)
-        self.endPath()
+        self.contours[-1]._setPrevPoints()
 
     def _endPath(self):
-        # remove a final point that is on top of the move
-        # Clipper removes this point, so we need to
-        # do so as well to ensure that the segments match
-        firstPoint = self.contours[-1][0].flat[0]
-        lastPoint = self.contours[-1][-1].flat[-1]
-        if firstPoint == lastPoint:
-            del self.contours[-1][-1].flat[-1]
+        pass
 
     def addComponent(self, glyphName, transformation):
         pass
 
-
-# -------
-# Objects
-# -------
-
-class Contour(list):
-
-    def addSegment(self, type=None, original=None, flat=None):
-        segment = Segment(type=type, original=original, flat=flat)
-        self.append(segment)
-        return segment
-
-    def _get_original(self):
-        all = []
-        for segment in self:
-            all.append((segment.type, segment.original))
-        return all
-
-    original = property(_get_original)
-
-    def _get_flattened(self):
-        all = []
-        for segment in self:
-            all += segment.flat
-        return all
-
-    flattened = property(_get_flattened)
-
-
-class Segment(object):
-
-    def __init__(self, type=None, original=None, flat=None):
-        if flat is None:
-            flat = []
-        # segment type
-        self.type = type
-        # original segment points
-        self.original = original
-        # flattened segment points
-        self.flat = flat
-        # final points
-        self.final = None
-
-
-# -----------------
-# Support Functions
-# -----------------
 
 def _intPoint(pt):
     return int(round(pt[0])), int(round(pt[1]))

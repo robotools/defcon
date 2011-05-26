@@ -1,13 +1,13 @@
 from fontTools.pens.basePen import BasePen
-from flatten import FlattenPen
+from flatten import FlattenPen, Contour
 from pyClipper import PolyClipper # XXX this isn't the real thing
 
 
 """
-general suggestions:
-- contours should only be sent here if they actually overlap.
-  this can be checked easily using contour bounds.
-- only closed contours should be sent here.
+General Suggestions:
+- Contours should only be sent here if they actually overlap.
+  This can be checked easily using contour bounds.
+- Only perform operations on closed contours.
 """
 
 
@@ -31,87 +31,116 @@ class BooleanOperationManager(object):
             y = int(y)
         return x, y
 
-    def _getPreppedContours(self, contours):
+    def _prepContours(self, contours):
         flattenPen = FlattenPen(scale=self._scale)
         for contour in contours:
             contour.draw(flattenPen)
-        return flattenPen.contours
+        contours = flattenPen.contours
+        for contour in contours:
+            contour[0].type = "line"
+        return contours
 
     def _getClipperContours(self, preppedContours):
         clipperContours = []
         for contour in preppedContours:
-            clipperContours.append(dict(coordinates=contour.flattened))
+            clipperContours.append(dict(coordinates=contour.flat))
         return clipperContours
 
     # -------
     # Recurve
     # -------
 
-    def _recurveResult(self, result, originalContours):
-        # convert the contours into a trackable set of dicts
-        result = [dict(fixed=False, recurved=[], flattened=contour) for contour in result]
-        # check to see if any contours were completely untouched
+    def _recurveResult(self, resultContours, originalContours):
+        # replace untouched contours
+        resultReplacements = []
         originalToRemove = []
-        for contour in result:
-            p = [tuple(point) for point in contour["flattened"]]
-            for index, originalContour in enumerate(originalContours):
-                if contour["flattened"] == originalContour.flattened:
-                    contour["recurved"] = originalContour.original
-                    contour["fixed"] = True
-                    originalToRemove.append(index)
+        for resultIndex, resultContour in enumerate(resultContours):
+            for originalIndex, originalContour in enumerate(originalContours):
+                resultFlat = resultContour.flat
+                originalFlat = originalContour.flat
+                # test length
+                if len(resultFlat) != len(originalFlat):
+                    continue
+                # try the contour as is
+                if resultFlat == originalFlat:
+                    originalToRemove.append(originalIndex)
+                    resultReplacements.append((resultIndex, originalContour))
                     break
-        for index in reversed(originalToRemove):
+                # the contour could have been reversed
+                elif resultFlat == [originalFlat[0]] + list(reversed(originalFlat[1:])):
+                    originalToRemove.append(originalIndex)
+                    resultReplacements.append((resultIndex, originalContour))
+                    break
+        for index in reversed(sorted(originalToRemove)):
             del originalContours[index]
-        # XXX convert flattened into segments
-        for contour in result:
-            if contour["fixed"]:
-                continue
-            points = contour["flattened"]
-            contour["recurved"] = [("move", [self._scaleDownPoint(points[0])])]
-            for point in points[1:]:
-                point = self._scaleDownPoint(point)
-                contour["recurved"].append(("line", [point]))
-            contour["fixed"] = True
-        # convert the result into a set of pen instructions
-        final = []
-        for contour in result:
-            final.append(contour["recurved"])
-        return final
-
-    # -----------------
-    # Output the Result
-    # -----------------
-
-    def _drawResult(self, contours, outPen):
-        for contour in contours:
+        for index, contour in resultReplacements:
+            # remove the clipper contour
+            del resultContours[index]
+            # insert the original contour
+            resultContours.insert(index, contour)
+            # set the original contour as final
             for segment in contour:
-                instruction = segment[0]
-                points = segment[1]
-                if instruction == "move":
-                    outPen.moveTo(points[0])
-                elif instruction == "line":
-                    outPen.lineTo(points[0])
-                elif instruction == "curve":
-                    outPen.curveTo(*points)
-                elif instruction == "qcurve":
-                    outPen.qCurveTo(*points)
-            outPen.closePath()
-
-    # -------
-    # Flatten
-    # -------
-
-    def flatten(self, contours, outPen):
-        pass
+                segment.final = segment.original
+        # search for untouched segments
+        for resultContour in resultContours:
+            if resultContour.final:
+                continue
+            for originalContour in originalContours:
+                for segment in originalContour:
+                    # skip used
+                    if segment.used:
+                        continue
+                    # try to insert the segment
+                    changed = resultContour.tryToReplaceFlattenedWithOriginalSegment(segment)
+        # XXX convert the reamining flattened into segments
+        # XXX this is where the curve fitting will need to happen
+        for contour in resultContours:
+            if contour.final:
+                continue
+            for index, segment in enumerate(contour):
+                if segment.final or segment.type != "flat":
+                    print segment.type, segment.final
+                    continue
+                if index == 0:
+                    segment.type = "move"
+                else:
+                    segment.type = "line"
+                segment.final = [self._scaleDownPoint(point) for point in segment.flat]
+        # done
+        return resultContours
 
     # ------------------
     # Boolean Operations
     # ------------------
 
-    def union(self, contours, outPen):
-        originalContours = self._getPreppedContours(contours)
-        clipperContours = self._getClipperContours(originalContours)
+    def _performOperation(self, operation, contours, outPen):
+        # prep the contours
+        originalContours = self._prepContours(contours)
+        # XXX temporary
+        clipperContours = []
+        for contour in originalContours:
+            clipperContours.append(dict(coordinates=contour.flat))
         clipper = PolyClipper.alloc().init()
-        result = clipper.execute_operation_withOptions_(clipperContours, "union", dict(subjectFillType="noneZero", clipFillType="noneZero"))
-        result = self._recurveResult(result, originalContours)
-        self._drawResult(result, outPen)
+        result = clipper.execute_operation_withOptions_(clipperContours, operation, dict(subjectFillType="noneZero", clipFillType="noneZero"))
+        # /XXX
+        # convert the results into contour objects
+        resultContours = []
+        for pointList in result:
+            contour = Contour()
+            for point in pointList:
+                point = tuple(point)
+                contour.addSegment(type="flat", flat=[point])
+            # add a line from the end to the beginning
+            # clipper filters these out, but we need them
+            if contour[-1].flat != contour[0].flat:
+                segment = contour.addSegment(type="flat")
+                segment.flat = list(contour[0].flat)
+            resultContours.append(contour)
+        # recurve and curvefit
+        final = self._recurveResult(resultContours, originalContours)
+        # output the results
+        for contour in final:
+            contour.draw(outPen)
+
+    def union(self, contours, outPen):
+        self._performOperation("union", contours, outPen)
