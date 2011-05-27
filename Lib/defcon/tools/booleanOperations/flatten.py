@@ -3,6 +3,33 @@ from fontTools.pens.basePen import BasePen
 from robofab.pens.reverseContourPointPen import ReverseContourPointPen
 from robofab.pens.adapterPens import PointToSegmentPen
 
+"""
+notes:
+- the flattened segments *must* be cyclical.
+  if they aren't, matching is almost impossible.
+
+
+optimization ideas:
+- use the point pen protocol instead of the pen protocol.
+  this would make the inetrnal tracking harder, but that
+  could be solved by grouping the points into segments
+  internally. using points this way would make it easier
+  to reverse the direction (there would be no need for
+  the reversal point pen or the adapter pen). this could
+  help solve another problem down the road if more poiont
+  attributes need to be retained.
+- the flattening of the output segment in the full contour
+  matching is probably expensive.
+- there should be a way to flag an input contour as
+  entirely used so that it isn't tried and tried and
+  tried for segment matches.
+
+test cases:
+- untouched contour: make clockwise and counter-clockwise tests
+  of the same contour
+"""
+
+
 # -------
 # Objects
 # -------
@@ -91,8 +118,8 @@ class OutputContour(object):
     def __init__(self, pointList, scale):
         self.scale = scale
         self.clockwise = getIsClockwise(pointList)
-        if pointList[0] != pointList[-1]:
-            pointList.append(pointList[0])
+        if pointList[0] == pointList[-1]:
+            del pointList[-1]
         self.segments = [OutputSegment(segmentType="flat", points=[tuple(point)]) for point in pointList]
 
     def _scalePoint(self, point):
@@ -125,12 +152,6 @@ class OutputContour(object):
     # --------------------------
 
     def reCurveFromEntireInputContour(self, inputContour):
-        """
-        this looks for a direct match, but clipper could have shifted the start point.
-        that should be checked here as well.
-
-        look at BackToCurve4.
-        """
         if self.clockwise:
             inputFlat = inputContour.clockwiseFlat
         else:
@@ -140,10 +161,30 @@ class OutputContour(object):
             # XXX this could be expensive
             assert segment.segmentType == "flat"
             outputFlat += segment.points
-        if inputFlat == outputFlat:
+        # test lengths
+        haveMatch = False
+        if len(inputFlat) == len(outputFlat):
+            if inputFlat == outputFlat:
+                haveMatch = True
+            else:
+                inputStart = inputFlat[0]
+                if inputStart in outputFlat:
+                    # there should be only one occurance of the point
+                    # but handle it just in case
+                    if outputFlat.count(inputStart) > 1:
+                        startIndexes = [index for index, point in enumerate(outputFlat) if point == inputStart]
+                    else:
+                        startIndexes = [outputFlat.index(inputStart)]
+                    # slice and dice to test possible orders
+                    for startIndex in startIndexes:
+                        test = outputFlat[startIndex:] + outputFlat[:startIndex]
+                        if inputFlat == test:
+                            haveMatch = True
+                            break
+        if haveMatch:
             # clear out the flat points
             self.segments = []
-            # replace with teh appropriate points from the input
+            # replace with the appropriate points from the input
             if self.clockwise:
                 inputSegments = inputContour.clockwiseSegments
             else:
@@ -183,12 +224,13 @@ class OutputContour(object):
     # ----
 
     def draw(self, pen):
+        # imply the move
+        pen.moveTo(self.segments[-1].points[-1])
+        # draw the rest
         for segment in self.segments:
             instruction = segment.segmentType
             points = segment.points
-            if instruction == "move":
-                pen.moveTo(points[0])
-            elif instruction == "line":
+            if instruction == "line":
                 pen.lineTo(points[0])
             elif instruction == "curve":
                 pen.curveTo(*points)
@@ -319,8 +361,11 @@ class InputContourPen(BasePen):
     def _closePath(self):
         firstPoint = self.segments[0].points[-1]
         lastPoint = self.segments[-1].points[-1]
-        if firstPoint != lastPoint:
-            self.lineTo(firstPoint)
+        if firstPoint == lastPoint:
+            assert self.segments[0].segmentType == "move"
+            del self.segments[0]
+        elif self.segments[0].segmentType == "move":
+            self.segments[0].segmentType = "line"
 
     def _endPath(self):
         raise NotImplementedError
