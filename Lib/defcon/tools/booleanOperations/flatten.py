@@ -1,134 +1,191 @@
 import math
 from fontTools.pens.basePen import BasePen
+from robofab.pens.reverseContourPointPen import ReverseContourPointPen
+from robofab.pens.adapterPens import PointToSegmentPen
 
 # -------
 # Objects
 # -------
 
-class Contour(list):
+# Input
+
+class InputContour(object):
+
+    def __init__(self, contour, scale=1):
+        self.clockwise = contour.clockwise
+        self.used = False
+        # draw normal
+        pen = InputContourPen(scale=scale)
+        contour.draw(pen)
+        if self.clockwise:
+            self.clockwiseSegments = pen.segments
+        else:
+            self.counterClockwiseSegments = pen.segments
+        # draw reversed
+        pen = InputContourPen(scale=scale)
+        self._drawReversed(contour, pen)
+        if self.clockwise:
+            self.counterClockwiseSegments = pen.segments
+        else:
+            self.clockwiseSegments = pen.segments
+
+    def _drawReversed(self, contour, pen):
+        adapterPen = PointToSegmentPen(pen, outputImpliedClosingLine=True)
+        reversePointPen = ReverseContourPointPen(adapterPen)
+        contour.drawPoints(reversePointPen)
 
     # ----------
     # Attributes
     # ----------
 
-    # finalized state
+    # the original direction in flat segments
+
+    def _get_originalFlat(self):
+        if self.clockwise:
+            return self.clockwiseFlat
+        else:
+            return self.counterClockwiseFlat
+
+    originalFlat = property(_get_originalFlat)
+
+    # the clockwise direction in flat segments
+
+    def _get_clockwiseFlat(self):
+        flat = []
+        segments = self.clockwiseSegments
+        for segment in segments:
+            flat += segment.flat
+        return flat
+
+    clockwiseFlat = property(_get_clockwiseFlat)
+
+    # the counter-clockwise direction in flat segments
+
+    def _get_counterClockwiseFlat(self):
+        flat = []
+        segments = self.counterClockwiseSegments
+        for segment in segments:
+            flat += segment.flat
+        return flat
+
+    counterClockwiseFlat = property(_get_counterClockwiseFlat)
+
+
+class InputSegment(object):
+
+    def __init__(self, segmentType=None, points=None, flat=None):
+        self.segmentType = segmentType
+        if points is None:
+            points = []
+        self.points = points
+        if flat is None:
+            flat = []
+        self.flat = flat
+        self.used = False
+
+
+# Output
+
+class OutputContour(object):
+
+    def __init__(self, pointList, scale):
+        self.scale = scale
+        self.clockwise = getIsClockwise(pointList)
+        if pointList[0] != pointList[-1]:
+            pointList.append(pointList[0])
+        self.segments = [OutputSegment(segmentType="flat", points=[tuple(point)]) for point in pointList]
+
+    def _scalePoint(self, point):
+        x, y = point
+        x = x * self.scale
+        if int(x) == x:
+            x = int(x)
+        y = y * self.scale
+        if int(y) == y:
+            y = int(y)
+        return x, y
+
+    # ----------
+    # Attributes
+    # ----------
 
     def _get_final(self):
-        for segment in self:
+        # XXX this could be optimized:
+        # store a fixed value after teh contour is finalized
+        # don't do the dymanic searching if that flag is set to True
+        for segment in self.segments:
             if not segment.final:
                 return False
         return True
 
     final = property(_get_final)
 
-    # original segments
+    # --------------------------
+    # Re-Curve and Curve Fitting
+    # --------------------------
 
-    def _get_original(self):
-        all = []
-        for segment in self:
-            all.append((segment.type, segment.original))
-        return all
+    def reCurveFromEntireInputContour(self, inputContour):
+        """
+        this looks for a direct match, but clipper could have shifted the start point.
+        that should be checked here as well.
 
-    original = property(_get_original)
-
-    # flattened segments
-
-    def _get_flat(self):
-        all = []
-        for segment in self:
-            all += segment.flat
-        return all
-
-    flat = property(_get_flat)
-
-    # --------
-    # Segments
-    # --------
-
-    def addSegment(self, type=None, original=None, flat=None):
-        segment = Segment(type=type, original=original, flat=flat)
-        self.append(segment)
-        return segment
-
-    def _setPrevPoints(self):
-        for index, segment in enumerate(self):
-            segment.prevPoint = self[index - 1].original[-1]
-            segment.prevFlatPoint = self[index - 1].flat[-1]
-
-    def tryToReplaceFlattenedWithOriginalSegment(self, segment):
-        changed = self._tryToReplaceFlattenedWithOriginalSegment(segment)
-        if not changed:
-            changed = self._tryToReplaceFlattenedWithOriginalSegment(segment, reverse=True)
-
-    def _tryToReplaceFlattenedWithOriginalSegment(self, segment, reverse=False):
-        flattened = self.flat
-        # quickly test if the edges of the segment are even in this contour
-        prevPoint = segment.prevFlatPoint
-        if prevPoint not in flattened:
-            return False
-        lastPoint = segment.flat[-1]
-        if lastPoint not in flattened:
-            return False
-        # make a copy of the segments in this contour
-        selfSegments = list(self)
-        if reverse:
-            selfSegments = list(reversed(selfSegments))
-        # get all instances of the previous point
-        prevPointIndexes = []
-        for index, flatSegment in enumerate(selfSegments):
-            if flatSegment.final or flatSegment.type != "flat":
-                continue
-            if prevPoint in flatSegment.flat:
-                prevPointIndexes.append(index)
-        # work through the points after the found points
-        segmentLength = len(segment.flat)
-        for prevPointIndex in prevPointIndexes:
-            start = prevPointIndex + 1
-            end = start + segmentLength
-            selfSlice = selfSegments[start:end]
-            wrapAround = None
-            if len(selfSlice) < segmentLength:
-                wrapAround = end - len(selfSegments)
-                selfSlice += selfSegments[:wrapAround]
-            haveMatch = True
-            reason = None
-            for index, selfSegment in enumerate(selfSlice):
-                # segment has already been changed
-                if selfSegment.final or selfSegment.type != "flat":
-                    haveMatch = False
-                    reason = selfSegment.final, selfSegment.type
-                    break
-                # points don't match
-                selfPoint = selfSegment.flat[0]
-                segmentPoint = segment.flat[index]
-                if selfPoint != segmentPoint:
-                    haveMatch = False
-                    reason = 2
-                    break
-            # replace if a match has been found
-            if haveMatch:
-                print segment.type
-                del self[start:end]
-                self.insert(start, segment)
-                if wrapAround:
-                    del self[:wrapAround]
-                # finish the segment
-                segment.final = segment.original
-                if reverse:
-                    segment.final = [segment.prevPoint] + list(reversed(segment.final[1:]))
-                segment.used = True
-                return True
-        # didn't do anything
+        look at BackToCurve4.
+        """
+        if self.clockwise:
+            inputFlat = inputContour.clockwiseFlat
+        else:
+            inputFlat = inputContour.counterClockwiseFlat
+        outputFlat = []
+        for segment in self.segments:
+            # XXX this could be expensive
+            assert segment.segmentType == "flat"
+            outputFlat += segment.points
+        if inputFlat == outputFlat:
+            # clear out the flat points
+            self.segments = []
+            # replace with teh appropriate points from the input
+            if self.clockwise:
+                inputSegments = inputContour.clockwiseSegments
+            else:
+                inputSegments = inputContour.counterClockwiseSegments
+            for inputSegment in inputSegments:
+                self.segments.append(
+                    OutputSegment(
+                        segmentType=inputSegment.segmentType,
+                        points=list(inputSegment.points),
+                        final=True
+                    )
+                )
+                inputSegment.used = True
+            # reset the direction of the final contour
+            self.clockwise = inputContour.clockwise
+            return True
         return False
 
-    # ------
-    # Output
-    # ------
+    def reCurveFromInputContourSegments(self, inputContour):
+        # match individual segments
+        # ? match line start points (to prevent curve fit in shortened line)
+        return False
+
+    def curveFit(self):
+        # XXX convert all of the remaining segments to lines
+        for index, segment in enumerate(self.segments):
+            if segment.segmentType != "flat":
+                continue
+            if index == 0:
+                segment.segmentType = "move"
+            else:
+                segment.segmentType = "line"
+            segment.points = [self._scalePoint(point) for point in segment.points]
+
+    # ----
+    # Draw
+    # ----
 
     def draw(self, pen):
-        for segment in self:
-            instruction = segment.type
-            points = segment.final
+        for segment in self.segments:
+            instruction = segment.segmentType
+            points = segment.points
             if instruction == "move":
                 pen.moveTo(points[0])
             elif instruction == "line":
@@ -140,26 +197,39 @@ class Contour(list):
         pen.closePath()
 
 
-class Segment(object):
+class OutputSegment(object):
 
-    def __init__(self, type=None, original=None, flat=None):
-        if flat is None:
-            flat = []
-        # segment type
-        self.type = type
-        # original segment points
-        self.prevPoint = None
-        self.original = original
-        # flattened segment points
-        self.prevFlatPoint = None
-        self.flat = flat
-        # final points
-        self.final = None
-        # used
-        self.used = False
+    def __init__(self, segmentType=None, points=None, final=False):
+        self.segmentType = segmentType
+        if points is None:
+            points = []
+        self.points = points
+        self.final = final
 
-    def __repr__(self):
-        return "<Segment: type=%s>" % self.type
+
+# taken from defcon.pens.clockwiseTestPointPen
+# fork, fork, fork. sigh.
+def getIsClockwise(points):
+    import math
+    # overlapping moves can give false results, so filter them out
+    if points[0] == points[-1]:
+        del points[-1]
+    angles = []
+    pointCount = len(points)
+    for index1 in xrange(pointCount):
+        index2 = (index1 + 1) % pointCount
+        x1, y1 = points[index1]
+        x2, y2 = points[index2]
+        angles.append(math.atan2(y2-y1, x2-x1))
+    total = 0
+    pi = math.pi
+    pi2 = pi * 2
+    for index1 in xrange(pointCount):
+        index2 = (index1 + 1) % pointCount
+        d = ((angles[index2] - angles[index1] + pi) % pi2) - pi
+        total += d
+    return total < 0
+
 
 
 # ----------------
@@ -171,7 +241,7 @@ The curve flattening code was forked and modified from RoboFab's FilterPen.
 That code was written by Erik van Blokland.
 """
 
-class FlattenPen(BasePen):
+class InputContourPen(BasePen):
 
     def __init__(self, scale=1, approximateSegmentLength=5):
         BasePen.__init__(self, glyphSet=None)
@@ -179,9 +249,9 @@ class FlattenPen(BasePen):
         self._approximateSegmentLength = approximateSegmentLength
         self._qCurveConversion = None
         # publicly accessible attributes
-        self.contours = []
+        self.segments = []
 
-    def _prepPoint(self, pt):
+    def _prepFlatPoint(self, pt):
         x, y = pt
         x = x * self._scale
         y = y * self._scale
@@ -190,17 +260,27 @@ class FlattenPen(BasePen):
         return (x, y)
 
     def _moveTo(self, pt):
-        self.contours.append(Contour())
-        self.contours[-1].addSegment(type="move", original=[pt], flat=[self._prepPoint(pt)])
+        assert not self.segments
+        segment = InputSegment(
+            segmentType="move",
+            points=[pt],
+            flat=[self._prepFlatPoint(pt)]
+        )
+        self.segments.append(segment)
 
     def _lineTo(self, pt):
-        currentPoint = self.contours[-1][-1].original[-1]
+        currentPoint = self.segments[-1].points[-1]
         if pt == currentPoint:
             return
-        self.contours[-1].addSegment(type="line", original=[pt], flat=[self._prepPoint(pt)])
+        segment = InputSegment(
+            segmentType="line",
+            points=[pt],
+            flat=[self._prepFlatPoint(pt)]
+        )
+        self.segments.append(segment)
 
     def _curveToOne(self, pt1, pt2, pt3):
-        currentPoint = self.contours[-1][-1].original[-1]
+        currentPoint = self.segments[-1].points[-1]
         # a false curve
         falseCurve = (pt1 == currentPoint) and (pt2 == pt3)
         if falseCurve:
@@ -214,15 +294,22 @@ class FlattenPen(BasePen):
             return
         # a usable curve
         if self._qCurveConversion:
-            segment = self.contours[-1].addSegment(type="qcurve", original=self._qCurveConversion)
+            segment = InputSegment(
+                segmentType="qcurve",
+                points=self._qCurveConversion
+            )
         else:
-            segment = self.contours[-1].addSegment(type="curve", original=[pt1, pt2, pt3])
+            segment = InputSegment(
+                segmentType="curve",
+                points=[pt1, pt2, pt3]
+            )
+        self.segments.append(segment)
         flattened = segment.flat
         step = 1.0 / maxSteps
         factors = range(0, maxSteps + 1)
         for i in factors[1:]:
             pt = _getCubicPoint(i * step, currentPoint, pt1, pt2, pt3)
-            flattened.append(self._prepPoint(pt))
+            flattened.append(self._prepFlatPoint(pt))
 
     def _qCurveToOne(self, pt1, pt2):
         self._qCurveConversion = [pt1, pt2]
@@ -230,15 +317,16 @@ class FlattenPen(BasePen):
         self._qCurveConversion = None
 
     def _closePath(self):
-        firstPoint = self.contours[-1][0].original[-1]
-        self.lineTo(firstPoint)
-        self.contours[-1]._setPrevPoints()
+        firstPoint = self.segments[0].points[-1]
+        lastPoint = self.segments[-1].points[-1]
+        if firstPoint != lastPoint:
+            self.lineTo(firstPoint)
 
     def _endPath(self):
-        pass
+        raise NotImplementedError
 
     def addComponent(self, glyphName, transformation):
-        pass
+        raise NotImplementedError
 
 
 def _intPoint(pt):
