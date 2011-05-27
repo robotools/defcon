@@ -213,10 +213,7 @@ class OutputContour(object):
         for index, segment in enumerate(self.segments):
             if segment.segmentType != "flat":
                 continue
-            if index == 0:
-                segment.segmentType = "move"
-            else:
-                segment.segmentType = "line"
+            segment.segmentType = "line"
             segment.points = [self._scalePoint(point) for point in segment.points]
 
     # ----
