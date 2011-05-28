@@ -205,6 +205,71 @@ class OutputContour(object):
 
     def reCurveFromInputContourSegments(self, inputContour):
         # match individual segments
+        if self.clockwise:
+            inputSegments = inputContour.clockwiseSegments
+        else:
+            inputSegments = inputContour.counterClockwiseSegments
+        for inputSegment in inputSegments:
+            # skip used
+            if inputSegment.used:
+                continue
+            # skip if the input contains more points than the entire output contour
+            if len(inputSegment.flat) > len(self.segments):
+                continue
+            # skip if the input end is not in the contour
+            inputSegmentLastPoint = inputSegment.flat[-1]
+            outputFlat = [segment.points[-1] for segment in self.segments]
+            if inputSegmentLastPoint not in outputFlat:
+                continue
+            # work through all output segments
+            for outputSegmentIndex, outputSegment in enumerate(self.segments):
+                # skip finalized
+                if outputSegment.final:
+                    continue
+                # skip if the output point doesn't match the input end
+                if outputSegment.points[-1] != inputSegmentLastPoint:
+                    continue
+                # make a set of ranges for slicing the output into a testable list of points
+                inputLength = len(inputSegment.flat)
+                outputRanges = []
+                outputSegmentIndex += 1
+                if outputSegmentIndex - inputLength < 0:
+                    r1 = (len(self.segments) + outputSegmentIndex - inputLength, len(self.segments))
+                    outputRanges.append(r1)
+                    r2 = (0, outputSegmentIndex)
+                    outputRanges.append(r2)
+                else:
+                    outputRanges.append((outputSegmentIndex - inputLength, outputSegmentIndex))
+                # gather the output segments
+                testableOutputSegments = []
+                for start, end in outputRanges:
+                    testableOutputSegments += self.segments[start:end]
+                # create a list of points
+                test = []
+                for s in testableOutputSegments:
+                    # stop if a segment is final
+                    if s.final:
+                        test = None
+                        break
+                    test.append(s.points[-1])
+                if test == inputSegment.flat:
+                    # insert new segment
+                    newSegment = OutputSegment(
+                        segmentType=inputSegment.segmentType,
+                        points=list(inputSegment.points),
+                        final=True
+                    )
+                    self.segments.insert(outputSegmentIndex, newSegment)
+                    # remove old segments
+                    # XXX this is sloppy
+                    for start, end in outputRanges:
+                        if start > outputSegmentIndex:
+                            start += 1
+                            end += 1
+                        del self.segments[start:end]
+                    # flag the original as used
+                    inputSegment.used = True
+                    break
         # ? match line start points (to prevent curve fit in shortened line)
         return False
 
