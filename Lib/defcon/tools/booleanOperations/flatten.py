@@ -4,6 +4,14 @@ from robofab.pens.reverseContourPointPen import ReverseContourPointPen
 from robofab.pens.adapterPens import PointToSegmentPen
 
 """
+To Do:
+- the stuff listed below
+- curve fit
+- probably need to find line segments that were shortened
+  by the operation so that the curve fit doesn't try to turn
+  them into curves
+
+
 notes:
 - the flattened segments *must* be cyclical.
   if they aren't, matching is almost impossible.
