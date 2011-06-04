@@ -31,6 +31,12 @@ optimization ideas:
 - there should be a way to flag an input contour as
   entirely used so that it isn't tried and tried and
   tried for segment matches.
+- do a faster test when matching segments: when a end
+  match is found, jump back input length and grab the
+  output segment. test for match with the input.
+- cache input contour objects. matching these to incoming
+  will be a little difficult because of point names and
+  identifiers. alternatively, deal with those after the fact.
 
 test cases:
 - untouched contour: make clockwise and counter-clockwise tests
