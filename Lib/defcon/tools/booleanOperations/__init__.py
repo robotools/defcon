@@ -8,6 +8,7 @@ General Suggestions:
 - Contours should only be sent here if they actually overlap.
   This can be checked easily using contour bounds.
 - Only perform operations on closed contours.
+- contours must have an on curve point
 """
 
 
