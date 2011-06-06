@@ -10,7 +10,9 @@ To Do:
 - probably need to find line segments that were shortened
   by the operation so that the curve fit doesn't try to turn
   them into curves
-
+- need to know what kind of curves should be used for
+  curve fit--curve or qcurve
+- false curves and duplicate points need to be filtered early on
 
 notes:
 - the flattened segments *must* be cyclical.
@@ -18,14 +20,6 @@ notes:
 
 
 optimization ideas:
-- use the point pen protocol instead of the pen protocol.
-  this would make the inetrnal tracking harder, but that
-  could be solved by grouping the points into segments
-  internally. using points this way would make it easier
-  to reverse the direction (there would be no need for
-  the reversal point pen or the adapter pen). this could
-  help solve another problem down the road if more poiont
-  attributes need to be retained.
 - the flattening of the output segment in the full contour
   matching is probably expensive.
 - there should be a way to flag an input contour as
@@ -37,43 +31,52 @@ optimization ideas:
 - cache input contour objects. matching these to incoming
   will be a little difficult because of point names and
   identifiers. alternatively, deal with those after the fact.
+- some tests on input before conversion to input objects
+  could yield significant speedups. would need to check
+  each contour for self intersection and each
+  non-self-intersectingcontour for collision with other
+  contours. and contours that don't have a hit could be
+  skipped. this cound be done roughly with bounds.
+  this should probably be done by extenal callers.
 
 test cases:
 - untouched contour: make clockwise and counter-clockwise tests
   of the same contour
 """
 
+# factors for transferring coordinates to and from Clipper
 
-# -------
-# Objects
-# -------
+clipperScale = 100000
+inverseClipperScale = 1.0 / clipperScale
+
+# -------------
+# Input Objects
+# -------------
 
 # Input
 
 class InputContour(object):
 
-    def __init__(self, contour, scale=1):
+    def __init__(self, contour):
+        # gather the point data
+        pointPen = ContourPointDataPen()
+        contour.drawPoints(pointPen)
+        points = pointPen.getData()
+        reversedPoints = _reversePoints(points)
+        # gather segments
+        segments = _convertPointsToSegments(points)
+        reversedSegments = _convertPointsToSegments(reversedPoints)
+        # get the direction
         self.clockwise = contour.clockwise
+        # store the gathered data
+        if self.clockwise:
+            self.clockwiseSegments = segments
+            self.counterClockwiseSegments = reversedSegments
+        else:
+            self.clockwiseSegments = reversedSegments
+            self.counterClockwiseSegments = segments
+        # flag indicating if the contour has been used
         self.used = False
-        # draw normal
-        pen = InputContourPen(scale=scale)
-        contour.draw(pen)
-        if self.clockwise:
-            self.clockwiseSegments = pen.segments
-        else:
-            self.counterClockwiseSegments = pen.segments
-        # draw reversed
-        pen = InputContourPen(scale=scale)
-        self._drawReversed(contour, pen)
-        if self.clockwise:
-            self.counterClockwiseSegments = pen.segments
-        else:
-            self.clockwiseSegments = pen.segments
-
-    def _drawReversed(self, contour, pen):
-        adapterPen = PointToSegmentPen(pen, outputImpliedClosingLine=True)
-        reversePointPen = ReverseContourPointPen(adapterPen)
-        contour.drawPoints(reversePointPen)
 
     # ----------
     # Attributes
@@ -95,7 +98,7 @@ class InputContour(object):
         flat = []
         segments = self.clockwiseSegments
         for segment in segments:
-            flat += segment.flat
+            flat.extend(segment.flat)
         return flat
 
     clockwiseFlat = property(_get_clockwiseFlat)
@@ -106,7 +109,7 @@ class InputContour(object):
         flat = []
         segments = self.counterClockwiseSegments
         for segment in segments:
-            flat += segment.flat
+            flat.extend(segment.flat)
         return flat
 
     counterClockwiseFlat = property(_get_counterClockwiseFlat)
@@ -114,34 +117,217 @@ class InputContour(object):
 
 class InputSegment(object):
 
-    def __init__(self, segmentType=None, points=None, flat=None):
-        self.segmentType = segmentType
+    __slots__ = ["points", "previousOnCurve", "flat", "used"]
+
+    def __init__(self, points=None, previousOnCurve=None):
         if points is None:
             points = []
         self.points = points
-        if flat is None:
-            flat = []
-        self.flat = flat
+        pointsToFlatten = []
+        if self.segmentType == "qcurve":
+            XXX
+            # this shoudl be easy.
+            # copy the quad to cubic from fontTools.pens.basePen
+        elif self.segmentType == "curve":
+            pointsToFlatten = [previousOnCurve] + [point.coordinates for point in points]
+        else:
+            assert len(points) == 1
+            self.flat = [point.coordinates for point in points]
+        if pointsToFlatten:
+            self.flat = _flattenSegment(pointsToFlatten)
+        self.flat = _scalePoints(self.flat, scale=clipperScale)
         self.used = False
 
+    def _get_segmentType(self):
+        return self.points[-1].segmentType
 
-# Output
+    segmentType = property(_get_segmentType)
+
+
+class InputPoint(object):
+
+    __slots__ = ["coordinates", "segmentType", "smooth", "name", "kwargs"]
+
+    def __init__(self, coordinates, segmentType=None, smooth=False, name=None, kwargs=None):
+        self.coordinates = coordinates
+        self.segmentType = segmentType
+        self.smooth = smooth
+        self.name = name
+        self.kwargs = kwargs
+
+    def copy(self):
+        copy = self.__class__(
+            coordinates=self.coordinates,
+            segmentType=self.segmentType,
+            smooth=self.smooth,
+            name=self.name,
+            kwargs=self.kwargs
+        )
+        return copy
+
+
+# -------------
+# Input Support
+# -------------
+
+class ContourPointDataPen:
+
+    """
+    Point pen for gathering raw contour data.
+    An instance of this pen may only be used for one contour.
+    """
+
+    def __init__(self):
+        self._points = None
+
+    def getData(self):
+        """
+        Return a list of normalized InputPoint objects
+        for the contour drawn with this pen.
+        """
+        # organize the points into segments
+        # 1. make sure there is an on curve
+        haveOnCurve = False
+        for point in self._points:
+            if point.segmentType is not None:
+                haveOnCurve = True
+                break
+        # 2. move the off curves to front of the list
+        if haveOnCurve:
+            _prepPointsForSegments(self._points)
+        # done
+        return self._points
+
+    def beginPath(self):
+        assert self._points is None
+        self._points = []
+
+    def endPath(self):
+        pass
+
+    def addPoint(self, pt, segmentType=None, smooth=False, name=None, **kwargs):
+        assert segmentType != "move"
+        data = InputPoint(
+            coordinates=pt,
+            segmentType=segmentType,
+            smooth=smooth,
+            name=name,
+            kwargs=kwargs
+        )
+        self._points.append(data)
+
+    def addComponent(self, baseGlyphName, transformation):
+        raise NotImplementedError
+
+def _prepPointsForSegments(points):
+    """
+    Move any off curves at the end of teh contour
+    to the beginning of the contour. This makes
+    segmentation easier.
+    """
+    while 1:
+        point = points[-1]
+        if point.segmentType:
+            break
+        else:
+            point = points.pop()
+            points.insert(0, point)
+            continue
+        break
+
+def _copyPoints(points):
+    """
+    Make a shallow copy of the points.
+    """
+    copied = [point.copy() for point in points]
+    return copied
+
+def _reversePoints(points):
+    """
+    Reverse the points. This differs from the
+    reversal point pen in RoboFab in that it doesn't
+    worry about maintaing the start point position.
+    That has no benefit within the context of this module.
+    """
+    # copy the points
+    points = _copyPoints(points)
+    # find the first on curve type and recycle
+    # it for the last on curve type
+    firstOnCurve = None
+    for index, point in enumerate(points):
+        if point.segmentType is not None:
+            firstOnCurve = index
+            break
+    lastSegmentType = points[firstOnCurve].segmentType
+    # reverse the points
+    points = reversed(points)
+    # work through the reversed remaining points
+    final = []
+    for point in points:
+        segmentType = point.segmentType
+        if segmentType is not None:
+            point.segmentType = lastSegmentType
+            lastSegmentType = segmentType
+        final.append(point)
+    # move any offcurves at the end of the points
+    # to the start of the points
+    _prepPointsForSegments(final)
+    # done
+    return final
+
+def _convertPointsToSegments(points):
+    """
+    Compile points into InputSegment objects.
+    """
+    # get the last on curve
+    previousOnCurve = None
+    for point in reversed(points):
+        if point.segmentType is not None:
+            previousOnCurve = point.coordinates
+            break
+    assert previousOnCurve is not None
+    # gather the segments
+    offCurves = []
+    segments = []
+    for point in points:
+        # off curve, hold.
+        if point.segmentType is None:
+            offCurves.append(point)
+        else:
+            segment = InputSegment(
+                points=offCurves + [point],
+                previousOnCurve=previousOnCurve
+            )
+            segments.append(segment)
+            offCurves = []
+            previousOnCurve = point.coordinates
+    assert not offCurves
+    return segments
+
+
+# --------------
+# Output Objects
+# --------------
 
 class OutputContour(object):
 
-    def __init__(self, pointList, scale):
-        self.scale = scale
-        self.clockwise = getIsClockwise(pointList)
+    def __init__(self, pointList):
         if pointList[0] == pointList[-1]:
             del pointList[-1]
-        self.segments = [OutputSegment(segmentType="flat", points=[tuple(point)]) for point in pointList]
+        self.clockwise = _getClockwise(pointList)
+        self.segments = [
+            OutputSegment(
+                segmentType="flat",
+                points=[point]
+            ) for point in pointList
+        ]
 
     def _scalePoint(self, point):
         x, y = point
-        x = x * self.scale
+        x = x * inverseClipperScale
         if int(x) == x:
             x = int(x)
-        y = y * self.scale
+        y = y * inverseClipperScale
         if int(y) == y:
             y = int(y)
         return x, y
@@ -207,7 +393,16 @@ class OutputContour(object):
                 self.segments.append(
                     OutputSegment(
                         segmentType=inputSegment.segmentType,
-                        points=list(inputSegment.points),
+                        points=[
+                            OutputPoint(
+                                coordinates=point.coordinates,
+                                segmentType=point.segmentType,
+                                smooth=point.name,
+                                name=point.name,
+                                kwargs=point.kwargs
+                            )
+                            for point in inputSegment.points
+                        ],
                         final=True
                     )
                 )
@@ -270,7 +465,16 @@ class OutputContour(object):
                     # insert new segment
                     newSegment = OutputSegment(
                         segmentType=inputSegment.segmentType,
-                        points=list(inputSegment.points),
+                        points=[
+                            OutputPoint(
+                                coordinates=point.coordinates,
+                                segmentType=point.segmentType,
+                                smooth=point.name,
+                                name=point.name,
+                                kwargs=point.kwargs
+                            )
+                            for point in inputSegment.points
+                        ],
                         final=True
                     )
                     self.segments.insert(outputSegmentIndex, newSegment)
@@ -293,29 +497,38 @@ class OutputContour(object):
             if segment.segmentType != "flat":
                 continue
             segment.segmentType = "line"
-            segment.points = [self._scalePoint(point) for point in segment.points]
+            segment.points = [
+                OutputPoint(
+                    coordinates=self._scalePoint(point),
+                    segmentType="line"
+                )
+                for point in segment.points
+            ]
 
     # ----
     # Draw
     # ----
 
-    def draw(self, pen):
-        # imply the move
-        pen.moveTo(self.segments[-1].points[-1])
-        # draw the rest
+    def drawPoints(self, pointPen):
+        pointPen.beginPath()
         for segment in self.segments:
-            instruction = segment.segmentType
-            points = segment.points
-            if instruction == "line":
-                pen.lineTo(points[0])
-            elif instruction == "curve":
-                pen.curveTo(*points)
-            elif instruction == "qcurve":
-                pen.qCurveTo(*points)
-        pen.closePath()
+            for point in segment.points:
+                kwargs = {}
+                if point.kwargs is not None:
+                    kwargs = point.kwargs
+                pointPen.addPoint(
+                    point.coordinates,
+                    segmentType=point.segmentType,
+                    smooth=point.smooth,
+                    name=point.name,
+                    **kwargs
+                )
+        pointPen.endPath()
 
 
 class OutputSegment(object):
+
+    __slots__ = ["segmentType", "points", "final"]
 
     def __init__(self, segmentType=None, points=None, final=False):
         self.segmentType = segmentType
@@ -325,30 +538,26 @@ class OutputSegment(object):
         self.final = final
 
 
-# taken from defcon.pens.clockwiseTestPointPen
-# fork, fork, fork. sigh.
-def getIsClockwise(points):
-    import math
-    # overlapping moves can give false results, so filter them out
-    if points[0] == points[-1]:
-        del points[-1]
-    angles = []
-    pointCount = len(points)
-    for index1 in xrange(pointCount):
-        index2 = (index1 + 1) % pointCount
-        x1, y1 = points[index1]
-        x2, y2 = points[index2]
-        angles.append(math.atan2(y2-y1, x2-x1))
-    total = 0
-    pi = math.pi
-    pi2 = pi * 2
-    for index1 in xrange(pointCount):
-        index2 = (index1 + 1) % pointCount
-        d = ((angles[index2] - angles[index1] + pi) % pi2) - pi
-        total += d
-    return total < 0
+class OutputPoint(InputPoint): pass
 
 
+# -------------
+# Ouput Support
+# -------------
+
+def _getClockwise(points):
+    """
+    Very quickly get the direction for points.
+    This only woirks for contours that *do not*
+    self-intersect. It works by finding the area
+    of the polygon. positive is counter-clockwise,
+    negative is clockwise.
+    """
+    # quickly make segments
+    segments = zip(points, points[1:] + [points[0]])
+    # get the area
+    area = sum([x0 * y1 - x1 * y0 for ((x0, y0), (x1, y1)) in segments])
+    return area <= 0
 
 # ----------------
 # Curve Flattening
@@ -359,101 +568,49 @@ The curve flattening code was forked and modified from RoboFab's FilterPen.
 That code was written by Erik van Blokland.
 """
 
-class InputContourPen(BasePen):
-
-    def __init__(self, scale=1, approximateSegmentLength=5):
-        BasePen.__init__(self, glyphSet=None)
-        self._scale = scale
-        self._approximateSegmentLength = approximateSegmentLength
-        self._qCurveConversion = None
-        # publicly accessible attributes
-        self.segments = []
-
-    def _prepFlatPoint(self, pt):
-        x, y = pt
-        x = x * self._scale
-        y = y * self._scale
-        x = int(round(x))
-        y = int(round(y))
-        return (x, y)
-
-    def _moveTo(self, pt):
-        assert not self.segments
-        segment = InputSegment(
-            segmentType="move",
-            points=[pt],
-            flat=[self._prepFlatPoint(pt)]
-        )
-        self.segments.append(segment)
-
-    def _lineTo(self, pt):
-        currentPoint = self.segments[-1].points[-1]
-        if pt == currentPoint:
-            return
-        segment = InputSegment(
-            segmentType="line",
-            points=[pt],
-            flat=[self._prepFlatPoint(pt)]
-        )
-        self.segments.append(segment)
-
-    def _curveToOne(self, pt1, pt2, pt3):
-        currentPoint = self.segments[-1].points[-1]
-        # a false curve
-        falseCurve = (pt1 == currentPoint) and (pt2 == pt3)
-        if falseCurve:
-            self.lineTo(pt3)
-            return
-        # no possible steps
-        est = _estimateCubicCurveLength(currentPoint, pt1, pt2, pt3) / self._approximateSegmentLength
-        maxSteps = int(round(est))
-        if maxSteps < 1:
-            self.lineTo(pt3)
-            return
-        # a usable curve
-        if self._qCurveConversion:
-            segment = InputSegment(
-                segmentType="qcurve",
-                points=self._qCurveConversion
-            )
-        else:
-            segment = InputSegment(
-                segmentType="curve",
-                points=[pt1, pt2, pt3]
-            )
-        self.segments.append(segment)
-        flattened = segment.flat
-        step = 1.0 / maxSteps
-        factors = range(0, maxSteps + 1)
-        for i in factors[1:]:
-            pt = _getCubicPoint(i * step, currentPoint, pt1, pt2, pt3)
-            flattened.append(self._prepFlatPoint(pt))
-
-    def _qCurveToOne(self, pt1, pt2):
-        self._qCurveConversion = [pt1, pt2]
-        BasePen._qCurveToOne(pt1, pt2)
-        self._qCurveConversion = None
-
-    def _closePath(self):
-        firstPoint = self.segments[0].points[-1]
-        lastPoint = self.segments[-1].points[-1]
-        if firstPoint == lastPoint:
-            assert self.segments[0].segmentType == "move"
-            del self.segments[0]
-        elif self.segments[0].segmentType == "move":
-            self.segments[0].segmentType = "line"
-
-    def _endPath(self):
-        raise NotImplementedError
-
-    def addComponent(self, glyphName, transformation):
-        raise NotImplementedError
-
+def _scalePoints(points, scale=1, convertToInteger=True):
+    """
+    Scale points and optionally convert them to integers.
+    """
+    if convertToInteger:
+        points = [
+            (int(round(x * scale)), int(round(y * scale)))
+            for (x, y) in points
+        ]
+    else:
+        points = [(x * scale, y * scale) for (x, y) in points]
+    return points
 
 def _intPoint(pt):
     return int(round(pt[0])), int(round(pt[1]))
 
-def distance(pt1, pt2):
+def _flattenSegment(segment, approximateSegmentLength=5):
+    """
+    Flatten the curve segment int a list of points.
+    The first and last points in the segment must be
+    on curves. The returned list of points will not
+    include the first on curve point.
+
+    false curves (where the off curves are not any
+    different from the on curves) must not be sent here.
+    duplicate points must not be sent here.
+    """
+    onCurve1, offCurve1, offCurve2, onCurve2 = segment
+    # no possible steps
+    est = _estimateCubicCurveLength(onCurve1, offCurve1, offCurve2, onCurve2) / approximateSegmentLength
+    maxSteps = int(round(est))
+    if maxSteps < 1:
+        return [onCurve2]
+    # a usable curve
+    flat = []
+    step = 1.0 / maxSteps
+    factors = range(0, maxSteps + 1)
+    for i in factors[1:]:
+        pt = _getCubicPoint(i * step, onCurve1, offCurve1, offCurve2, onCurve2)
+        flat.append(pt)
+    return flat
+
+def _distance(pt1, pt2):
     return math.sqrt((pt1[0] - pt2[0]) ** 2 + (pt1[1] - pt2[1]) ** 2)
 
 def _estimateCubicCurveLength(pt0, pt1, pt2, pt3, precision=10):
@@ -470,7 +627,7 @@ def _estimateCubicCurveLength(pt0, pt1, pt2, pt3, precision=10):
     for i in range(len(points) - 1):
         pta = points[i]
         ptb = points[i + 1]
-        length += distance(pta, ptb)
+        length += _distance(pta, ptb)
     return length
 
 def _mid((x0, y0), (x1, y1)):

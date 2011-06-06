@@ -14,26 +14,26 @@ General Suggestions:
 
 class BooleanOperationManager(object):
 
-    def __init__(self):
-        self._scale = 100000
-        self._inverseScale = 1.0 / self._scale
-
-    # ------------------
-    # Boolean Operations
-    # ------------------
-
     def _performOperation(self, operation, contours, outPen):
         # prep the contours
-        inputContours = [InputContour(contour, scale=self._scale) for contour in contours]
+        inputContours = [InputContour(contour) for contour in contours]
         # XXX temporary
         clipperContours = []
         for contour in inputContours:
             clipperContours.append(dict(coordinates=contour.originalFlat))
         clipper = PolyClipper.alloc().init()
         resultContours = clipper.execute_operation_withOptions_(clipperContours, operation, dict(subjectFillType="noneZero", clipFillType="noneZero"))
+        # the temporary Clipper wrapper if very, very slow
+        # at converting back to Python structures. do it here
+        # so that the profiling of this can be isolated.
+        convertedContours = []
+        for contour in resultContours:
+            contour = [tuple(point) for point in contour]
+            convertedContours.append(contour)
+        resultContours = convertedContours
         # /XXX
         # convert to output contours
-        outputContours = [OutputContour(contour, scale=self._inverseScale) for contour in resultContours]
+        outputContours = [OutputContour(contour) for contour in resultContours]
         # re-curve entire contour
         for inputContour in inputContours:
             for outputContour in outputContours:
@@ -57,7 +57,7 @@ class BooleanOperationManager(object):
             outputContour.curveFit()
         # outout the results
         for outputContour in outputContours:
-            outputContour.draw(outPen)
+            outputContour.drawPoints(outPen)
 
     def union(self, contours, outPen):
         self._performOperation("union", contours, outPen)
