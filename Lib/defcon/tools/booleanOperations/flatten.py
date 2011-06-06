@@ -124,6 +124,7 @@ class InputSegment(object):
             points = []
         self.points = points
         pointsToFlatten = []
+        self.previousOnCurve = previousOnCurve
         if self.segmentType == "qcurve":
             XXX
             # this shoudl be easy.
@@ -548,7 +549,7 @@ class OutputPoint(InputPoint): pass
 def _getClockwise(points):
     """
     Very quickly get the direction for points.
-    This only woirks for contours that *do not*
+    This only works for contours that *do not*
     self-intersect. It works by finding the area
     of the polygon. positive is counter-clockwise,
     negative is clockwise.
