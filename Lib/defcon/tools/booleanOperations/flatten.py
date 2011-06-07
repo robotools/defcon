@@ -398,7 +398,7 @@ class OutputContour(object):
                             OutputPoint(
                                 coordinates=point.coordinates,
                                 segmentType=point.segmentType,
-                                smooth=point.name,
+                                smooth=point.smooth,
                                 name=point.name,
                                 kwargs=point.kwargs
                             )
@@ -470,7 +470,7 @@ class OutputContour(object):
                             OutputPoint(
                                 coordinates=point.coordinates,
                                 segmentType=point.segmentType,
-                                smooth=point.name,
+                                smooth=point.smooth,
                                 name=point.name,
                                 kwargs=point.kwargs
                             )
