@@ -9,6 +9,7 @@ General Suggestions:
   This can be checked easily using contour bounds.
 - Only perform operations on closed contours.
 - contours must have an on curve point
+- some kind of a log
 """
 
 
@@ -54,10 +55,13 @@ class BooleanOperationManager(object):
                 outputContour.reCurveFromInputContourSegments(inputContour)
         # curve fit
         for outputContour in outputContours:
-            outputContour.curveFit()
+            outputContour.curveFit(inputContours)
         # outout the results
         for outputContour in outputContours:
             outputContour.drawPoints(outPen)
+        # XXX return?
+        return outputContours
 
     def union(self, contours, outPen):
-        self._performOperation("union", contours, outPen)
+    	# XXX return?
+        return self._performOperation("union", contours, outPen)

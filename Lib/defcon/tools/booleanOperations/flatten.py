@@ -1,15 +1,12 @@
 import math
 from fontTools.pens.basePen import BasePen
+from fontTools.misc import bezierTools
 from robofab.pens.reverseContourPointPen import ReverseContourPointPen
 from robofab.pens.adapterPens import PointToSegmentPen
 
 """
 To Do:
 - the stuff listed below
-- curve fit
-- probably need to find line segments that were shortened
-  by the operation so that the curve fit doesn't try to turn
-  them into curves
 - need to know what kind of curves should be used for
   curve fit--curve or qcurve
 - false curves and duplicate points need to be filtered early on
@@ -38,6 +35,10 @@ optimization ideas:
   contours. and contours that don't have a hit could be
   skipped. this cound be done roughly with bounds.
   this should probably be done by extenal callers.
+- set a proper starting points of the output segments based on known points
+  known points are: 
+    input oncurve points
+    if nothing found intersection points (only use this is in the final curve fitting stage)
 
 test cases:
 - untouched contour: make clockwise and counter-clockwise tests
@@ -64,17 +65,26 @@ class InputContour(object):
         points = pointPen.getData()
         reversedPoints = _reversePoints(points)
         # gather segments
-        segments = _convertPointsToSegments(points)
-        reversedSegments = _convertPointsToSegments(reversedPoints)
+        self.segments = _convertPointsToSegments(points)
+        # only calculate once all the flat points.
+        # it seems to have some tiny difference and its a lot faster
+        # if the flat points are calculated from the reversed input points.
+        self.reversedSegments = _convertPointsToSegments(reversedPoints, willBeReversed=True)
+        # simple reverse the flat points and store them in the reversedSegments
+        index = 0
+        for segment in self.segments:
+            otherSegment = self.reversedSegments[index]
+            otherSegment.flat = segment.getReversedFlatPoints()
+            index -= 1
         # get the direction
         self.clockwise = contour.clockwise
         # store the gathered data
         if self.clockwise:
-            self.clockwiseSegments = segments
-            self.counterClockwiseSegments = reversedSegments
+            self.clockwiseSegments = self.segments
+            self.counterClockwiseSegments = self.reversedSegments
         else:
-            self.clockwiseSegments = reversedSegments
-            self.counterClockwiseSegments = segments
+            self.clockwiseSegments = self.reversedSegments
+            self.counterClockwiseSegments = self.segments
         # flag indicating if the contour has been used
         self.used = False
 
@@ -114,17 +124,36 @@ class InputContour(object):
 
     counterClockwiseFlat = property(_get_counterClockwiseFlat)
 
+    def hasOnCurve(self):
+        for inputSegment in self.segments:
+            if not inputSegment.used and inputSegment.segmentType != "line":
+                return True
+        return False
+
 
 class InputSegment(object):
 
-    __slots__ = ["points", "previousOnCurve", "flat", "used"]
+    #__slots__ = ["points", "previousOnCurve", "scaledPreviousOnCurve", "flat", "used"]
 
-    def __init__(self, points=None, previousOnCurve=None):
+    def __init__(self, points=None, previousOnCurve=None, willBeReversed=False):
         if points is None:
             points = []
         self.points = points
-        pointsToFlatten = []
         self.previousOnCurve = previousOnCurve
+        self.scaledPreviousOnCurve = _scaleSinglePoint(previousOnCurve, scale=clipperScale)
+        self.used = False
+        self.flat = []
+        # if the bcps are equal to the oncurves convert the segment to a line segment.
+        # otherwise this causes an error when flattening.
+        if self.segmentType == "curve":
+            if previousOnCurve == points[0].coordinates and points[1].coordinates == points[-1].coordinates:
+                oncurve = points[-1]
+                oncurve.segmentType = "line"
+                self.points = points = [oncurve]
+        # its a reversed segment the flat points will be set later on in the InputContour
+        if willBeReversed:
+            return
+        pointsToFlatten = []
         if self.segmentType == "qcurve":
             XXX
             # this shoudl be easy.
@@ -143,6 +172,45 @@ class InputSegment(object):
         return self.points[-1].segmentType
 
     segmentType = property(_get_segmentType)
+
+    def getReversedFlatPoints(self):
+        reversedFlatPoints = [self.scaledPreviousOnCurve] + self.flat[:-1]
+        reversedFlatPoints.reverse()
+        return reversedFlatPoints
+
+    def split(self, tValues):
+        """
+        Split the segment according the t values
+        """
+        if self.segmentType == "curve":
+            on1 = self.previousOnCurve
+            off1 = self.points[0].coordinates
+            off2 = self.points[1].coordinates
+            on2 = self.points[2].coordinates
+            return bezierTools.splitCubicAtT(on1, off1, off2, on2, *tValues)
+        elif self.segmentType == "qcurve":
+            raise NotImplementedError
+        else:
+            raise NotImplementedError
+
+    def tValueForPoint(self, point):
+        """
+        get a t values for a given point
+
+        required:
+            the point must be a point on the curve.
+            in an overlap cause the point will be an intersection points wich is alwasy a point on the curve
+        """
+        if self.segmentType == "curve":
+            on1 = self.previousOnCurve
+            off1 = self.points[0].coordinates
+            off2 = self.points[1].coordinates
+            on2 = self.points[2].coordinates
+            return _tValueForPointOnCurve(on1, off1, off2, on2, point)
+        elif self.segmentType == "qcurve":
+            raise NotImplementedError
+        else:
+            raise NotImplementedError
 
 
 class InputPoint(object):
@@ -276,7 +344,7 @@ def _reversePoints(points):
     # done
     return final
 
-def _convertPointsToSegments(points):
+def _convertPointsToSegments(points, willBeReversed=False):
     """
     Compile points into InputSegment objects.
     """
@@ -297,7 +365,8 @@ def _convertPointsToSegments(points):
         else:
             segment = InputSegment(
                 points=offCurves + [point],
-                previousOnCurve=previousOnCurve
+                previousOnCurve=previousOnCurve,
+                willBeReversed=willBeReversed
             )
             segments.append(segment)
             offCurves = []
@@ -492,10 +561,241 @@ class OutputContour(object):
         # ? match line start points (to prevent curve fit in shortened line)
         return False
 
-    def curveFit(self):
+    def curveFitCheckInputContoursOnHasCurve(self, inputContours):
+        # test is the remaining input contours contains only lineTo points
+        # XXX could be cached
+        for inputContour in inputContours:
+            if inputContour.used:
+                continue
+            if inputContour.hasOnCurve():
+                return True
+        return False
+
+    def curveFit(self, inputContours):
+        if not self.segments:
+            # its all done
+            return 
+        # the inputContours has some curved segments
+        # if not it all the segments will be converted at the end
+        if self.curveFitCheckInputContoursOnHasCurve(inputContours):
+            # collect all flat points in a dict of unused inputContours
+            # collect both clockwise segment and counterClockwise segments
+            # it happens a lot that the directions turns around
+            # the clockwise attribute can help but testing the directions is always needed
+            # collect all oncurve points as well
+            flatInputPointsSegmentDict = dict()
+            reversedFlatInputPointsSegmentDict = dict()
+            flatIntputOncurves = set()
+            for inputContour in inputContours:
+                if inputContour.used:
+                    continue
+                if self.clockwise:
+                    inputSegments = inputContour.clockwiseSegments
+                    reversedSegments = inputContour.counterClockwiseSegments
+                else:
+                    inputSegments = inputContour.counterClockwiseSegments
+                    reversedSegments = inputContour.clockwiseSegments
+                for inputSegment in inputSegments:
+                    if inputSegment.used:
+                        continue
+                    for p in inputSegment.flat:
+                        flatInputPointsSegmentDict[p] = inputSegment
+                    flatIntputOncurves.add(inputSegment.scaledPreviousOnCurve)
+                    
+                for inputSegment in reversedSegments:
+                    if inputSegment.used:
+                        continue
+                    for p in inputSegment.flat:
+                        reversedFlatInputPointsSegmentDict[p] = inputSegment
+                    flatIntputOncurves.add(inputSegment.scaledPreviousOnCurve)
+            flatInputPoints = set(flatInputPointsSegmentDict.keys())
+            # reset the starting point to a known point.
+            # not somewhere in the middle of a flatten point list
+            firstSegment = self.segments[0]
+            foundStartingPoint = True
+            if firstSegment.segmentType == "flat":
+                foundStartingPoint = False
+                for index, segment in enumerate(self.segments):
+                    if segment.segmentType in ["line", "curve", "qcurve"]:
+                        foundStartingPoint = True
+                        break
+                if foundStartingPoint:
+                    # if found re index the segments
+                    # if there is no known starting point found do it later based on the intersection points
+                    self.segments = self.segments[index:] + self.segments[:index]
+            # collect all flat points in a intersect segment
+            remainingSubSegment = OutputSegment(segmentType="intersect", points=[])
+            # store all segments in one big temp list
+            newSegments = []
+            for index, segment in enumerate(self.segments):
+                if segment.segmentType != "flat":
+                    # when the segment contains only one points its a line cause it is a single intersection point
+                    if len(remainingSubSegment.points) == 1:
+                        remainingSubSegment.segmentType = "line"
+                        remainingSubSegment.final = True
+                        remainingSubSegment.points = [
+                                          OutputPoint(
+                                              coordinates=self._scalePoint(point),
+                                              segmentType="line"
+                                              )
+                                          for point in remainingSubSegment.points
+                                          ]
+                    newSegments.append(remainingSubSegment)
+                    remainingSubSegment = OutputSegment(segmentType="intersect", points=[])
+                    newSegments.append(segment)
+                    continue
+                remainingSubSegment.points.extend(segment.points)
+            newSegments.append(remainingSubSegment)
+            # loop over all segments 
+            for segment in newSegments:
+                # handle only segments tagged as intersect
+                if segment.segmentType != "intersect":
+                    continue
+                # skip empty segments
+                if not segment.points:
+                    continue
+                # get al inputsegments, this is an unorderd list of all points no in the the flatInputPoints
+                intersectionPoints =  set(segment.points) - flatInputPoints
+                # merge both oncurves and intersectionPoints as known points
+                possibleStartingPoints = flatIntputOncurves | intersectionPoints
+                # if not starting point is found earlier do it here
+                if not foundStartingPoint:
+                    for index, p in enumerate(segment.points):
+                        if p in possibleStartingPoints:
+                            break
+                    segment.points = segment.points[index:] + segment.points[:index]
+                # split list based on oncurvepoints and intersection points
+                segmentedFlatPoints = [[]]
+                for p in segment.points:
+                    segmentedFlatPoints[-1].append(p)
+                    if p in possibleStartingPoints:
+                        segmentedFlatPoints.append([])
+                        continue
+                if not segmentedFlatPoints[-1]:
+                    segmentedFlatPoints.pop(-1)
+                convertedSegments = []
+                previousIntersectionPoint = None
+                if segmentedFlatPoints[-1][-1] in intersectionPoints:
+                    previousIntersectionPoint = self._scalePoint(segmentedFlatPoints[-1][-1])
+                for flatSegment in segmentedFlatPoints:
+                    # if there is only one point in a flat segment
+                    # this is a single intersection points (two crossing lineTo's)
+                    if len(flatSegment) == 1:
+                        p = flatSegment[0]
+                        previousIntersectionPoint = self._scalePoint(p)
+                        convertedSegments.append(OutputPoint(coordinates=previousIntersectionPoint, segmentType="line"))
+                        continue
+                    # search two points in the flat segment that is not an inputOncurve or intersection point
+                    # to get a proper direction of the flatSegment
+                    # based on these two points pick a inputSegment
+                    fp = ep = None
+                    for p in flatSegment:
+                        if p in possibleStartingPoints:
+                            continue
+                        elif fp is None:
+                            fp = p
+                        elif ep is None:
+                            ep = p
+                        else:
+                            break
+                    if fp is None and ep is None:
+                        # flat segment only contains two intersection points or one intersection point and one input oncurve point
+                        # this can be ignored cause this is a very small line
+                        # and will be converted to a simple line
+                        pass
+                    else:
+                        # get inputSegment based on the clockwise settings
+                        inputSegment = flatInputPointsSegmentDict[fp]
+                        if ep is not None:
+                            # if two points are found get indexes
+                            fi = inputSegment.flat.index(fp)
+                            ei = inputSegment.flat.index(ep)
+                            if fi > ei:
+                                # if the start index is bigger
+                                # get the reversed inputSegment
+                                inputSegment = reversedFlatInputPointsSegmentDict[fp]
+                        else:
+                            # if flat segment is short and has only one point not in intersections and input oncurves
+                            # test it against the reversed inputSegment
+                            reversedInputSegment = reversedFlatInputPointsSegmentDict[fp]
+                            if flatSegment[0] in intersectionPoints and flatSegment[-1] == reversedInputSegment.flat[-1]:
+                                inputSegment = reversedInputSegment
+                            elif flatSegment[-1] in intersectionPoints and flatSegment[0] == reversedInputSegment.flat[0]:
+                                inputSegment = reversedInputSegment
+                    tValues = None
+                    lastPointWithAttributes = None
+                    if flatSegment[0] == inputSegment.flat[0] and flatSegment[-1] != inputSegment.flat[-1]:
+                        if flatSegment[-1] in intersectionPoints:
+                            # needed the first part of the segment
+                            searchPoint = self._scalePoint(flatSegment[-1])
+                            tValues = inputSegment.tValueForPoint(searchPoint)
+                            curveNeeded = 0
+                            previousIntersectionPoint = searchPoint
+                        elif flatSegment[-1] == inputSegment.flat[-2]:
+                            # the next curve is already handled by reCurveFromInputContourSegments
+                            # so we are missing an end points 
+                            newCurve = [
+                                OutputPoint(
+                                    coordinates=point.coordinates,
+                                    segmentType=point.segmentType,
+                                    smooth=point.smooth,
+                                    name=point.name,
+                                    kwargs=point.kwargs
+                                ) 
+                                for point in inputSegment.points
+                            ]
+                            convertedSegments.extend(newCurve)
+                            previousIntersectionPoint = None
+                    elif flatSegment[-1] == inputSegment.flat[-1] and flatSegment[0] != inputSegment.flat[0]:
+                        # needed the end of the segment
+                        tValues = inputSegment.tValueForPoint(previousIntersectionPoint)
+                        curveNeeded = -1
+                        previousIntersectionPoint = None
+                        lastPointWithAttributes = inputSegment.points[-1]
+                    elif flatSegment[0] != inputSegment.flat[0] and flatSegment[-1] != inputSegment.flat[-1]:
+                        # needed the a middle part of the segment
+                        tValues = inputSegment.tValueForPoint(previousIntersectionPoint)
+                        searchPoint = self._scalePoint(flatSegment[-1])
+                        tValues.extend(inputSegment.tValueForPoint(searchPoint))
+                        curveNeeded = 1
+                        previousIntersectionPoint = searchPoint
+                    elif flatSegment[0] == inputSegment.flat[0] and flatSegment[-1] == inputSegment.flat[-1]:
+                        # take the whole segments as is
+                        newCurve = [
+                            OutputPoint(
+                                coordinates=point.coordinates,
+                                segmentType=point.segmentType,
+                                smooth=point.smooth,
+                                name=point.name,
+                                kwargs=point.kwargs
+                            )
+                            for point in inputSegment.points
+                        ]
+                        convertedSegments.extend(newCurve)
+                        previousIntersectionPoint = None
+                    else:
+                        # this should not happen :)
+                        raise NotImplementedError
+                    # if we found some tvalue, split the curve and get the requested parts of the splitted curves
+                    if tValues is not None:
+                        newCurve = inputSegment.split(tValues)
+                        newCurve = newCurve[curveNeeded]
+                        newCurve = [OutputPoint(coordinates=p, segmentType=None) for p in newCurve[1:]]
+                        newCurve[-1].segmentType = inputSegment.segmentType
+                        if lastPointWithAttributes is not None:
+                            newCurve[-1].smooth = lastPointWithAttributes.smooth
+                            newCurve[-1].name = lastPointWithAttributes.name
+                            newCurve[-1].kwargs = lastPointWithAttributes.kwargs
+                        convertedSegments.extend(newCurve)
+                # replace the the points with the converted segments
+                segment.points = convertedSegments
+                segment.segmentType = "reCurved"
+            self.segments = newSegments
         # XXX convert all of the remaining segments to lines
-        for index, segment in enumerate(self.segments):
-            if segment.segmentType != "flat":
+        for segment in self.segments:
+            if not segment.points:
+                continue
+            if segment.segmentType not in ["intersect", "flat"]:
                 continue
             segment.segmentType = "line"
             segment.points = [
@@ -560,14 +860,32 @@ def _getClockwise(points):
     area = sum([x0 * y1 - x1 * y0 for ((x0, y0), (x1, y1)) in segments])
     return area <= 0
 
-# ----------------
-# Curve Flattening
-# ----------------
+# ----------
+# Misc. Math
+# ----------
 
-"""
-The curve flattening code was forked and modified from RoboFab's FilterPen.
-That code was written by Erik van Blokland.
-"""
+def _tValueForPointOnCurve(pt1, pt2, pt3, pt4, point, isHorizontal = 0):
+    """
+    Finds a t value on a curve from a point.
+    The points must be originaly be a point on the curve.
+    This will only back trace the t value, needed to split the curve in parts
+    """
+    a, b, c, d = bezierTools.calcCubicParameters(pt1, pt2, pt3, pt4)
+    solutions = bezierTools.solveCubic(a[isHorizontal], b[isHorizontal], c[isHorizontal],
+        d[isHorizontal] - point[isHorizontal])
+    solutions = [t for t in solutions if 0 <= t < 1]
+    if not solutions and not isHorizontal:
+        # can happen that a horizontal line doens intersect, try the vertical
+        return _tValueForPointOnCurve(pt1, pt2, pt3, pt4, point, isHorizontal=1)
+    if len(solutions) > 1:
+        intersectionLenghts = {}
+        for t in solutions:
+            tp = _getCubicPoint(t, pt1, pt2, pt3, pt4)
+            dist = _distance(tp, point)
+            intersectionLenghts[dist] = t
+        minDist = min(intersectionLenghts.keys())
+        solutions = [intersectionLenghts[minDist]]
+    return solutions
 
 def _scalePoints(points, scale=1, convertToInteger=True):
     """
@@ -582,8 +900,23 @@ def _scalePoints(points, scale=1, convertToInteger=True):
         points = [(x * scale, y * scale) for (x, y) in points]
     return points
 
+def _scaleSinglePoint(point, scale=1, convertToInteger=True):
+    """
+    Scale a single point
+    """
+    x, y = point
+    if convertToInteger:
+        return int(round(x * scale)), int(round(y * scale))
+    else:
+        (x * scale, y * scale)
+
 def _intPoint(pt):
     return int(round(pt[0])), int(round(pt[1]))
+
+"""
+The curve flattening code was forked and modified from RoboFab's FilterPen.
+That code was written by Erik van Blokland.
+"""
 
 def _flattenSegment(segment, approximateSegmentLength=5):
     """
