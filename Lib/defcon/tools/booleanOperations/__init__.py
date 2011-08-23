@@ -24,7 +24,7 @@ class BooleanOperationManager(object):
             clipperContours.append(dict(coordinates=contour.originalFlat))
         clipper = PolyClipper.alloc().init()
         resultContours = clipper.execute_operation_withOptions_(clipperContours, operation, dict(subjectFillType="noneZero", clipFillType="noneZero"))
-        # the temporary Clipper wrapper if very, very slow
+        # the temporary Clipper wrapper is very, very slow
         # at converting back to Python structures. do it here
         # so that the profiling of this can be isolated.
         convertedContours = []
@@ -55,13 +55,13 @@ class BooleanOperationManager(object):
                 outputContour.reCurveFromInputContourSegments(inputContour)
         # curve fit
         for outputContour in outputContours:
-            outputContour.curveFit(inputContours)
-        # outout the results
+            outputContour.reCurveSubSegments(inputContours)
+        # output the results
         for outputContour in outputContours:
             outputContour.drawPoints(outPen)
         # XXX return?
         return outputContours
 
     def union(self, contours, outPen):
-    	# XXX return?
+        # XXX return?
         return self._performOperation("union", contours, outPen)

@@ -562,7 +562,7 @@ class OutputContour(object):
         # ? match line start points (to prevent curve fit in shortened line)
         return False
 
-    def curveFitCheckInputContoursOnHasCurve(self, inputContours):
+    def reCurveSubSegmentsCheckInputContoursOnHasCurve(self, inputContours):
         # test is the remaining input contours contains only lineTo points
         # XXX could be cached
         for inputContour in inputContours:
@@ -572,13 +572,13 @@ class OutputContour(object):
                 return True
         return False
 
-    def curveFit(self, inputContours):
+    def reCurveSubSegments(self, inputContours):
         if not self.segments:
             # its all done
             return
         # the inputContours has some curved segments
         # if not it all the segments will be converted at the end
-        if self.curveFitCheckInputContoursOnHasCurve(inputContours):
+        if self.reCurveSubSegmentsCheckInputContoursOnHasCurve(inputContours):
             # collect all flat points in a dict of unused inputContours
             # collect both clockwise segment and counterClockwise segments
             # it happens a lot that the directions turns around
