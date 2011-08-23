@@ -206,9 +206,10 @@ class InputSegment(object):
             off1 = self.points[0].coordinates
             off2 = self.points[1].coordinates
             on2 = self.points[2].coordinates
-            return _tValueForPointOnCurve(on1, off1, off2, on2, point)
+            return _tValueForPointOnCubicCurve(point, (on1, off1, off2, on2))
         elif self.segmentType == "qcurve":
-            raise NotImplementedError
+            pts = [self.previousOnCurve] + self.points
+            return _tValueForPointOnQuadCurve(point, pts)
         else:
             raise NotImplementedError
 
@@ -574,7 +575,7 @@ class OutputContour(object):
     def curveFit(self, inputContours):
         if not self.segments:
             # its all done
-            return 
+            return
         # the inputContours has some curved segments
         # if not it all the segments will be converted at the end
         if self.curveFitCheckInputContoursOnHasCurve(inputContours):
@@ -601,7 +602,6 @@ class OutputContour(object):
                     for p in inputSegment.flat:
                         flatInputPointsSegmentDict[p] = inputSegment
                     flatIntputOncurves.add(inputSegment.scaledPreviousOnCurve)
-                    
                 for inputSegment in reversedSegments:
                     if inputSegment.used:
                         continue
@@ -666,17 +666,32 @@ class OutputContour(object):
                     segment.points = segment.points[index:] + segment.points[:index]
                 # split list based on oncurvepoints and intersection points
                 segmentedFlatPoints = [[]]
-                for p in segment.points:
+                for index, p in enumerate(segment.points):
                     segmentedFlatPoints[-1].append(p)
                     if p in possibleStartingPoints:
                         segmentedFlatPoints.append([])
                         continue
                 if not segmentedFlatPoints[-1]:
                     segmentedFlatPoints.pop(-1)
+                if len(segmentedFlatPoints[0]) == 1:
+                    # possible starting point of last part of the curve
+                    # check of the both have the same inputsegment or reversedInputSegment
+                    fp = segmentedFlatPoints[0][0]
+                    lp = segmentedFlatPoints[-1][-1]
+                    if fp in flatInputPoints and lp in flatInputPoints:
+                        firstInputSegment = flatInputPointsSegmentDict[fp]
+                        lastInputSegment = flatInputPointsSegmentDict[lp]
+                        reversedFirstInputSegment = reversedFlatInputPointsSegmentDict[fp]
+                        reversedLastInputSegment = reversedFlatInputPointsSegmentDict[lp]
+                        if firstInputSegment == lastInputSegment or reversedFirstInputSegment == reversedLastInputSegment:
+                            segmentedFlatPoints[0] = segmentedFlatPoints[-1] + segmentedFlatPoints[0]
+                            segmentedFlatPoints.pop(-1)
                 convertedSegments = []
                 previousIntersectionPoint = None
                 if segmentedFlatPoints[-1][-1] in intersectionPoints:
                     previousIntersectionPoint = self._scalePoint(segmentedFlatPoints[-1][-1])
+                elif segmentedFlatPoints[0][0] in intersectionPoints:
+                    previousIntersectionPoint = self._scalePoint(segmentedFlatPoints[0][0])
                 for flatSegment in segmentedFlatPoints:
                     # if there is only one point in a flat segment
                     # this is a single intersection points (two crossing lineTo's)
@@ -864,7 +879,7 @@ def _getClockwise(points):
 # Misc. Math
 # ----------
 
-def _tValueForPointOnCurve(pt1, pt2, pt3, pt4, point, isHorizontal = 0):
+def _tValueForPointOnCubicCurve(point, (pt1, pt2, pt3, pt4), isHorizontal=0):
     """
     Finds a t value on a curve from a point.
     The points must be originaly be a point on the curve.
@@ -876,7 +891,7 @@ def _tValueForPointOnCurve(pt1, pt2, pt3, pt4, point, isHorizontal = 0):
     solutions = [t for t in solutions if 0 <= t < 1]
     if not solutions and not isHorizontal:
         # can happen that a horizontal line doens intersect, try the vertical
-        return _tValueForPointOnCurve(pt1, pt2, pt3, pt4, point, isHorizontal=1)
+        return _tValueForPointOnCubicCurve(point, (pt1, pt2, pt3, pt4), isHorizontal=1)
     if len(solutions) > 1:
         intersectionLenghts = {}
         for t in solutions:
@@ -886,6 +901,9 @@ def _tValueForPointOnCurve(pt1, pt2, pt3, pt4, point, isHorizontal = 0):
         minDist = min(intersectionLenghts.keys())
         solutions = [intersectionLenghts[minDist]]
     return solutions
+
+def _tValueForPointOnQuadCurve(point, pts, isHorizontal=0):
+    return None
 
 def _scalePoints(points, scale=1, convertToInteger=True):
     """
