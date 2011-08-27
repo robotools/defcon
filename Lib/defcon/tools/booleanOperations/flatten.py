@@ -1,6 +1,7 @@
 import math
 from fontTools.pens.basePen import BasePen
 from fontTools.misc import bezierTools
+from fontTools.pens.basePen import decomposeQuadraticSegment
 from robofab.pens.reverseContourPointPen import ReverseContourPointPen
 from robofab.pens.adapterPens import PointToSegmentPen
 
@@ -155,9 +156,23 @@ class InputSegment(object):
             return
         pointsToFlatten = []
         if self.segmentType == "qcurve":
-            XXX
-            # this shoudl be easy.
-            # copy the quad to cubic from fontTools.pens.basePen
+            assert len(points) >= 0
+            flat = []
+            currentOnCurve = previousOnCurve
+            pointCoordinates = [point.coordinates for point in points]
+            for pt1, pt2 in decomposeQuadraticSegment(pointCoordinates[1:]):
+                pt0x, pt0y = currentOnCurve
+                pt1x, pt1y = pt1
+                pt2x, pt2y = pt2
+                mid1x = pt0x + 0.66666666666666667 * (pt1x - pt0x)
+                mid1y = pt0y + 0.66666666666666667 * (pt1y - pt0y)
+                mid2x = pt2x + 0.66666666666666667 * (pt1x - pt2x)
+                mid2y = pt2y + 0.66666666666666667 * (pt1y - pt2y)
+                
+                convertedQuadPointToFlatten = [currentOnCurve, (mid1x, mid1y), (mid2x, mid2y), pt2]
+                flat.extend(_flattenSegment(convertedQuadPointToFlatten))
+                currentOnCurve = pt2
+            self.flat = flat
         elif self.segmentType == "curve":
             pointsToFlatten = [previousOnCurve] + [point.coordinates for point in points]
         else:
@@ -208,8 +223,7 @@ class InputSegment(object):
             on2 = self.points[2].coordinates
             return _tValueForPointOnCubicCurve(point, (on1, off1, off2, on2))
         elif self.segmentType == "qcurve":
-            pts = [self.previousOnCurve] + self.points
-            return _tValueForPointOnQuadCurve(point, pts)
+            raise NotImplementedError
         else:
             raise NotImplementedError
 
@@ -673,9 +687,9 @@ class OutputContour(object):
                         continue
                 if not segmentedFlatPoints[-1]:
                     segmentedFlatPoints.pop(-1)
-                if len(segmentedFlatPoints[0]) == 1:
-                    # possible starting point of last part of the curve
-                    # check of the both have the same inputsegment or reversedInputSegment
+                if len(segmentedFlatPoints) > 1 and len(segmentedFlatPoints[0]) == 1:
+                    ## possible starting point of last part of the curve
+                    ## check of the both have the same inputsegment or reversedInputSegment
                     fp = segmentedFlatPoints[0][0]
                     lp = segmentedFlatPoints[-1][-1]
                     if fp in flatInputPoints and lp in flatInputPoints:
@@ -683,9 +697,10 @@ class OutputContour(object):
                         lastInputSegment = flatInputPointsSegmentDict[lp]
                         reversedFirstInputSegment = reversedFlatInputPointsSegmentDict[fp]
                         reversedLastInputSegment = reversedFlatInputPointsSegmentDict[lp]
-                        if firstInputSegment == lastInputSegment or reversedFirstInputSegment == reversedLastInputSegment:
-                            segmentedFlatPoints[0] = segmentedFlatPoints[-1] + segmentedFlatPoints[0]
-                            segmentedFlatPoints.pop(-1)
+                        if firstInputSegment.segmentType == reversedFirstInputSegment.segmentType == "curve":
+                            if firstInputSegment == lastInputSegment or reversedFirstInputSegment == reversedLastInputSegment:
+                                segmentedFlatPoints[0] = segmentedFlatPoints[-1] + segmentedFlatPoints[0]
+                                segmentedFlatPoints.pop(-1)
                 convertedSegments = []
                 previousIntersectionPoint = None
                 if segmentedFlatPoints[-1][-1] in intersectionPoints:
@@ -733,48 +748,33 @@ class OutputContour(object):
                             # if flat segment is short and has only one point not in intersections and input oncurves
                             # test it against the reversed inputSegment
                             reversedInputSegment = reversedFlatInputPointsSegmentDict[fp]
-                            if flatSegment[0] in intersectionPoints and flatSegment[-1] == reversedInputSegment.flat[-1]:
+                            if flatSegment[0] == reversedInputSegment.flat[0] and flatSegment[-1] == reversedInputSegment.flat[-1]:
+                                inputSegment = reversedInputSegment
+                            elif flatSegment[0] in intersectionPoints and flatSegment[-1] == reversedInputSegment.flat[-1]:
                                 inputSegment = reversedInputSegment
                             elif flatSegment[-1] in intersectionPoints and flatSegment[0] == reversedInputSegment.flat[0]:
                                 inputSegment = reversedInputSegment
                     tValues = None
                     lastPointWithAttributes = None
-                    if flatSegment[0] == inputSegment.flat[0] and flatSegment[-1] != inputSegment.flat[-1]:
-                        if flatSegment[-1] in intersectionPoints:
-                            # needed the first part of the segment
-                            searchPoint = self._scalePoint(flatSegment[-1])
-                            tValues = inputSegment.tValueForPoint(searchPoint)
-                            curveNeeded = 0
-                            previousIntersectionPoint = searchPoint
-                        elif flatSegment[-1] == inputSegment.flat[-2]:
-                            # the next curve is already handled by reCurveFromInputContourSegments
-                            # so we are missing an end points 
-                            newCurve = [
-                                OutputPoint(
-                                    coordinates=point.coordinates,
-                                    segmentType=point.segmentType,
-                                    smooth=point.smooth,
-                                    name=point.name,
-                                    kwargs=point.kwargs
-                                ) 
-                                for point in inputSegment.points
-                            ]
-                            convertedSegments.extend(newCurve)
-                            previousIntersectionPoint = None
-                    elif flatSegment[-1] == inputSegment.flat[-1] and flatSegment[0] != inputSegment.flat[0]:
+                    if intersectionPoints and flatSegment[0] == inputSegment.flat[0] and flatSegment[-1] != inputSegment.flat[-1]:
+                        searchPoint = self._scalePoint(flatSegment[-1])
+                        tValues = inputSegment.tValueForPoint(searchPoint)
+                        curveNeeded = 0
+                        previousIntersectionPoint = searchPoint
+                    elif intersectionPoints and flatSegment[-1] == inputSegment.flat[-1] and flatSegment[0] != inputSegment.flat[0]:
                         # needed the end of the segment
                         tValues = inputSegment.tValueForPoint(previousIntersectionPoint)
                         curveNeeded = -1
                         previousIntersectionPoint = None
                         lastPointWithAttributes = inputSegment.points[-1]
-                    elif flatSegment[0] != inputSegment.flat[0] and flatSegment[-1] != inputSegment.flat[-1]:
+                    elif intersectionPoints and flatSegment[0] != inputSegment.flat[0] and flatSegment[-1] != inputSegment.flat[-1]:
                         # needed the a middle part of the segment
                         tValues = inputSegment.tValueForPoint(previousIntersectionPoint)
                         searchPoint = self._scalePoint(flatSegment[-1])
                         tValues.extend(inputSegment.tValueForPoint(searchPoint))
                         curveNeeded = 1
                         previousIntersectionPoint = searchPoint
-                    elif flatSegment[0] == inputSegment.flat[0] and flatSegment[-1] == inputSegment.flat[-1]:
+                    else:
                         # take the whole segments as is
                         newCurve = [
                             OutputPoint(
@@ -788,9 +788,6 @@ class OutputContour(object):
                         ]
                         convertedSegments.extend(newCurve)
                         previousIntersectionPoint = None
-                    else:
-                        # this should not happen :)
-                        raise NotImplementedError
                     # if we found some tvalue, split the curve and get the requested parts of the splitted curves
                     if tValues is not None:
                         newCurve = inputSegment.split(tValues)
@@ -903,7 +900,28 @@ def _tValueForPointOnCubicCurve(point, (pt1, pt2, pt3, pt4), isHorizontal=0):
     return solutions
 
 def _tValueForPointOnQuadCurve(point, pts, isHorizontal=0):
-    return None
+    quadSegments = decomposeQuadraticSegment(pts[1:])
+    previousOnCurve = pts[0]
+    solutionsDict = dict()
+    for index, (pt1, pt2) in enumerate(quadSegments):
+        a, b, c = bezierTools.calcQuadraticParameters(previousOnCurve, pt1, pt2)
+        subSolutions = bezierTools.solveQuadratic(a[isHorizontal], b[isHorizontal], c[isHorizontal] - point[isHorizontal])
+        subSolutions = [t for t in subSolutions if 0 <= t < 1]
+        for t in subSolutions:
+            solutionsDict[(t, index)] = _getQuadPoint(t, previousOnCurve, pt1, pt2)
+        previousOnCurve = pt2
+    solutions = solutionsDict.keys()
+    if not solutions and not isHorizontal:
+        return _tValueForPointOnQuadCurve(point, pts, isHorizontal=1)
+    if len(solutions) > 1:
+        intersectionLenghts = {}
+        for t in solutions:
+            tp = solutionsDict[t]
+            dist = _distance(tp, point)
+            intersectionLenghts[dist] = t
+        minDist = min(intersectionLenghts.keys())
+        solutions = [intersectionLenghts[minDist]]
+    return solutions
 
 def _scalePoints(points, scale=1, convertToInteger=True):
     """
@@ -1002,14 +1020,30 @@ def _getCubicPoint(t, pt0, pt1, pt2, pt3):
         e = _mid(b, c)
         return _mid(d, e)
     else:
-        cx = (pt1[0] - pt0[0]) * 3
-        cy = (pt1[1] - pt0[1]) * 3
-        bx = (pt2[0] - pt1[0]) * 3 - cx
-        by = (pt2[1] - pt1[1]) * 3 - cy
+        cx = (pt1[0] - pt0[0]) * 3.0
+        cy = (pt1[1] - pt0[1]) * 3.0
+        bx = (pt2[0] - pt1[0]) * 3.0 - cx
+        by = (pt2[1] - pt1[1]) * 3.0 - cy
         ax = pt3[0] - pt0[0] - cx - bx
         ay = pt3[1] - pt0[1] - cy - by
         t3 = t ** 3
         t2 = t * t
         x = ax * t3 + bx * t2 + cx * t + pt0[0]
         y = ay * t3 + by * t2 + cy * t + pt0[1]
+        return x, y
+
+def _getQuadPoint(t, pt0, pt1, pt2):
+    if t == 0:
+        return pt0
+    if t == 1:
+        return pt2
+    else:
+        cx = pt0[0]
+        cy = pt0[1]
+        bx = (pt1[0] - cx) * 2.0
+        by = (pt1[1] - cy) * 2.0
+        ax = pt2[0] - cx - bx
+        ay = pt2[1] - cy - by
+        x = ax * t**2 + bx * t + cx
+        y = ay * t**2 + by * t + cy
         return x, y
