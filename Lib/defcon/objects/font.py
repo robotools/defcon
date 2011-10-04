@@ -4,7 +4,8 @@ import weakref
 from fontTools.misc.arrayTools import unionRect
 import ufoLib
 from defcon.objects.base import BaseObject
-from defcon.objects.layer import LayerSet, Layer
+from defcon.objects.layerSet import LayerSet
+from defcon.objects.layer import Layer
 from defcon.objects.info import Info
 from defcon.objects.kerning import Kerning
 from defcon.objects.groups import Groups
