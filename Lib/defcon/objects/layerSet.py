@@ -50,7 +50,7 @@ class LayerSet(BaseObject):
         self.postNotification(notification="LayerSet.DefaultLayerChanged")
         self.dirty = True
 
-    defaultLayer = property(_get_defaultLayer, _set_defaultLayer, doc="The default :class:`Layer` object. Setting this will post a \"LayerSet.DefaultLayerChanged\" notification as well as the standard change notification.")
+    defaultLayer = property(_get_defaultLayer, _set_defaultLayer, doc="The default :class:`Layer` object. Setting this will post *LayerSet.DefaultLayerChanged* and *LayerSet.Changed* notifications.")
 
     def _get_layerOrder(self):
         return list(self._layerOrder)
@@ -64,7 +64,7 @@ class LayerSet(BaseObject):
         self.postNotification(notification="LayerSet.LayerOrderChanged")
         self.dirty = True
 
-    layerOrder = property(_get_layerOrder, _set_layerOrder, doc="The layer order from top to bottom. Setting this will post a \"LayerSet.LayerOrderChanged\" notification as well as the standard change notification.")
+    layerOrder = property(_get_layerOrder, _set_layerOrder, doc="The layer order from top to bottom. Setting this will post *LayerSet.LayerOrderChanged* and *LayerSet.Changed* notifications.")
 
     # -------------
     # Dict Behavior
@@ -159,6 +159,10 @@ class LayerSet(BaseObject):
         self._layerOrder.pop(index)
         self._layerOrder.insert(index, newName)
 
+
+# -----
+# Tests
+# -----
 
 def _testSetParentDataInLayer():
     """
