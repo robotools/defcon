@@ -207,6 +207,21 @@ class BaseObject(object):
         if dispatcher is not None:
             dispatcher.enableNotifications(observable=self, notification=notification, observer=observer)
 
+    def postNotification(self, notification, data=None):
+        """
+        Post a **notification** through this object's notification dispatcher.
+
+            * **notification** The name of the notification.
+            * **data** Arbitrary data that will be stored in the :class:`Notification` object.
+
+        This is a convenience method that does the same thing as::
+
+            dispatcher = anObject.dispatcher
+            dispatcher.postNotification(
+                notification=notification, observable=anObject, data=data)
+        """
+        self.dispatcher.postNotification(notification=notification, observable=self, data=data)
+
     # -----
     # Dirty
     # -----
