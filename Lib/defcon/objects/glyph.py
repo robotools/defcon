@@ -59,6 +59,7 @@ class Glyph(BaseObject):
         self._name = None
         self._unicodes = []
         self._width = 0
+        self._height = 0
         self._note = None
         self._dispatcher = None
 
@@ -254,6 +255,15 @@ class Glyph(BaseObject):
         self.dirty = True
 
     width = property(_get_width, _set_width, doc="The width of the glyph. Setting this posts a *Glyph.Changed* notification.")
+
+    def _get_height(self):
+        return self._width
+
+    def _set_height(self, value):
+        self._height = value
+        self.dirty = True
+
+    height = property(_get_height, _set_height, doc="The height of the glyph. Setting this posts a *Glyph.Changed* notification.")
 
     def _get_components(self):
         return list(self._components)
@@ -869,6 +879,28 @@ def _testWidth():
     >>> glyph = font['A']
     >>> glyph.width = 100
     >>> glyph.width
+    100
+    >>> glyph.dirty
+    True
+    """
+
+def _testHeight():
+    """
+    # get
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> from defcon.objects.font import Font
+    >>> font = Font(getTestFontPath())
+    >>> glyph = font['A']
+    >>> glyph.height
+    500
+
+    # set
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> from defcon.objects.font import Font
+    >>> font = Font(getTestFontPath())
+    >>> glyph = font['A']
+    >>> glyph.height = 100
+    >>> glyph.height
     100
     >>> glyph.dirty
     True
