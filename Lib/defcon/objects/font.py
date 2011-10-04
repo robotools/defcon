@@ -76,14 +76,6 @@ class Font(BaseObject):
 
         self._dispatcher = NotificationCenter()
 
-        self._layerClass = layerClass
-        self._glyphClass = glyphClass
-        self._glyphContourClass = glyphContourClass
-        self._glyphPointClass = glyphPointClass
-        self._glyphComponentClass = glyphComponentClass
-        self._glyphAnchorClass = glyphAnchorClass
-        self._unicodeDataClass = unicodeDataClass
-
         self._kerningClass = kerningClass
         self._infoClass = infoClass
         self._groupsClass = groupsClass
@@ -98,7 +90,13 @@ class Font(BaseObject):
         self._groups = None
         self._features = None
         self._lib = None
-        self._layers = layerSetClass()
+
+        self._layers = layerSetClass(
+            libClass=libClass, unicodeDataClass=unicodeDataClass,
+            layerClass=layerClass, glyphClass=glyphClass,
+            glyphContourClass=glyphContourClass, glyphPointClass=glyphPointClass,
+            glyphComponentClass=glyphComponentClass, glyphAnchorClass=glyphAnchorClass
+        )
         self._layers.dispatcher = self.dispatcher
         self._layers.setParent(self)
         self._layers.addObserver(self, "_objectDirtyStateChange", "LayerSet.Changed")
@@ -110,10 +108,11 @@ class Font(BaseObject):
             self._ufoFormatVersion = reader.formatVersion
             # go ahead and load the layers
             layerNames = reader.getLayerNames()
-            defaultLayerName = reader.getDefaultLayerName()
             for layerName in layerNames:
                 glyphSet = reader.getGlyphSet(layerName)
-                layer = self._newLayer(name, directory=directory, glyphSet=glyphSet)
+                layer = self._layers.newLayer(layerName, glyphSet=glyphSet)
+            defaultLayerName = reader.getDefaultLayerName()
+            self._layers.defaultLayer = self._layers[defaultLayerName]
             # if the UFO version is 1, do some conversion.
             if self._ufoFormatVersion == 1:
                 self._convertFromFormatVersion1RoboFabData()
@@ -127,9 +126,9 @@ class Font(BaseObject):
                 k = self.kerning
                 g = self.groups
 
-        if self._layers.getDefaultLayer() is None:
+        if self._layers.defaultLayer is None:
             layer = self.newLayer(None)
-            self._layers.setDefaultLayer(layer)
+            self._layers.defaultLayer = layer
 
     # ------
     # Glyphs

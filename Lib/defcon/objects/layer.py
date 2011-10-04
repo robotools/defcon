@@ -13,13 +13,15 @@ class LayerSet(BaseObject):
 
     changeNotificationName = "LayerSet.Changed"
 
-    def __init__(self, layerClass=None, glyphClass=None,
+    def __init__(self, layerClass=None, libClass=None, unicodeDataClass=None, glyphClass=None,
             glyphContourClass=None, glyphPointClass=None, glyphComponentClass=None, glyphAnchorClass=None):
         super(LayerSet, self).__init__()
         if layerClass is None:
             layerClass = Layer
 
         self._layerClass = layerClass
+        self._libClass = libClass
+        self._unicodeDataClass = unicodeDataClass
         self._glyphClass = glyphClass
         self._glyphContourClass = glyphContourClass
         self._glyphPointClass = glyphPointClass
@@ -38,11 +40,10 @@ class LayerSet(BaseObject):
 
     def _set_defaultLayer(self, layer):
         if layer is None:
-            raise DefconError("The default layer must not be None.")
+            raise ValueError("The default layer must not be None.")
         if layer == self._defaultLayer:
             return
         self._defaultLayer = layer
-        self.positions
         layer.dirty = True
 
     defaultLayer = property(_get_defaultLayer, _set_defaultLayer, doc="The default :class:`Layer` object.")
@@ -51,25 +52,27 @@ class LayerSet(BaseObject):
     # Layer Management
     # ----------------
 
-    def _instantiateLayerObject(self):
+    def _instantiateLayerObject(self, glyphSet):
         layer = self._layerClass(
+            libClass=self._libClass,
+            unicodeDataClass=self._unicodeDataClass,
             glyphClass=self._glyphClass,
-            contourClass=self._glyphContourClass,
-            pointClass=self._glyphPointClass,
-            componentClass=self._glyphComponentClass,
-            anchorClass=self._glyphAnchorClass,
-            libClass=self._libClass
+            glyphContourClass=self._glyphContourClass,
+            glyphPointClass=self._glyphPointClass,
+            glyphComponentClass=self._glyphComponentClass,
+            glyphAnchorClass=self._glyphAnchorClass,
         )
         return layer
 
-    def newLayer(self, name):
+    def newLayer(self, name, glyphSet=None):
         """
-        Create a new :class:`Layer` and add
-        it to the top of the layer order.
+        Create a new :class:`Layer` and add it to
+        the top of the layer order. **glyphSet** should
+        only be passed when reading from a UFO.
         """
         if name in self._layers:
             raise KeyError("A layer named \"%s\" already exists." % name)
-        layer = self._instantiateLayerObject()
+        layer = self._instantiateLayerObject(glyphSet)
         layer.setParent(self)
         self._layers[name] = layer
         self._layerOrder.insert(0, name)
@@ -160,7 +163,7 @@ class Layer(BaseObject):
 
     def __init__(self, glyphSet=None, libClass=None, unicodeDataClass=None, glyphClass=None,
                     glyphContourClass=None, glyphPointClass=None, glyphComponentClass=None, glyphAnchorClass=None):
-        super(layer, self).__init__()
+        super(Layer, self).__init__()
         if glyphClass is None:
             glyphClass = Glyph
         if libClass is None:
