@@ -72,6 +72,7 @@ class LayerSet(BaseObject):
 
     def _instantiateLayerObject(self, glyphSet):
         layer = self._layerClass(
+            glyphSet=glyphSet,
             libClass=self._libClass,
             unicodeDataClass=self._unicodeDataClass,
             glyphClass=self._glyphClass,
