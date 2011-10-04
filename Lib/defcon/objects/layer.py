@@ -88,8 +88,11 @@ class Layer(BaseObject):
     changeNotificationName = "Layer.Changed"
 
     def __init__(self, glyphSet=None, libClass=None, unicodeDataClass=None, glyphClass=None,
-                    glyphContourClass=None, glyphPointClass=None, glyphComponentClass=None, glyphAnchorClass=None):
+                glyphContourClass=None, glyphPointClass=None, glyphComponentClass=None, glyphAnchorClass=None):
         super(Layer, self).__init__()
+
+        self._name = None
+
         if glyphClass is None:
             glyphClass = Glyph
         if libClass is None:
@@ -244,14 +247,20 @@ class Layer(BaseObject):
     # Attributes
     # ----------
 
+    def _set_name(self, value):
+        oldName = self._name
+        if oldName != value:
+            self._name = value
+            data = dict(oldName=oldName, newName=value)
+            self.postNotification(notification="Layer.NameChanged", data=data)
+            self.dirty = True
+
     def _get_name(self):
         return self._name
 
-    def _set_name(self, name):
-        self._name = name
-        self.dirty = True
+    name = property(_get_name, _set_name, doc="The name of the layer. Setting this posts a *Layer.NameChanged* notification.")
 
-    name = property(_get_name, _set_name, doc="The layer's name.")
+
 
     def _get_directory(self):
         return self._directory

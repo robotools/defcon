@@ -114,6 +114,7 @@ class Font(BaseObject):
                 layer = self._layers.newLayer(layerName, glyphSet=glyphSet)
             defaultLayerName = reader.getDefaultLayerName()
             self._layers.defaultLayer = self._layers[defaultLayerName]
+            self._layers.dirty = False
             # if the UFO version is 1, do some conversion.
             if self._ufoFormatVersion == 1:
                 self._convertFromFormatVersion1RoboFabData()
