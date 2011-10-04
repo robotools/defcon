@@ -220,7 +220,9 @@ class BaseObject(object):
             dispatcher.postNotification(
                 notification=notification, observable=anObject, data=data)
         """
-        self.dispatcher.postNotification(notification=notification, observable=self, data=data)
+        dispatcher = self.dispatcher
+        if dispatcher is not None:
+            dispatcher.postNotification(notification=notification, observable=self, data=data)
 
     # -----
     # Dirty
