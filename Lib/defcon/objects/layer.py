@@ -33,7 +33,15 @@ class LayerSet(BaseObject):
         self._defaultLayer = None
 
         self._renamedLayers = {}
-        self._scheduledForDeletion = []
+        self._scheduledForDeletion = set()
+
+    def _get_defaultLayerName(self):
+        defaultLayer = self.defaultLayer
+        for name, layer in self._layers.items():
+            if layer == defaultLayer:
+                return name
+
+    _defaultLayerName = property(_get_defaultLayerName)
 
     def _get_defaultLayer(self):
         return self._defaultLayer
@@ -44,13 +52,28 @@ class LayerSet(BaseObject):
         if layer == self._defaultLayer:
             return
         self._defaultLayer = layer
-        layer.dirty = True
+        self.postNotification(notification="LayerSet.DefaultLayerChanged")
+        self.dirty = True
 
-    defaultLayer = property(_get_defaultLayer, _set_defaultLayer, doc="The default :class:`Layer` object.")
+    defaultLayer = property(_get_defaultLayer, _set_defaultLayer, doc="The default :class:`Layer` object. Setting this will post a \"LayerSet.DefaultLayerChanged\" notification as well as the standard change notification.")
 
-    # ----------------
-    # Layer Management
-    # ----------------
+    def _get_layerOrder(self):
+        return list(self._layerOrder)
+
+    def _set_layerOrder(self, order):
+        if self._layerOrder == order:
+            return
+        assert len(order) == len(self._layerOrder)
+        assert set(order) == set(self._layerOrder)
+        self._layerOrder = list(order)
+        self.postNotification(notification="LayerSet.LayerOrderChanged")
+        self.dirty = True
+
+    layerOrder = property(_get_layerOrder, _set_layerOrder, doc="The layer order from top to bottom. Setting this will post a \"LayerSet.LayerOrderChanged\" notification as well as the standard change notification.")
+
+    # -------------
+    # Dict Behavior
+    # -------------
 
     def _instantiateLayerObject(self, glyphSet):
         layer = self._layerClass(
@@ -78,6 +101,37 @@ class LayerSet(BaseObject):
         self._layerOrder.insert(0, name)
         self.dirty = True
         return layer
+
+    def __iter__(self):
+        names = self.layerOrder
+        while names:
+            name = names[0]
+            yield self[name]
+            names = names[1:]
+
+    def __getitem__(self, name):
+        if name is None:
+            name = self._defaultLayerName
+        return self._layers[name]
+
+    def __delitem__(self, name):
+        if name is None:
+            name = self._defaultLayerName
+        if name not in self:
+            raise KeyError("%s not in layers" % name)
+        del self._layers[name]
+        self._layerOrder.remove(name)
+        self._scheduledForDeletion.add(name)
+        self.postNotification("LayerSet.DeletedLayer", data=name)
+        self.dirty = True
+
+    def __len__(self):
+        return len(self.layerOrder)
+
+    def __contains__(self, name):
+        if name is None:
+            name = self._defaultLayerName
+        return name in self._layers
 
 
 
