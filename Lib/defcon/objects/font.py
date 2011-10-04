@@ -2,7 +2,7 @@ import os
 import re
 import weakref
 from fontTools.misc.arrayTools import unionRect
-from robofab import ufoLib
+import ufoLib
 from defcon.objects.base import BaseObject
 from defcon.objects.layer import LayerSet, Layer
 from defcon.objects.info import Info
@@ -61,10 +61,6 @@ class Font(BaseObject):
                     layerSetClass=None, layerClass=None,
                     glyphClass=None, glyphContourClass=None, glyphPointClass=None, glyphComponentClass=None, glyphAnchorClass=None):
         super(Font, self).__init__()
-        if layerSetClass is None:
-            layerSetClass = LayerSet
-        if layerClass is None:
-            layerClass = Layer
         if infoClass is None:
             infoClass = Info
         if kerningClass is None:
@@ -75,6 +71,8 @@ class Font(BaseObject):
             featuresClass = Features
         if libClass is None:
             libClass = Lib
+        if layerSetClass is None:
+            layerSetClass = LayerSet
 
         self._dispatcher = NotificationCenter()
 
@@ -84,6 +82,7 @@ class Font(BaseObject):
         self._glyphPointClass = glyphPointClass
         self._glyphComponentClass = glyphComponentClass
         self._glyphAnchorClass = glyphAnchorClass
+        self._unicodeDataClass = unicodeDataClass
 
         self._kerningClass = kerningClass
         self._infoClass = infoClass
@@ -100,6 +99,9 @@ class Font(BaseObject):
         self._features = None
         self._lib = None
         self._layers = layerSetClass()
+        self._layers.dispatcher = self.dispatcher
+        self._layers.setParent(self)
+        self._layers.addObserver(self, "_objectDirtyStateChange", "LayerSet.Changed")
 
         self._dirty = False
 
@@ -107,15 +109,24 @@ class Font(BaseObject):
             reader = ufoLib.UFOReader(self._path)
             self._ufoFormatVersion = reader.formatVersion
             # go ahead and load the layers
-            for name, directory in reader.getLayerContents():
-                glyphSet = reader.getGlyphSet(name)
+            layerNames = reader.getLayerNames()
+            defaultLayerName = reader.getDefaultLayerName()
+            for layerName in layerNames:
+                glyphSet = reader.getGlyphSet(layerName)
                 layer = self._newLayer(name, directory=directory, glyphSet=glyphSet)
-            # if the UFO version is 1, do some conversion..
+            # if the UFO version is 1, do some conversion.
             if self._ufoFormatVersion == 1:
                 self._convertFromFormatVersion1RoboFabData()
+            # if the ufo version is < 3, read the kerning and groups
+            # right now. do this by creating a reference to the reader.
+            # otherwsie a situation could arise where the groups
+            # are modified by an external source before being read.
+            # that could create a data corruption within this object.
+            if self._ufoFormatVersion < 3:
+                self._reader = reader
+                k = self.kerning
+                g = self.groups
 
-        # XXX this isn't right.
-        # need to figure out how to indicate that a layer is the main layer beyond the name.
         if self._layers.getDefaultLayer() is None:
             layer = self.newLayer(None)
             self._layers.setDefaultLayer(layer)
@@ -123,6 +134,11 @@ class Font(BaseObject):
     # ------
     # Glyphs
     # ------
+
+    def _get_glyphSet(self):
+        return self._layers.getDefaultLayer()
+
+    _glyphSet = property(_get_glyphSet, doc="Convenience for getting the main layer.")
 
     def newGlyph(self, name):
         """
@@ -169,32 +185,7 @@ class Font(BaseObject):
     # ------
 
     def newLayer(self, name):
-        return self._newLayer(name)
-
-    def _newLayer(self, name, directory=None, glyphSet=None):
-        layer = self._instantiateLayer(name, glyphSet)
-        layer._directory = directory
-        self._setParentDataInLayer(layer)
-        self._layers.append(layer)
-        return layer
-
-    def _instantiateLayerObject(self, name, glyphSet):
-        layer = self._layerClass(
-            glyphSet=glyphSet,
-            libClass=self._libClass,
-            unicodeDataClass=self._unicodeDataClass,
-            glyphClass=self._glyphClass,
-            glyphContourClass=self._glyphContourClass,
-            glyphPointClass=self._glyphPointClass,
-            glyphComponentClass=self._glyphComponentClass,
-            glyphAnchorClass=self._glyphAnchorClass
-        )
-        return layer
-
-    def _instantiateLayerObject(self, glyph):
-        layer.setParent(self)
-        layer.dispatcher = self.dispatcher
-        layer.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Layer.Changed")
+        return self._layers.newLayer(name)
 
     # ----------
     # Attributes
@@ -223,11 +214,6 @@ class Font(BaseObject):
 
     ufoFormatVersion = property(_get_ufoFormatVersion, doc="The UFO format version that will be used when saving. This is taken from a loaded UFO during __init__. If this font was not loaded from a UFO, this will return None until the font has been saved.")
 
-    def _get_glyphSet(self):
-        return self._layers.getDefaultLayer()
-
-    _glyphSet = property(_get_glyphSet, doc="Convenience for getting the main layer.")
-
     def _get_glyphsWithOutlines(self):
         return self._glyphSet.glyphsWithOutlines
 
@@ -255,7 +241,7 @@ class Font(BaseObject):
     def _get_layers(self):
         return self._layers
 
-    info = property(_get_info, doc="The font's :class:`LayerSet` object.")
+    layers = property(_get_layers, doc="The font's :class:`LayerSet` object.")
 
     def _get_info(self):
         if self._info is None:
@@ -278,7 +264,12 @@ class Font(BaseObject):
             self._kerning.dispatcher = self.dispatcher
             self._kerning.setParent(self)
             if self._path is not None:
-                reader = ufoLib.UFOReader(self._path)
+                # the _reader attribute may be present during __init__
+                # but only under certain conditions.
+                if hasattr(self, "_reader"):
+                    reader = self._reader
+                else:
+                    reader = ufoLib.UFOReader(self._path)
                 d = reader.readKerning()
                 self._kerning.update(d)
                 self._kerning.dirty = False
@@ -294,7 +285,12 @@ class Font(BaseObject):
             self._groups.dispatcher = self.dispatcher
             self._groups.setParent(self)
             if self._path is not None:
-                reader = ufoLib.UFOReader(self._path)
+                # the _reader attribute may be present during __init__
+                # but only under certain conditions.
+                if hasattr(self, "_reader"):
+                    reader = self._reader
+                else:
+                    reader = ufoLib.UFOReader(self._path)
                 d = reader.readGroups()
                 self._groups.update(d)
                 self._groups.dirty = False

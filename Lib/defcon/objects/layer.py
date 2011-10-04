@@ -9,28 +9,73 @@ from defcon.objects.uniData import UnicodeData
 from defcon.tools.notifications import NotificationCenter
 
 
-class LayerSet(object):
+class LayerSet(BaseObject):
 
-    def __init__(self):
-        self._layers = []
+    changeNotificationName = "LayerSet.Changed"
 
-    def getDefaultLayer(self):
-        pass
+    def __init__(self, layerClass=None, glyphClass=None,
+            glyphContourClass=None, glyphPointClass=None, glyphComponentClass=None, glyphAnchorClass=None):
+        super(LayerSet, self).__init__()
+        if layerClass is None:
+            layerClass = Layer
 
-    def setDefaultLayer(self, layer):
-        pass
+        self._layerClass = layerClass
+        self._glyphClass = glyphClass
+        self._glyphContourClass = glyphContourClass
+        self._glyphPointClass = glyphPointClass
+        self._glyphComponentClass = glyphComponentClass
+        self._glyphAnchorClass = glyphAnchorClass
 
-    # ------------
-    # List-ish API
-    # ------------
+        self._layers = {}
+        self._layerOrder = []
+        self._defaultLayer = None
 
-    def __contains__(self, name):
-        # as of right now, this won't work because
-        # layer names don't have to be unique.
-        for layer in self._layers:
-            if layer.name == name:
-                return True
-        return False
+        self._renamedLayers = {}
+        self._scheduledForDeletion = []
+
+    def _get_defaultLayer(self):
+        return self._defaultLayer
+
+    def _set_defaultLayer(self, layer):
+        if layer is None:
+            raise DefconError("The default layer must not be None.")
+        if layer == self._defaultLayer:
+            return
+        self._defaultLayer = layer
+        self.positions
+        layer.dirty = True
+
+    defaultLayer = property(_get_defaultLayer, _set_defaultLayer, doc="The default :class:`Layer` object.")
+
+    # ----------------
+    # Layer Management
+    # ----------------
+
+    def _instantiateLayerObject(self):
+        layer = self._layerClass(
+            glyphClass=self._glyphClass,
+            contourClass=self._glyphContourClass,
+            pointClass=self._glyphPointClass,
+            componentClass=self._glyphComponentClass,
+            anchorClass=self._glyphAnchorClass,
+            libClass=self._libClass
+        )
+        return layer
+
+    def newLayer(self, name):
+        """
+        Create a new :class:`Layer` and add
+        it to the top of the layer order.
+        """
+        if name in self._layers:
+            raise KeyError("A layer named \"%s\" already exists." % name)
+        layer = self._instantiateLayerObject()
+        layer.setParent(self)
+        self._layers[name] = layer
+        self._layerOrder.insert(0, name)
+        self.dirty = True
+        return layer
+
 
 
 # regular expressions used by various search methods
@@ -115,7 +160,7 @@ class Layer(BaseObject):
 
     def __init__(self, glyphSet=None, libClass=None, unicodeDataClass=None, glyphClass=None,
                     glyphContourClass=None, glyphPointClass=None, glyphComponentClass=None, glyphAnchorClass=None):
-        super(Font, self).__init__()
+        super(layer, self).__init__()
         if glyphClass is None:
             glyphClass = Glyph
         if libClass is None:
@@ -123,29 +168,29 @@ class Layer(BaseObject):
         if unicodeDataClass is None:
             unicodeDataClass = UnicodeData
 
-    self._glyphClass = glyphClass
-    self._glyphContourClass = glyphContourClass
-    self._glyphPointClass = glyphPointClass
-    self._glyphComponentClass = glyphComponentClass
-    self._glyphAnchorClass = glyphAnchorClass
-    self._libClass = libClass
+        self._glyphClass = glyphClass
+        self._glyphContourClass = glyphContourClass
+        self._glyphPointClass = glyphPointClass
+        self._glyphComponentClass = glyphComponentClass
+        self._glyphAnchorClass = glyphAnchorClass
+        self._libClass = libClass
 
-    self._dispatcher = None
-    self._lib = None
-    self._unicodeData = unicodeDataClass()
+        self._dispatcher = None
+        self._lib = None
+        self._unicodeData = unicodeDataClass()
 
-    self._directory = None
+        self._directory = None
 
-    self._glyphs = {}
-    self._glyphSet = glyphSet
-    self._scheduledForDeletion = []
-    self._keys = set()
+        self._glyphs = {}
+        self._glyphSet = glyphSet
+        self._scheduledForDeletion = []
+        self._keys = set()
 
-    self._dirty = False
+        self._dirty = False
 
-    if glyphSet is not None:
-        self._keys = set(self._glyphSet.keys())
-        self._unicodeData.update(reader.getCharacterMapping())
+        if glyphSet is not None:
+            self._keys = set(self._glyphSet.keys())
+            self._unicodeData.update(reader.getCharacterMapping())
 
     # -------------
     # Dict Behavior
