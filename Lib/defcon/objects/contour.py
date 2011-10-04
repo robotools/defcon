@@ -288,7 +288,10 @@ class Contour(BaseObject):
             firstPointIndex = self._points.index(firstPoint)
             lastPointIndex = self._points.index(lastPoint)
             firstPoints = self._points[:firstPointIndex + 1]
-            if lastPointIndex == 0:
+            if firstPointIndex == len(self._points) - 1:
+                firstPoints = firstPoints[lastPointIndex:]
+                lastPoints = []
+            elif lastPointIndex == 0:
                 lastPoints = []
             else:
                 lastPoints = self._points[lastPointIndex:]
