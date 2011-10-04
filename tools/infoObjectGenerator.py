@@ -1,26 +1,27 @@
 import os
 import urllib2
-from robofab import ufoLib
+import ufoLib
 
 # Extract documentation strings from the UFO specification site
 
 import urllib2
 
-url = "http://unifiedfontobject.org/filestructure/fontinfo.html"
+url = "http://unifiedfontobject.org/versions/ufo3/fontinfo.html"
 docsite = urllib2.urlopen(url)
 text = docsite.read()
 
 usableLines = None
 for line in text.splitlines():
-    if line.strip() == "<h2>Converting Version 1 to Version 2</h2>":
+    line = line.strip()
+    if line == "<h2>Converting Version 1 to Version 2</h2>":
         break
-    if line.strip() == "<h2>Version 2 (Draft)</h2>":
+    if line == "<h2>Specification</h2>":
         usableLines = []
     if usableLines is None:
         continue
     usableLines.append(line)
 
-attributeDocumentation = dict.fromkeys(ufoLib.fontInfoAttributesVersion2)
+attributeDocumentation = dict.fromkeys(ufoLib.fontInfoAttributesVersion3)
 
 unencodes = {
     "&#8217;" : "'",
@@ -57,6 +58,7 @@ for line in usableLines:
             line = line.replace('"', '\\"')
             currentAttr.append(line)
 
+assert set(attributeDocumentation.keys()) == ufoLib.fontInfoAttributesVersion3
 assert None not in attributeDocumentation.values()
 
 # print the code
@@ -66,7 +68,7 @@ print "# this file should not be edited by hand."
 print
 
 print "from warnings import warn"
-print "from robofab import ufoLib"
+print "import ufoLib"
 print "from defcon.objects.base import BaseObject"
 print
 print
@@ -91,13 +93,17 @@ doc = """
 """
 print doc
 
-print "    _notificationName = \"Info.Changed\""
+print "    changeNotificationName = \"Info.Changed\""
+print "    beginUndoNotificationName = \"Info.BeginUndo\""
+print "    endUndoNotificationName = \"Info.EndUndo\""
+print "    beginRedoNotificationName = \"Info.BeginRedo\""
+print "    endRedoNotificationName = \"Info.EndRedo\""
 print
 
 print "    def __init__(self):"
 print "        super(Info, self).__init__()"
 
-for attr in sorted(ufoLib.fontInfoAttributesVersion2):
+for attr in sorted(ufoLib.fontInfoAttributesVersion3):
     print "        self._%s = None" % attr
 print
 
@@ -107,12 +113,16 @@ print "    # ----------"
 print
 
 defaults = dict(
+    guidelines=[],
+    openTypeGaspRangeRecords=[],
+    openTypeNameRecords=[],
     postscriptBlueValues=[],
     postscriptOtherBlues=[],
     postscriptFamilyBlues=[],
     postscriptFamilyOtherBlues=[],
     postscriptStemSnapH=[],
     postscriptStemSnapV=[],
+    woffMetadataExtensions=[]
 )
 
 for attr in sorted(ufoLib.fontInfoAttributesVersion2):
@@ -128,7 +138,7 @@ for attr in sorted(ufoLib.fontInfoAttributesVersion2):
     print "        if value is None:"
     print "            self._%s = None" % attr
     print "        else:"
-    print "            valid = ufoLib.validateFontInfoVersion2ValueForAttribute(\"%s\", value)" % attr
+    print "            valid = ufoLib.validateFontInfoVersion3ValueForAttribute(\"%s\", value)" % attr
     print "            if not valid:"
     print ("                raise ValueError(\"Invalid value (___) for attribute %s.\" %% repr(value))" % (attr)).replace("___", "%s")
     print "            else:"
@@ -137,23 +147,3 @@ for attr in sorted(ufoLib.fontInfoAttributesVersion2):
     print
     print "    %s = property(_get_%s, _set_%s, doc=\"%s\")" % (attr, attr, attr, attributeDocumentation[attr])
     print
-
-print "    # ---------------------"
-print "    # Deprecated Attributes"
-print "    # ---------------------"
-print
-
-for attr in sorted(ufoLib.deprecatedFontInfoAttributesVersion2):
-    print "    def _get_%s(self):" % attr
-    print "        newAttr, n = ufoLib.convertFontInfoValueForAttributeFromVersion1ToVersion2(\"%s\", None)" % attr
-    print "        warn(\"The attribute %s has been deprecated.\")" % attr
-    print "        return getattr(self, newAttr)"
-    print
-    print "    def _set_%s(self, value):" % attr
-    print "        newAttr, newValue = ufoLib.convertFontInfoValueForAttributeFromVersion1ToVersion2(\"%s\", value)" % attr
-    print "        warn(\"The attribute %s has been deprecated.\")" % attr
-    print "        setattr(self, newAttr, newValue)"
-    print
-    print "    %s = property(_get_%s, _set_%s)" % (attr, attr, attr)
-    print
-
