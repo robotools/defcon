@@ -741,7 +741,7 @@ class Font(BaseObject):
                 glyph.dirty = False
                 self._stampGlyphDataState(glyph)
         data = dict(glyphNames=glyphNames)
-        self.dispatcher.postNotification(notification="Font.ReloadedGlyphs", observable=self, data=data)
+        self.postNotification(notification="Font.ReloadedGlyphs", data=data)
         # post a change notification for any glyphs that
         # reference the reloaded glyphs via components.
         componentReferences = self.componentReferences
@@ -758,7 +758,7 @@ class Font(BaseObject):
                     continue
                 glyph = self._glyphs[reference]
                 glyph.destroyAllRepresentations(None)
-                glyph.dispatcher.postNotification(notification=glyph.changeNotificationName, observable=glyph)
+                glyph.postNotification(notification=glyph.changeNotificationName)
                 referenceChanges.add(reference)
 
     # -----------------------------

@@ -71,8 +71,7 @@ class UnicodeData(BaseDictObject):
             fourcedValue = self._glyphNameToForcedUnicode[glyphName]
             del self._glyphNameToForcedUnicode[glyphName]
             del self._forcedUnicodeToGlyphName[fourcedValue]
-        if self.dispatcher is not None:
-            self.dispatcher.postNotification(notification=self.changeNotificationName, observable=self)
+        self.postNotification(notification=self.changeNotificationName)
 
     def addGlyphData(self, glyphName, values):
         """
@@ -89,8 +88,7 @@ class UnicodeData(BaseDictObject):
             if glyphName not in glyphList:
                 glyphList.append(glyphName)
             self._dict[value] = glyphList
-        if self.dispatcher is not None:
-            self.dispatcher.postNotification(notification=self.changeNotificationName, observable=self)
+        self.postNotification(notification=self.changeNotificationName)
 
     def __delitem__(self, value):
         glyphList = self._dict.get(value)
@@ -103,8 +101,7 @@ class UnicodeData(BaseDictObject):
                 del self._forcedUnicodeToGlyphName[forcedValue]
                 del self._glyphNameToForcedUnicode[glyphName]
         del self._dict[value]
-        if self.dispatcher is not None:
-            self.dispatcher.postNotification(notification=self.changeNotificationName, observable=self)
+        self.postNotification(notification=self.changeNotificationName)
 
     def __setitem__(self, value, glyphList):
         if value not in self._dict:
@@ -116,8 +113,7 @@ class UnicodeData(BaseDictObject):
                 forcedValue = self._glyphNameToForcedUnicode[glyphName]
                 del self._forcedUnicodeToGlyphName[forcedValue]
                 del self._glyphNameToForcedUnicode[glyphName]
-        if self.dispatcher is not None:
-            self.dispatcher.postNotification(notification=self.changeNotificationName, observable=self)
+        self.postNotification(notification=self.changeNotificationName)
 
     def clear(self):
         """
@@ -142,8 +138,7 @@ class UnicodeData(BaseDictObject):
                     del self._forcedUnicodeToGlyphName[forcedValue]
                     del self._glyphNameToForcedUnicode[glyphName]
             self._dict[value] = list(glyphList)
-        if self.dispatcher is not None:
-            self.dispatcher.postNotification(notification=self.changeNotificationName, observable=self)
+        self.postNotification(notification=self.changeNotificationName)
 
     # -------
     # Loaders

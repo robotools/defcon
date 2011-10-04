@@ -60,9 +60,7 @@ class Component(BaseObject):
         oldValue = self._baseGlyph
         self._baseGlyph = value
         self.dirty = True
-        dispatcher = self.dispatcher
-        if dispatcher is not None:
-            dispatcher.postNotification(notification="Component.BaseGlyphChanged", observable=self, data=(oldValue, value))
+        self.postNotification(notification="Component.BaseGlyphChanged", data=(oldValue, value))
 
     def _get_baseGlyph(self):
         return self._baseGlyph
