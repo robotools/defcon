@@ -2,11 +2,13 @@ from robofab.pens.pointPen import AbstractPointPen
 
 class GlyphObjectPointPen(AbstractPointPen):
     
-    def __init__(self, glyph):
+    def __init__(self, glyph, identifiers=None):
         self._glyph = glyph
         self._contour = None
+        self.identifiers = identifiers
 
-    def beginPath(self):
+    def beginPath(self, identifier=None, **kwargs):
+        assert identifier not in self.identifiers
         self._contour = self._glyph.contourClass(pointClass=self._glyph.pointClass)
 
     def endPath(self):
@@ -22,10 +24,12 @@ class GlyphObjectPointPen(AbstractPointPen):
             self._glyph.appendContour(self._contour)
         self._contour = None
 
-    def addPoint(self, pt, segmentType=None, smooth=False, name=None, **kwargs):
+    def addPoint(self, pt, segmentType=None, smooth=False, name=None, identifier=None, **kwargs):
+        assert identifier not in self.identifiers
         self._contour.addPoint(pt, segmentType, smooth, name)
 
-    def addComponent(self, baseGlyphName, transformation):
+    def addComponent(self, baseGlyphName, transformation, identifier=None, **kwargs):
+        assert identifier not in self.identifiers
         component = self._glyph.componentClass()
         component.baseGlyph = baseGlyphName
         component.transformation = transformation
