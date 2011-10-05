@@ -63,6 +63,8 @@ class Glyph(BaseObject):
         self._note = None
         self._dispatcher = None
 
+        self._identifiers = set()
+
         self._contours = []
         self._components = []
         self._anchors = []
@@ -327,7 +329,7 @@ class Glyph(BaseObject):
         Get the point pen used to draw into this glyph.
         """
         from defcon.pens.glyphObjectPointPen import GlyphObjectPointPen
-        return GlyphObjectPointPen(self)
+        return GlyphObjectPointPen(self, self._identifiers)
 
     # -------
     # Methods

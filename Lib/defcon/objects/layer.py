@@ -122,7 +122,14 @@ class Layer(BaseObject):
 
         if glyphSet is not None:
             self._keys = set(self._glyphSet.keys())
-            self._unicodeData.update(reader.getCharacterMapping())
+            cmap = {}
+            for glyphName, unicodes in glyphSet.getUnicodes().items():
+                for code in unicodes:
+                    if code in cmap:
+                        cmap[code].append(glyphName)
+                    else:
+                        cmap[code] = [glyphName]
+            self._unicodeData.update(cmap)
 
     # -------------
     # Dict Behavior
@@ -258,40 +265,16 @@ class Layer(BaseObject):
     def _get_name(self):
         return self._name
 
-    name = property(_get_name, _set_name, doc="The name of the layer. Setting this posts a *Layer.NameChanged* notification.")
+    name = property(_get_name, _set_name, doc="The name of the layer. Setting this posts *Layer.NameChanged* and *Layer.Changed* notifications.")
 
+    def _get_color(self):
+        return self._color
 
-
-    def _get_directory(self):
-        return self._directory
-
-    directory = property(_get_directory, doc="The layer's directory name from the UFO at the last read or write operation.")
-
-    def _get_fillColor(self):
-        return self._fillColor
-
-    def _set_fillColor(self, fillColor):
-        self._fillColor = fillColor
+    def _set_color(self, color):
+        self._color = color
         self.dirty = True
 
-    fillColor = property(_get_fillColor, _set_fillColor, doc="The layer's fill color.")
-
-    def _get_strokeColor(self):
-        return self._strokeColor
-
-    def _set_strokeColor(self, strokeColor):
-        self._strokeColor = strokeColor
-        self.dirty = True
-
-    strokeColor = property(_get_strokeColor, _set_strokeColor, doc="The layer's strokeColor.")
-    def _get_strokeWidth(self):
-        return self._strokeWidth
-
-    def _set_strokeWidth(self, strokeWidth):
-        self._strokeWidth = strokeWidth
-        self.dirty = True
-
-    strokeWidth = property(_get_strokeWidth, _set_strokeWidth, doc="The layer's stroke width.")
+    color = property(_get_color, _set_color, doc="The layer's color.")
 
     def _get_glyphsWithOutlines(self):
         found = []
@@ -302,26 +285,24 @@ class Layer(BaseObject):
             if len(glyph):
                 found.append(glyphName)
         # scan glyphs that have not been loaded
-        glyphsPath = os.path.join(self.path, "glyphs")
-        for glyphName, fileName in self._glyphSet.contents.items():
-            if glyphName in self._glyphs or glyphName in self._scheduledForDeletion:
-                continue
-            glyphPath = os.path.join(glyphsPath, fileName)
-            f = open(glyphPath, "rb")
-            data = f.read()
-            f.close()
-            containsPoints = False
-            # use an re to extract all points
-            points = outlineSearchPointRE.findall(data)
-            # skip all moves, as individual moves
-            # are anchors and therefore not part
-            # of an outline.
-            for point in points:
-                if 'type="move"' not in point:
-                    containsPoints = True
-                    break
-            if containsPoints:
-                found.append(glyphName)
+        if self._glyphSet is not None:
+            for glyphName, fileName in self._glyphSet.contents.items():
+                if glyphName in self._glyphs or glyphName in self._scheduledForDeletion:
+                    continue
+                # get the raw GLIF
+                data = self._glyphSet.getGLIF(glyphName)
+                containsPoints = False
+                # use an re to extract all points
+                points = outlineSearchPointRE.findall(data)
+                # skip all moves, as individual moves
+                # are anchors and therefore not part
+                # of an outline.
+                for point in points:
+                    if 'type="move"' not in point:
+                        containsPoints = True
+                        break
+                if containsPoints:
+                    found.append(glyphName)
         return found
 
     glyphsWithOutlines = property(_get_glyphsWithOutlines, doc="A list of glyphs containing outlines.")
@@ -340,15 +321,11 @@ class Layer(BaseObject):
                     found[baseGlyph] = set()
                 found[baseGlyph].add(glyphName)
         # scan glyphs that have not been loaded
-        if self.path is not None:
-            glyphsPath = os.path.join(self.path, "glyphs")
+        if self._glyphSet is not None:
             for glyphName, fileName in self._glyphSet.contents.items():
                 if glyphName in self._glyphs or glyphName in self._scheduledForDeletion:
                     continue
-                glyphPath = os.path.join(glyphsPath, fileName)
-                f = open(glyphPath, "rb")
-                data = f.read()
-                f.close()
+                data = self._glyphSet.getGLIF(glyphName)
                 baseGlyphs = componentSearchRE.findall(data)
                 for baseGlyph in baseGlyphs:
                     if baseGlyph not in found:
@@ -385,16 +362,12 @@ class Layer(BaseObject):
             if glyphRect:
                 glyphRects[glyphName] = glyphRect
         # scan glyphs that have not been loaded
-        if self.path is not None:
-            glyphsPath = os.path.join(self.path, "glyphs")
+        if self._glyphSet is not None:
             for glyphName, fileName in self._glyphSet.contents.items():
                 if glyphName in self._glyphs or glyphName in self._scheduledForDeletion:
                     continue
                 # get the GLIF text
-                glyphPath = os.path.join(glyphsPath, fileName)
-                f = open(glyphPath, "rb")
-                data = f.read()
-                f.close()
+                data = self._glyphSet.getGLIF(glyphName)
                 # get the point bounding box
                 xMin = None
                 xMax = None
@@ -523,6 +496,31 @@ class Layer(BaseObject):
 
     unicodeData = property(_get_unicodeData, doc="The layer's :class:`UnicodeData` object.")
 
+    # ---------------------
+    # External Edit Support
+    # ---------------------
+
+    # data stamping
+
+    def _stampGlyphDataState(self, glyph):
+        pass
+        #if self._glyphSet is None:
+        #    return
+        #glyphSet = self._glyphSet
+        #glyphName = glyph.name
+        #if glyphName not in glyphSet.contents:
+        #    return
+        #path = os.path.join(self.path, "glyphs", glyphSet.contents[glyphName])
+        ## get the text
+        #f = open(path, "rb")
+        #text = f.read()
+        #f.close()
+        ## get the file modification time
+        #modTime = os.stat(path).st_mtime
+        ## store the data
+        #glyph._dataOnDisk = text
+        #glyph._dataOnDiskTimeStamp = modTime
+
     # ----------------------
     # Notification Callbacks
     # ----------------------
@@ -550,4 +548,305 @@ class Layer(BaseObject):
         self._unicodeData.removeGlyphData(glyphName, oldValues)
         self._unicodeData.addGlyphData(glyphName, newValues)
 
-    
+
+# -----
+# Tests
+# -----
+
+def _testSetParentDataInGlyph():
+    """
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> layer = font.layers["public.default"]
+    >>> glyph = layer['A']
+    >>> id(glyph.getParent()) == id(font)
+    True
+    """
+
+def _testNewGlyph():
+    """
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> layer = font.layers["public.default"]
+    >>> layer.newGlyph('NewGlyphTest')
+    >>> glyph = layer['NewGlyphTest']
+    >>> glyph.name
+    'NewGlyphTest'
+    >>> glyph.dirty
+    True
+    >>> font.dirty
+    True
+    >>> keys = layer.keys()
+    >>> keys.sort()
+    >>> keys
+    ['A', 'B', 'C', 'NewGlyphTest']
+    """
+
+def _testInsertGlyph():
+    """
+    >>> "need insert glyph test!"
+    """
+
+def _testIter():
+    """
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> layer = font.layers["public.default"]
+    >>> names = [glyph.name for glyph in layer]
+    >>> names.sort()
+    >>> names
+    ['A', 'B', 'C']
+    >>> names = []
+    >>> for glyph1 in layer:
+    ...     for glyph2 in layer:
+    ...         names.append((glyph1.name, glyph2.name))
+    >>> names.sort()
+    >>> names
+    [('A', 'A'), ('A', 'B'), ('A', 'C'), ('B', 'A'), ('B', 'B'), ('B', 'C'), ('C', 'A'), ('C', 'B'), ('C', 'C')]
+    """
+
+def _testGetitem():
+    """
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> layer = font.layers["public.default"]
+    >>> layer['A'].name
+    'A'
+    >>> layer['B'].name
+    'B'
+    >>> layer['NotInFont']
+    Traceback (most recent call last):
+        ...
+    KeyError: 'NotInFont not in layer'
+    """
+
+def _testDelitem():
+    """
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import makeTestFontCopy, tearDownTestFontCopy
+    >>> import glob
+    >>> import os
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> layer = font.layers["public.default"]
+    >>> del layer['A']
+    >>> layer.dirty
+    True
+    >>> layer.newGlyph('NewGlyphTest')
+    >>> del layer['NewGlyphTest']
+    >>> keys = layer.keys()
+    >>> keys.sort()
+    >>> keys
+    ['B', 'C']
+    >>> len(layer)
+    2
+    >>> 'A' in layer
+    False
+    >>> font.save()
+    >>> fileNames = glob.glob(os.path.join(path, 'Glyphs', '*.glif'))
+    >>> fileNames = [os.path.basename(fileName) for fileName in fileNames]
+    >>> fileNames.sort()
+    >>> fileNames
+    ['B_.glif', 'C_.glif']
+    >>> del layer['NotInFont']
+    Traceback (most recent call last):
+        ...
+    KeyError: 'NotInFont not in layer'
+    >>> tearDownTestFontCopy()
+
+    # test saving externally deleted glyphs.
+    # del glyph. not dirty.
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> layer = font.layers["public.default"]
+    >>> glyph = layer["A"]
+    >>> glyphPath = os.path.join(path, "glyphs", "A_.glif")
+    >>> os.remove(glyphPath)
+    >>> r = font.testForExternalChanges()
+    >>> r["deletedGlyphs"]
+    ['A']
+    >>> del layer["A"]
+    >>> font.save()
+    >>> os.path.exists(glyphPath)
+    False
+    >>> tearDownTestFontCopy()
+
+    # del glyph. dirty.
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> layer = font.layers["public.default"]
+    >>> glyph = layer["A"]
+    >>> glyph.dirty = True
+    >>> glyphPath = os.path.join(path, "glyphs", "A_.glif")
+    >>> os.remove(glyphPath)
+    >>> r = font.testForExternalChanges()
+    >>> r["deletedGlyphs"]
+    ['A']
+    >>> del layer["A"]
+    >>> font.save()
+    >>> os.path.exists(glyphPath)
+    False
+    >>> tearDownTestFontCopy()
+    """
+
+def _testLen():
+    """
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> layer = font.layers["public.default"]
+    >>> len(layer)
+    3
+
+    >>> font = Font()
+    >>> layer = font.layers["public.default"]
+    >>> len(layer)
+    0
+    """
+
+def _testContains():
+    """
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> layer = font.layers["public.default"]
+    >>> 'A' in layer
+    True
+    >>> 'NotInFont' in layer
+    False
+
+    >>> font = Font()
+    >>> layer = font.layers["public.default"]
+    >>> 'A' in layer
+    False
+    """
+
+def _testKeys():
+    """
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> layer = font.layers["public.default"]
+    >>> keys = layer.keys()
+    >>> keys.sort()
+    >>> print keys
+    ['A', 'B', 'C']
+    >>> del layer["A"]
+    >>> keys = layer.keys()
+    >>> keys.sort()
+    >>> print keys
+    ['B', 'C']
+    >>> layer.newGlyph("A")
+    >>> keys = layer.keys()
+    >>> keys.sort()
+    >>> print keys
+    ['A', 'B', 'C']
+
+    >>> font = Font()
+    >>> layer = font.layers["public.default"]
+    >>> layer.keys()
+    []
+    >>> layer.newGlyph("A")
+    >>> keys = layer.keys()
+    >>> keys.sort()
+    >>> print keys
+    ['A']
+    """
+
+def _testGlyphWithOutlines():
+    """
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> layer = font.layers["public.default"]
+    >>> sorted(layer.glyphsWithOutlines)
+    ['A', 'B']
+    >>> font = Font(getTestFontPath())
+    >>> layer = font.layers["public.default"]
+    >>> for glyph in layer:
+    ...    pass
+    >>> sorted(layer.glyphsWithOutlines)
+    ['A', 'B']
+    """
+
+def _testComponentReferences():
+    """
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> layer = font.layers["public.default"]
+    >>> layer.componentReferences
+    {'A': set(['C']), 'B': set(['C'])}
+    >>> glyph = layer["C"]
+    >>> layer.componentReferences
+    {'A': set(['C']), 'B': set(['C'])}
+    """
+
+def _testBounds():
+    """
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> layer = font.layers["public.default"]
+    >>> layer.bounds
+    (0, 0, 700, 700)
+    """
+
+def _testControlPointBounds():
+    """
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> layer = font.layers["public.default"]
+    >>> layer.controlPointBounds
+    (0, 0, 700, 700)
+    """
+
+def _testGlyphNameChange():
+    """
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> layer = font.layers["public.default"]
+    >>> glyph = layer['A']
+    >>> glyph.name = 'NameChangeTest'
+    >>> keys = layer.keys()
+    >>> keys.sort()
+    >>> keys
+    ['B', 'C', 'NameChangeTest']
+    >>> layer.dirty
+    True
+    """
+
+def _testGlyphUnicodesChanged():
+    """
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> layer = font.layers["public.default"]
+    >>> glyph = layer['A']
+    >>> glyph.unicodes = [123, 456]
+    >>> layer.unicodeData[123]
+    ['A']
+    >>> layer.unicodeData[456]
+    ['A']
+    >>> layer.unicodeData[66]
+    ['B']
+    >>> layer.unicodeData.get(65)
+
+    >>> font = Font(getTestFontPath())
+    >>> layer = font.layers["public.default"]
+    >>> layer.newGlyph("test")
+    >>> glyph = layer["test"]
+    >>> glyph.unicodes = [65]
+    >>> layer.unicodeData[65]
+    ['A', 'test']
+    """
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()

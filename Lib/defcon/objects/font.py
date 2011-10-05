@@ -137,7 +137,7 @@ class Font(BaseObject):
     # ------
 
     def _get_glyphSet(self):
-        return self._layers.getDefaultLayer()
+        return self._layers.defaultLayer
 
     _glyphSet = property(_get_glyphSet, doc="Convenience for getting the main layer.")
 
