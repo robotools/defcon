@@ -1,6 +1,7 @@
 import os
 import re
 import weakref
+from copy import deepCopy
 from fontTools.misc.arrayTools import unionRect
 import ufoLib
 from defcon.objects.base import BaseObject
@@ -341,7 +342,7 @@ class Font(BaseObject):
     # Methods
     # -------
 
-    def save(self, path=None, formatVersion=None):
+    def save(self, path=None, formatVersion=None, progressBar=None):
         """
         Save the font to **path**. If path is None, the path
         from the last save or when the font was first opened
@@ -364,90 +365,118 @@ class Font(BaseObject):
         # came in when the UFO was loaded
         if formatVersion is None and self._ufoFormatVersion is not None:
             formatVersion = self._ufoFormatVersion
-        # otherwise fallback to 2
+        # otherwise fallback to 3
         elif self._ufoFormatVersion is None:
-            formatVersion = 2
-        ## make a UFOWriter
+            formatVersion = 3
+        # make a UFOWriter
         ufoWriter = ufoLib.UFOWriter(path, formatVersion=formatVersion)
-        ## save objects
-        saveInfo = False
-        saveKerning = False
-        saveGroups = False
-        saveFeatures = False
-        ## lib should always be saved
-        saveLib = True
-        # if in a save as, save all objects
-        if saveAs:
-            saveInfo = True
-            saveKerning = True
-            saveGroups = True
-            saveFeatures = True
-        ## if changing ufo format versions, save all objects
+        # if changing ufo format versions, flag all objects
+        # as dirty so that they will be saved
         if self._ufoFormatVersion != formatVersion:
-            saveInfo = True
-            saveKerning = True
-            saveGroups = True
-            saveFeatures = True
-        # save info, kerning and features if they are dirty
-        if self._info is not None and self._info.dirty:
-            saveInfo = True
-        if self._kerning is not None and self._kerning.dirty:
-            saveKerning = True
-        if self._features is not None and self._features.dirty:
-            saveFeatures = True
-        # always save groups and lib if they are loaded
-        # as they contain sub-objects that may not notify
-        # the main object about changes.
-        if self._groups is not None:
-            saveGroups = True
-        if self._lib is not None:
-            saveLib = True
-        # save objects as needed
-        if saveInfo:
-            ufoWriter.writeInfo(self.info)
-            self._stampInfoDataState()
-            self.info.dirty = False
-        if saveKerning:
-            ufoWriter.writeKerning(self.kerning)
-            self._stampKerningDataState()
-            self.kerning.dirty = False
-        if saveGroups:
-            ufoWriter.writeGroups(self.groups)
-            self._stampGroupsDataState()
-        if saveFeatures and formatVersion > 1:
-            ufoWriter.writeFeatures(self.features.text)
-            self._stampFeaturesDataState()
-        if saveLib:
-            # if making format version 1, do some
-            # temporary down conversion before
-            # passing the lib to the writer
-            libCopy = dict(self.lib)
-            if formatVersion == 1:
-                self._convertToFormatVersion1RoboFabData(libCopy)
-            ufoWriter.writeLib(libCopy)
-            self._stampLibDataState()
-        ## save glyphs
-        # for a save as operation, load all the glyphs
-        # and mark them as dirty.
-        if saveAs:
-            for glyph in self:
-                glyph.dirty = True
-        glyphSet = ufoWriter.getGlyphSet()
-        for glyphName, glyphObject in self._glyphs.items():
-            if glyphObject.dirty:
-                glyphSet.writeGlyph(glyphName, glyphObject, glyphObject.drawPoints)
-                self._stampGlyphDataState(glyphObject)
-        # remove deleted glyphs
-        if not saveAs and self._scheduledForDeletion:
-            for glyphName in self._scheduledForDeletion:
-                if glyphName in glyphSet:
-                    glyphSet.deleteGlyph(glyphName)
-        glyphSet.writeContents()
-        self._glyphSet = glyphSet
-        self._scheduledForDeletion = []
+            self.info.dirty = True
+            self.groups.dirty = True
+            self.kerning.dirty = True
+            self.lib.dirty = True
+            if formatVersion > 1:
+                self.features.dirty = True
+        # save the objects
+        self.saveInfo(writer=writer, saveAs=saveAs, progressBar=progressBar)
+        self.saveGroups(writer=writer, saveAs=saveAs, progressBar=progressBar)
+        self.saveKerning(writer=writer, saveAs=saveAs, progressBar=progressBar)
+        self.saveLib(writer=writer, saveAs=saveAs, progressBar=progressBar)
+        if formatVersion >= 2:
+            self.saveFeatures(writer=writer, saveAs=saveAs, progressBar=progressBar)
+        if formatVersion >= 3:
+            self.saveImages(writer=writer, saveAs=saveAs, progressBar=progressBar)
+            self.saveData(writer=writer, saveAs=saveAs, progressBar=progressBar)
+        # done
         self._path = path
         self._ufoFormatVersion = formatVersion
         self.dirty = False
+#        ## save glyphs
+#        # for a save as operation, load all the glyphs
+#        # and mark them as dirty.
+#        if saveAs:
+#            for glyph in self:
+#                glyph.dirty = True
+#        glyphSet = ufoWriter.getGlyphSet()
+#        for glyphName, glyphObject in self._glyphs.items():
+#            if glyphObject.dirty:
+#                glyphSet.writeGlyph(glyphName, glyphObject, glyphObject.drawPoints)
+#                self._stampGlyphDataState(glyphObject)
+#        # remove deleted glyphs
+#        if not saveAs and self._scheduledForDeletion:
+#            for glyphName in self._scheduledForDeletion:
+#                if glyphName in glyphSet:
+#                    glyphSet.deleteGlyph(glyphName)
+#        glyphSet.writeContents()
+#        self._glyphSet = glyphSet
+#        self._scheduledForDeletion = []
+
+    def saveInfo(self, writer, saveAs=False, progressBar=None):
+        # info should always be saved
+        if progressBar is not None:
+            progressBar.setTitle("Saving info...")
+        writer.writeInfo(self.info)
+        self.info.dirty = False
+        self._stampInfoDataState()
+        if progressBar is not None:
+            progressBar.tick()
+
+    def saveGroups(self, writer, saveAs=False, progressBar=None):
+        # groups should always be saved
+        if progressBar is not None:
+            progressBar.setTitle("Saving groups...")
+        writer.writeGroups(self.groups)
+        self.groups.dirty = False
+        self._stampGroupsDataState()
+        if progressBar is not None:
+            progressBar.tick()
+
+    def saveKerning(self, writer, saveAs=False, progressBar=None):
+        if progressBar is not None:
+            progressBar.setTitle("Saving kerning...")
+        if self.kerning.dirty or saveAs:
+            writer.writeGroups(self.kerning)
+            self.kerning.dirty = False
+            self._stampKerningDataState()
+        if progressBar is not None:
+            progressBar.tick()
+
+    def saveFeatures(self, writer, saveAs=False, progressBar=None):
+        if progressBar is not None:
+            progressBar.setTitle("Saving features...")
+        if self.features.dirty or saveAs:
+            writer.writeFeatures(self.features.text)
+            self.features.dirty = False
+            self._stampFeaturesDataState()
+        if progressBar is not None:
+            progressBar.tick()
+
+    def saveLib(self, writer, saveAs=False, progressBar=None):
+        # lib should always be saved
+        if progressBar is not None:
+            progressBar.setTitle("Saving lib...")
+        # if making format version 1, do some
+        # temporary down conversion before
+        # passing the lib to the writer
+        libCopy = deepcopy(self.lib)
+        if formatVersion == 1:
+            self._convertToFormatVersion1RoboFabData(libCopy)
+        writer.writeLib(libCopy)
+        self.lib.dirty = False
+        self._stampLibDataState()
+        if progressBar is not None:
+            progressBar.tick()
+
+    def saveLayers(self, writer, saveAs=False, progressBar=None):
+        raise NotImplementedError
+
+    def saveImages(self, writer, saveAs=False, progressBar=None):
+        pass
+
+    def saveData(self, writer, saveAs=False, progressBar=None):
+        pass
 
     # ----------------------
     # Notification Callbacks
