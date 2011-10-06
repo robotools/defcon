@@ -305,9 +305,13 @@ def _testGetitem():
 
 def _testDelItem():
     """
+    >>> import os
     >>> from defcon import Font
     >>> from defcon.test.testTools import makeTestFontCopy, tearDownTestFontCopy
     >>> font = Font(makeTestFontCopy())
+    >>> path = os.path.join(font.path, "glyphs.public.background")
+    >>> os.path.exists(path)
+    True
     >>> layers = font.layers
     >>> del layers["public.background"]
     >>> layers.dirty = True
@@ -322,12 +326,22 @@ def _testDelItem():
         ...
     KeyError: 'public.background'
     >>> font.save()
-    "XXX Make sure it is gone."
+    >>> path = os.path.join(font.path, "glyphs.public.background")
+    >>> os.path.exists(path)
+    False
     >>> tearDownTestFontCopy()
 
-    Maybe test that deleting a lyer, then making a new layer
-    with the same name doesn't result in the old layer remaining
-    after save.
+    >>> font = Font(makeTestFontCopy())
+    >>> path = os.path.join(font.path, "glyphs.public.background")
+    >>> del font.layers["public.background"]
+    >>> layer = font.newLayer("public.background")
+    >>> layer.newGlyph("B")
+    >>> font.save()
+    >>> os.path.exists(os.path.join(path, "A_.glif"))
+    False
+    >>> os.path.exists(os.path.join(path, "B_.glif"))
+    True
+    >>> tearDownTestFontCopy()
     """
 
 def _testLen():
