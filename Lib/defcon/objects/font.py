@@ -2,6 +2,8 @@ import os
 import re
 import weakref
 from copy import deepcopy
+import tempfile
+import shutil
 from fontTools.misc.arrayTools import unionRect
 import ufoLib
 from defcon.errors import DefconError
@@ -373,36 +375,39 @@ class Font(BaseObject):
         downConvertinginPlace = False
         if path == self._path and formatVersion < self._ufoFormatVersion:
             downConvertinginPlace = True
-            path = tempfile.mkdtemp()
-        # make a UFOWriter
-        writer = ufoLib.UFOWriter(path, formatVersion=formatVersion)
-        # if changing ufo format versions, flag all objects
-        # as dirty so that they will be saved
-        if self._ufoFormatVersion != formatVersion:
-            self.info.dirty = True
-            self.groups.dirty = True
-            self.kerning.dirty = True
-            self.lib.dirty = True
-            if formatVersion > 1:
-                self.features.dirty = True
-        # save the objects
-        self.saveInfo(writer=writer, saveAs=saveAs, progressBar=progressBar)
-        self.saveGroups(writer=writer, saveAs=saveAs, progressBar=progressBar)
-        self.saveKerning(writer=writer, saveAs=saveAs, progressBar=progressBar)
-        self.saveLib(writer=writer, saveAs=saveAs, progressBar=progressBar)
-        if formatVersion >= 2:
-            self.saveFeatures(writer=writer, saveAs=saveAs, progressBar=progressBar)
-        if formatVersion >= 3:
-            self.saveImages(writer=writer, saveAs=saveAs, progressBar=progressBar)
-            self.saveData(writer=writer, saveAs=saveAs, progressBar=progressBar)
-        self.layers.save(writer, saveAs=saveAs, progressBar=progressBar)
-        # if down converting in place, handle the temp
-        if downConvertinginPlace:
-            shutil.rmtree(self._path)
-            shutil.copytree(path, self._path)
-            shutil.rmtree(path)
-            path = self._path
-            # XXX reset internal time stamping on things that weren't saved
+            path = os.path.join(tempfile.mkdtemp(), "temp.ufo")
+        try:
+            # make a UFOWriter
+            writer = ufoLib.UFOWriter(path, formatVersion=formatVersion)
+            # if changing ufo format versions, flag all objects
+            # as dirty so that they will be saved
+            if self._ufoFormatVersion != formatVersion:
+                self.info.dirty = True
+                self.groups.dirty = True
+                self.kerning.dirty = True
+                self.lib.dirty = True
+                if formatVersion > 1:
+                    self.features.dirty = True
+            # save the objects
+            self.saveInfo(writer=writer, saveAs=saveAs, progressBar=progressBar)
+            self.saveGroups(writer=writer, saveAs=saveAs, progressBar=progressBar)
+            self.saveKerning(writer=writer, saveAs=saveAs, progressBar=progressBar)
+            self.saveLib(writer=writer, saveAs=saveAs, progressBar=progressBar)
+            if formatVersion >= 2:
+                self.saveFeatures(writer=writer, saveAs=saveAs, progressBar=progressBar)
+            if formatVersion >= 3:
+                self.saveImages(writer=writer, saveAs=saveAs, progressBar=progressBar)
+                self.saveData(writer=writer, saveAs=saveAs, progressBar=progressBar)
+            self.layers.save(writer, saveAs=saveAs, progressBar=progressBar)
+            if downConvertinginPlace:
+                shutil.rmtree(self._path)
+                shutil.move(path, self._path)
+                # XXX reset internal time stamping on things that weren't saved
+        finally:
+            # if down converting in place, handle the temp
+            if downConvertinginPlace:
+                shutil.rmtree(os.path.dirname(path))
+                path = self._path
         # done
         self._path = path
         self._ufoFormatVersion = formatVersion

@@ -49,7 +49,7 @@ class LayerSet(BaseObject):
         self._defaultLayer = layer
         self.postNotification(notification="LayerSet.DefaultLayerChanged")
         self.dirty = True
-        self._layerActionHistory.append(dict(action="default", newName=layer.name, oldName=oldName))
+        self._layerActionHistory.append(dict(action="default", newDefault=layer.name, oldDefault=oldName))
 
     defaultLayer = property(_get_defaultLayer, _set_defaultLayer, doc="The default :class:`Layer` object. Setting this will post *LayerSet.DefaultLayerChanged* and *LayerSet.Changed* notifications.")
 
@@ -134,7 +134,6 @@ class LayerSet(BaseObject):
             raise KeyError("%s not in layers" % name)
         del self._layers[name]
         self._layerOrder.remove(name)
-        self._scheduledForDeletion.add(name)
         self.postNotification("LayerSet.DeletedLayer", data=name)
         self.dirty = True
         self._layerActionHistory.append(dict(action="delete", name=name))
