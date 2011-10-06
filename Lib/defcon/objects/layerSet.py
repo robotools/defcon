@@ -25,8 +25,7 @@ class LayerSet(BaseObject):
         self._layerOrder = []
         self._defaultLayer = None
 
-        self._renamedLayers = {}
-        self._scheduledForDeletion = set()
+        self._layerActionHistory = []
 
     def _get_defaultLayerName(self):
         defaultLayer = self.defaultLayer
@@ -44,11 +43,13 @@ class LayerSet(BaseObject):
             raise ValueError("The default layer must not be None.")
         if layer == self._defaultLayer:
             return
-        if layer.name is None:
-            layer.name = "public.default"
+        oldName = None
+        if self._defaultLayer is not None:
+            oldName = self._defaultLayer.name
         self._defaultLayer = layer
         self.postNotification(notification="LayerSet.DefaultLayerChanged")
         self.dirty = True
+        self._layerActionHistory.append(dict(action="default", newName=layer.name, oldName=oldName))
 
     defaultLayer = property(_get_defaultLayer, _set_defaultLayer, doc="The default :class:`Layer` object. Setting this will post *LayerSet.DefaultLayerChanged* and *LayerSet.Changed* notifications.")
 
@@ -103,6 +104,7 @@ class LayerSet(BaseObject):
         """
         if name in self._layers:
             raise KeyError("A layer named \"%s\" already exists." % name)
+        assert name is not None
         layer = self._instantiateLayerObject(glyphSet)
         layer.name = name
         self._setParentDataInLayer(layer)
@@ -110,6 +112,7 @@ class LayerSet(BaseObject):
             layer.dirty = True
         self._layers[name] = layer
         self._layerOrder.insert(0, name)
+        self._layerActionHistory.append(dict(action="new", name=name))
         return layer
 
     def __iter__(self):
@@ -134,6 +137,7 @@ class LayerSet(BaseObject):
         self._scheduledForDeletion.add(name)
         self.postNotification("LayerSet.DeletedLayer", data=name)
         self.dirty = True
+        self._layerActionHistory.append(dict(action="delete", name=name))
 
     def __len__(self):
         return len(self.layerOrder)
@@ -142,6 +146,65 @@ class LayerSet(BaseObject):
         if name is None:
             name = self._defaultLayerName
         return name in self._layers
+
+    # -------
+    # Methods
+    # -------
+
+    def save(self, writer, saveAs=False, progressBar=None):
+        # work through the layer action history
+        if not saveAs:
+            for actionData in self._layerActionHistory:
+                action = actionData["action"]
+                if action == "delete":
+                    layerName = actionData["name"]
+                    if layerName in writer.layerContents:
+                        writer.deleteGlyphSet(layerName)
+                elif action == "rename":
+                    oldName = actionData["oldName"]
+                    newName = actionData["newName"]
+                    if oldName in writer.layerContents:
+                        writer.renameGlyphSet(oldName, newName)
+                elif action == "default":
+                    newDefault = actionData["newDefault"]
+                    oldDefault = actionData["oldDefault"]
+                    if oldDefault not in writer.layerContents:
+                        # this will be handled by the creation of the glyph set
+                        continue
+                    if newDefault not in writer.layerContents:
+                        # this will be handled by the creation of the glyph set
+                        continue
+                    # both are in the file, so do the renames
+                    writer.renameGlyphSet(oldDefault, defaultLayer=False)
+                    writer.renameGlyphSet(newDefault, defaultLayer=False)
+                elif action == "new":
+                    # this will be handled by the creation of the glyph set
+                    pass
+        # save the layers
+        if writer.formatVersion < 3:
+            layer = self.defaultLayer
+            glyphSet = writer.getGlyphSet(layerName=None, defaultLayer=True)
+            layer.save(glyphSet, saveAs=saveAs, progressBar=progressBar)
+        else:
+            for layerName in self.layerOrder:
+                if progressBar is not None:
+                    progressBar.setTitle("Saving layer \"%s\"..." % layerName)
+                layer = self[layerName]
+                isDefaultLayer = layer == self.defaultLayer
+                glyphSet = writer.getGlyphSet(layerName=layerName, defaultLayer=isDefaultLayer)
+                layer.save(glyphSet, saveAs=saveAs, progressBar=progressBar)
+                layer.dirty = False
+                if progressBar is not None:
+                    progressBar.tick()
+            writer.writeLayerContents(self.layerOrder)
+        # reset the action history
+        self._layerActionHistory = []
+        # if < UFO 3 was written, flag all of the non-default layers as "new"
+        defaultLayer = self.defaultLayer
+        for layer in self:
+            if layer == defaultLayer:
+                continue
+            self._layerActionHistory.append(dict(action="new", name=layer.name))
 
     # ----------------------
     # Notification Callbacks
@@ -159,7 +222,7 @@ class LayerSet(BaseObject):
         index = self._layerOrder.index(oldName)
         self._layerOrder.pop(index)
         self._layerOrder.insert(index, newName)
-
+        self._layerActionHistory.append(dict(action="rename", oldName=oldName, newName=newName))
 
 # -----
 # Tests

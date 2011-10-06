@@ -115,7 +115,7 @@ class Layer(BaseObject):
 
         self._glyphs = {}
         self._glyphSet = glyphSet
-        self._scheduledForDeletion = []
+        self._scheduledForDeletion = set()
         self._keys = set()
 
         self._dirty = False
@@ -231,7 +231,7 @@ class Layer(BaseObject):
         if name in self._keys:
             self._keys.remove(name)
         if self._glyphSet is not None and name in self._glyphSet:
-            self._scheduledForDeletion.append(name)
+            self._scheduledForDeletion.add(name)
         self.dirty = True
 
     def __len__(self):
@@ -247,7 +247,7 @@ class Layer(BaseObject):
         # this is not generated dynamically since we
         # support external editing. it must be fixed.
         names = self._keys
-        names = names - set(self._scheduledForDeletion)
+        names = names - self._scheduledForDeletion
         return list(names)
 
     # ----------
@@ -495,6 +495,33 @@ class Layer(BaseObject):
         return self._unicodeData
 
     unicodeData = property(_get_unicodeData, doc="The layer's :class:`UnicodeData` object.")
+
+    # -------
+    # Methods
+    # -------
+
+    def save(self, glyphSet, saveAs=False, progressBar=None):
+        # for a save as operation, load all the glyphs
+        # and mark them as dirty. this could be more
+        # effeciently handled by os.copy...
+        if saveAs:
+            for glyph in self:
+                glyph.dirty = True
+        for glyphName, glyph in sorted(self._glyphs.items()):
+            self.saveGlyph(glyph, glyphSet, saveAs=saveAs, progressBar=progressBar)
+        # remove deleted glyphs
+        if not saveAs and self._scheduledForDeletion:
+            for glyphName in self._scheduledForDeletion:
+                if glyphName in glyphSet:
+                    glyphSet.deleteGlyph(glyphName)
+        glyphSet.writeContents()
+        self._glyphSet = glyphSet
+        self._scheduledForDeletion = []
+
+    def saveGlyph(self, glyph, glyphSet, saveAs=False, progressBar=None):
+        if glyph.dirty:
+            glyphSet.writeGlyph(glyph.name, glyph, glyph.drawPoints)
+            self._stampGlyphDataState(glyph)
 
     # ---------------------
     # External Edit Support

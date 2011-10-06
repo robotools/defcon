@@ -1,9 +1,10 @@
 import os
 import re
 import weakref
-from copy import deepCopy
+from copy import deepcopy
 from fontTools.misc.arrayTools import unionRect
 import ufoLib
+from defcon.errors import DefconError
 from defcon.objects.base import BaseObject
 from defcon.objects.layerSet import LayerSet
 from defcon.objects.layer import Layer
@@ -130,7 +131,7 @@ class Font(BaseObject):
                 g = self.groups
 
         if self._layers.defaultLayer is None:
-            layer = self.newLayer(None)
+            layer = self.newLayer("public.default")
             self._layers.defaultLayer = layer
 
     # ------
@@ -368,8 +369,13 @@ class Font(BaseObject):
         # otherwise fallback to 3
         elif self._ufoFormatVersion is None:
             formatVersion = 3
+        # if down-converting, use a temp directory
+        downConvertinginPlace = False
+        if path == self._path and formatVersion < self._ufoFormatVersion:
+            downConvertinginPlace = True
+            path = tempfile.mkdtemp()
         # make a UFOWriter
-        ufoWriter = ufoLib.UFOWriter(path, formatVersion=formatVersion)
+        writer = ufoLib.UFOWriter(path, formatVersion=formatVersion)
         # if changing ufo format versions, flag all objects
         # as dirty so that they will be saved
         if self._ufoFormatVersion != formatVersion:
@@ -389,29 +395,18 @@ class Font(BaseObject):
         if formatVersion >= 3:
             self.saveImages(writer=writer, saveAs=saveAs, progressBar=progressBar)
             self.saveData(writer=writer, saveAs=saveAs, progressBar=progressBar)
+        self.layers.save(writer, saveAs=saveAs, progressBar=progressBar)
+        # if down converting in place, handle the temp
+        if downConvertinginPlace:
+            shutil.rmtree(self._path)
+            shutil.copytree(path, self._path)
+            shutil.rmtree(path)
+            path = self._path
+            # XXX reset internal time stamping on things that weren't saved
         # done
         self._path = path
         self._ufoFormatVersion = formatVersion
         self.dirty = False
-#        ## save glyphs
-#        # for a save as operation, load all the glyphs
-#        # and mark them as dirty.
-#        if saveAs:
-#            for glyph in self:
-#                glyph.dirty = True
-#        glyphSet = ufoWriter.getGlyphSet()
-#        for glyphName, glyphObject in self._glyphs.items():
-#            if glyphObject.dirty:
-#                glyphSet.writeGlyph(glyphName, glyphObject, glyphObject.drawPoints)
-#                self._stampGlyphDataState(glyphObject)
-#        # remove deleted glyphs
-#        if not saveAs and self._scheduledForDeletion:
-#            for glyphName in self._scheduledForDeletion:
-#                if glyphName in glyphSet:
-#                    glyphSet.deleteGlyph(glyphName)
-#        glyphSet.writeContents()
-#        self._glyphSet = glyphSet
-#        self._scheduledForDeletion = []
 
     def saveInfo(self, writer, saveAs=False, progressBar=None):
         # info should always be saved
@@ -437,7 +432,7 @@ class Font(BaseObject):
         if progressBar is not None:
             progressBar.setTitle("Saving kerning...")
         if self.kerning.dirty or saveAs:
-            writer.writeGroups(self.kerning)
+            writer.writeKerning(self.kerning)
             self.kerning.dirty = False
             self._stampKerningDataState()
         if progressBar is not None:
@@ -460,17 +455,14 @@ class Font(BaseObject):
         # if making format version 1, do some
         # temporary down conversion before
         # passing the lib to the writer
-        libCopy = deepcopy(self.lib)
-        if formatVersion == 1:
+        libCopy = dict(self.lib)
+        if writer.formatVersion == 1:
             self._convertToFormatVersion1RoboFabData(libCopy)
         writer.writeLib(libCopy)
         self.lib.dirty = False
         self._stampLibDataState()
         if progressBar is not None:
             progressBar.tick()
-
-    def saveLayers(self, writer, saveAs=False, progressBar=None):
-        raise NotImplementedError
 
     def saveImages(self, writer, saveAs=False, progressBar=None):
         pass

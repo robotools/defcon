@@ -5,6 +5,8 @@ of font development tools. This works on UFO files.
 
 version = "0.1"
 
+from defcon.errors import DefconError
+
 from defcon.objects.font import Font
 from defcon.objects.glyph import Glyph, addRepresentationFactory, removeRepresentationFactory
 from defcon.objects.contour import Contour
