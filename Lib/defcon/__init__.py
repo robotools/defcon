@@ -8,6 +8,8 @@ version = "0.1"
 from defcon.errors import DefconError
 
 from defcon.objects.font import Font
+from defcon.objects.layerSet import LayerSet
+from defcon.objects.layer import Layer
 from defcon.objects.glyph import Glyph, addRepresentationFactory, removeRepresentationFactory
 from defcon.objects.contour import Contour
 from defcon.objects.point import Point
