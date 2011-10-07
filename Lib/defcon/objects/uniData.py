@@ -47,6 +47,17 @@ class UnicodeData(BaseDictObject):
         self._glyphNameToForcedUnicode = {}
         self._forcedUnicodeToGlyphName = {}
 
+    def _get_font(self):
+        layer = self.getParent()
+        if layer is None:
+            return None
+        layerSet = layer.getParent()
+        if layerSet is None:
+            return None
+        return layerSet.getParent()
+
+    _font = property(_get_font)
+
     # -----------
     # set and get
     # -----------
@@ -59,13 +70,13 @@ class UnicodeData(BaseDictObject):
         This should never be called directly.
         """
         for value in values:
-            if value not in self._dict:
+            if value not in self:
                 continue
-            glyphList = self._dict[value]
+            glyphList = self[value]
             if glyphName in glyphList:
                 glyphList.remove(glyphName)
             if not glyphList:
-                del self._dict[value]
+                super(UnicodeData, self).__delitem__(value)
         # remove the forced reference to the glyph
         if glyphName in self._glyphNameToForcedUnicode:
             fourcedValue = self._glyphNameToForcedUnicode[glyphName]
@@ -82,16 +93,14 @@ class UnicodeData(BaseDictObject):
         """
         for value in values:
             # update unicode to glyph name
-            glyphList = self._dict.get(value)
-            if glyphList is None:
-                glyphList = []
+            glyphList = self.get(value, [])
             if glyphName not in glyphList:
                 glyphList.append(glyphName)
-            self._dict[value] = glyphList
+            super(UnicodeData, self).__setitem__(value, glyphList)
         self.postNotification(notification=self.changeNotificationName)
 
     def __delitem__(self, value):
-        glyphList = self._dict.get(value)
+        glyphList = self.get(value)
         if glyphList is None:
             return
         for glyphName in glyphList:
@@ -100,14 +109,14 @@ class UnicodeData(BaseDictObject):
                 forcedValue = self._glyphNameToForcedUnicode[glyphName]
                 del self._forcedUnicodeToGlyphName[forcedValue]
                 del self._glyphNameToForcedUnicode[glyphName]
-        del self._dict[value]
+        super(UnicodeData, self).__delitem__(value)
         self.postNotification(notification=self.changeNotificationName)
 
     def __setitem__(self, value, glyphList):
-        if value not in self._dict:
-            self._dict[value] = []
+        if value not in self:
+            super(UnicodeData, self).__setitem__(value, [])
         for glyphName in glyphList:
-            self._dict[value].append(glyphName)
+            self[value].append(glyphName)
             # remove now out dated forced references
             if glyphName in self._glyphNameToForcedUnicode:
                 forcedValue = self._glyphNameToForcedUnicode[glyphName]
@@ -121,7 +130,7 @@ class UnicodeData(BaseDictObject):
 
         This should never be called directly.
         """
-        self._dict.clear()
+        super(UnicodeData, self).clear()
         self._forcedUnicodeToGlyphName.clear()
         self._glyphNameToForcedUnicode.clear()
 
@@ -137,7 +146,7 @@ class UnicodeData(BaseDictObject):
                     forcedValue = self._glyphNameToForcedUnicode[glyphName]
                     del self._forcedUnicodeToGlyphName[forcedValue]
                     del self._glyphNameToForcedUnicode[glyphName]
-            self._dict[value] = list(glyphList)
+            super(UnicodeData, self).__setitem__(value, list(glyphList))
         self.postNotification(notification=self.changeNotificationName)
 
     # -------
@@ -180,7 +189,7 @@ class UnicodeData(BaseDictObject):
         Get the Unicode value for **glyphName**. Returns *None*
         if no value is found.
         """
-        font = self.getParent()
+        font = self._font
         if glyphName not in font:
             return None
         glyph = font[glyphName]
@@ -306,7 +315,7 @@ class UnicodeData(BaseDictObject):
         if uniValue is None:
             return glyphName
         if uniValue is not None:
-            font = self.getParent()
+            font = self._font
             decomposition = unicodeTools.decompositionBase(uniValue)
             if decomposition != -1:
                 if decomposition in font.unicodeData:
@@ -367,7 +376,7 @@ class UnicodeData(BaseDictObject):
         if "." in glyphName:
             suffix = glyphName.split(".", 1)[1]
             pseudoMatch = preciseMatch + "." + suffix
-            if pseudoMatch in self.getParent():
+            if pseudoMatch in self._font:
                 return pseudoMatch
         return preciseMatch
 
@@ -646,7 +655,7 @@ class UnicodeData(BaseDictObject):
                 if base is not None:
                     if "." in glyphName and not glyphName.startswith("."):
                         suffix = glyphName.split(".")[1]
-                        if base + "." + suffix in self.getParent():
+                        if base + "." + suffix in self._font:
                             base = base + "." + suffix
             if base not in baseToGlyphNames:
                 baseToGlyphNames[base] = []
@@ -685,7 +694,7 @@ class UnicodeData(BaseDictObject):
     # custom sorts
 
     def _sortByCustomFunction(self, glyphNames, ascending, allowPseudoUnicode, function):
-        return function(self.getParent(), glyphNames, ascending, allowPseudoUnicode)
+        return function(self._font, glyphNames, ascending, allowPseudoUnicode)
 
     # complex sorts
 

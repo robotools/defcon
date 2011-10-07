@@ -29,6 +29,9 @@ class BaseObject(object):
     endRedoNotificationName = "BaseObject.EndRedo"
 
     def __init__(self):
+        self._init()
+
+    def _init(self):
         self._parent = None
         self._dispatcher = None
         self._dataOnDisk = None
@@ -371,7 +374,7 @@ class BaseObject(object):
         pass
 
 
-class BaseDictObject(BaseObject):
+class BaseDictObject(dict, BaseObject):
 
     """
     A subclass of BaseObject that implements a dict API. Any changes
@@ -381,59 +384,49 @@ class BaseDictObject(BaseObject):
 
     def __init__(self):
         super(BaseDictObject, self).__init__()
-        self._dict = {}
+        self._init()
         self._dirty = False
 
-    def __contains__(self, key):
-        return key in self._dict
+    def _get_dict(self):
+        from warnings import warn
+        warn(
+            "BaseDict is now a dict and _dict is gone.",
+            DeprecationWarning
+        )
+        return self
 
-    has_key = __contains__
+    _dict = property(_get_dict)
 
-    def __len__(self):
-        return len(self._dict)
-
-    def __getitem__(self, key):
-        return self._dict[key]
+    def __hash__(self):
+        return id(self)
 
     def __setitem__(self, key, value):
-        self._dict[key] = value
+        super(BaseDictObject, self).__setitem__(key, value)
         self.dirty = True
 
     def __delitem__(self, key):
-        del self._dict[key]
+        super(BaseDictObject, self).__delitem__(key)
         self.dirty = True
 
     def __copy__(self):
         import copy
         obj = self.__class__()
-        obj.update(copy.copy(self._dict))
+        obj.update(copy.copy(self))
         return obj
 
     def __deepcopy__(self, memo={}):
         import copy
         obj = self.__class__()
-        obj.update(copy.deepcopy(self._dict, memo))
+        obj.update(copy.deepcopy(self, memo))
         return obj
 
-    def get(self, key, default=None):
-        return self._dict.get(key, default)
-
     def clear(self):
-        self._dict.clear()
+        super(BaseDictObject, self).clear()
         self.dirty = True
 
     def update(self, other):
-        self._dict.update(other)
+        super(BaseDictObject, self).update(other)
         self.dirty = True
-
-    def keys(self):
-        return self._dict.keys()
-
-    def values(self):
-        return self._dict.values()
-
-    def items(self):
-        return self._dict.items()
 
     # ----
     # Undo
@@ -463,6 +456,27 @@ def _testDirty():
 
     # get
     >>> obj = BaseObject()
+    >>> obj._dispatcher = NotificationCenter()
+    >>> obj.dirty = True
+    >>> obj.dirty
+    True
+    >>> obj.dirty = False
+    >>> obj.dirty
+    False
+
+    # set
+    >>> obj = BaseDictObject()
+    >>> obj._dispatcher = NotificationCenter()
+    >>> obj.addObserver(notificationObject, "testCallback", "BaseObject.Changed")
+    >>> obj.dirty = True
+    BaseObject.Changed None
+    >>> obj.dirty
+    True
+    >>> obj.dirty = False
+    BaseObject.Changed None
+
+    # get
+    >>> obj = BaseDictObject()
     >>> obj._dispatcher = NotificationCenter()
     >>> obj.dirty = True
     >>> obj.dirty
@@ -582,7 +596,6 @@ def _testItems():
     >>> obj.items()
     [('A', 1)]
     """
-
 
 if __name__ == "__main__":
     import doctest
