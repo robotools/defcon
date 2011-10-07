@@ -796,6 +796,28 @@ def _testKeys():
     ['A']
     """
 
+def _testColor():
+    """
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> layer = font.layers["Layer 1"]
+    >>> isinstance(layer.color, Color)
+    True
+    >>> str(layer.color)
+    '0.1,0.2,0.3,0.4'
+    >>> layer.color = '0.5,0.5,0.5,0.5'
+    >>> isinstance(layer.color, Color)
+    True
+    >>> str(layer.color)
+    '0.5,0.5,0.5,0.5'
+    >>> layer.color = (.5, .5, .5, .5)
+    >>> isinstance(layer.color, Color)
+    True
+    >>> str(layer.color)
+    '0.5,0.5,0.5,0.5'
+    """
+
 def _testGlyphWithOutlines():
     """
     >>> from defcon import Font
