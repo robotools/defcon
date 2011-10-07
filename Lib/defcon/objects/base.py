@@ -390,7 +390,7 @@ class BaseDictObject(dict, BaseObject):
     def _get_dict(self):
         from warnings import warn
         warn(
-            "BaseDict is now a dict and _dict is gone.",
+            "BaseDictObject is now a dict and _dict is gone.",
             DeprecationWarning
         )
         return self
@@ -401,6 +401,8 @@ class BaseDictObject(dict, BaseObject):
         return id(self)
 
     def __setitem__(self, key, value):
+        if self.get(key) == value:
+            return
         super(BaseDictObject, self).__setitem__(key, value)
         self.dirty = True
 
@@ -421,6 +423,8 @@ class BaseDictObject(dict, BaseObject):
         return obj
 
     def clear(self):
+        if not len(self):
+            return
         super(BaseDictObject, self).clear()
         self.dirty = True
 
@@ -596,6 +600,8 @@ def _testItems():
     >>> obj.items()
     [('A', 1)]
     """
+
+
 
 if __name__ == "__main__":
     import doctest
