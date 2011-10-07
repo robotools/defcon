@@ -1,4 +1,4 @@
-class Color(object):
+class Color(str):
 
     """
     This object represents a color. This object is immutable.
@@ -12,44 +12,31 @@ class Color(object):
         colorTuple = tuple(colorObject)
     """
 
-    def __init__(self, value):
+    def __new__(self, value):
+        # convert from string
         if isinstance(value, basestring):
-            r, g, b, a = [i.strip() for i in value.split(",")]
-            value = []
-            for component in (r, g, b, a):
-                try:
-                    v = int(component)
-                    value.append(v)
-                    continue
-                except ValueError:
-                    pass
-                v = float(component)
-                value.append(v)
+            value = _stringToSequence(value)
         r, g, b, a = value
-
+        # validate the values
         color = (("r", r), ("g", g), ("b", b), ("a", a))
         for component, v in color:
             if v < 0 or v > 1:
                 raise ValueError("The color for %s (%s) is not between 0 and 1." % (component, str(v)))
-        self._r = r
-        self._g = g
-        self._b = b
-        self._a = a
+        # convert back to a normalized string
+        r = _stringify(r)
+        g = _stringify(g)
+        b = _stringify(b)
+        a = _stringify(a)
+        s = ",".join((r, g, b, a))
+        # call the super
+        return super(Color, self).__new__(Color, s)
 
     def __iter__(self):
-        attrs = ["r", "g", "b", "a"]
-        while attrs:
-            attr = attrs[0]
-            yield getattr(self, attr)
-            attrs = attrs[1:]
-
-    def __str__(self):
-        r = _stringify(self._r)
-        g = _stringify(self._g)
-        b = _stringify(self._b)
-        a = _stringify(self._a)
-        s = ",".join((r, g, b, a))
-        return s
+        value = _stringToSequence(self)
+        while value:
+            v = value[0]
+            yield v
+            value = value[1:]
 
     def __cmp__(self, other):
         if not isinstance(other, Color):
@@ -57,24 +44,39 @@ class Color(object):
         return cmp(tuple(self), tuple(other))
 
     def _get_r(self):
-        return self._r
+        return _stringToSequence(self)[0]
 
     r = property(_get_r, "The red component.")
 
     def _get_g(self):
-        return self._g
+        return _stringToSequence(self)[1]
 
     g = property(_get_g, "The green component.")
 
     def _get_b(self):
-        return self._b
+        return _stringToSequence(self)[2]
 
     b = property(_get_b, "The blue component.")
 
     def _get_a(self):
-        return self._a
+        return _stringToSequence(self)[3]
 
     a = property(_get_a, "The alpha component.")
+
+
+def _stringToSequence(value):
+    r, g, b, a = [i.strip() for i in value.split(",")]
+    value = []
+    for component in (r, g, b, a):
+        try:
+            v = int(component)
+            value.append(v)
+            continue
+        except ValueError:
+            pass
+        v = float(component)
+        value.append(v)
+    return value
 
 
 def _stringify(v):
@@ -133,11 +135,11 @@ def _test():
     (1, 1, 1, 1)
 
     Convert to String:
-    >>> str(Color((0, 0, 0, 0)))
+    >>> Color((0, 0, 0, 0))
     '0,0,0,0'
-    >>> str(Color((1, 1, 1, 1)))
+    >>> Color((1, 1, 1, 1))
     '1,1,1,1'
-    >>> str(Color((.1, .1, .1, .1)))
+    >>> Color((.1, .1, .1, .1))
     '0.1,0.1,0.1,0.1'
 
     Convert to Sequence:
