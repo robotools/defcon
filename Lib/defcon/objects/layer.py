@@ -110,7 +110,6 @@ class Layer(BaseObject):
 
         self._dispatcher = None
         self._color = None
-        self._guidelines = []
         self._lib = None
         self._unicodeData = unicodeDataClass()
         self._unicodeData.setParent(self)
@@ -497,15 +496,15 @@ class Layer(BaseObject):
             self._lib = self._libClass()
             self._lib.dispatcher = self.dispatcher
             self._lib.setParent(self)
-            if self._path is not None:
-                reader = ufoLib.UFOReader(self._path)
-                d = reader.readLib()
-                self._lib.update(d)
             self._lib.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Lib.Changed")
-            self._stampLibDataState()
         return self._lib
 
-    lib = property(_get_lib, doc="The layer's :class:`Lib` object.")
+    def _set_lib(self, value):
+        if value is not None:
+            self.lib.clear()
+            self.lib.update(value)
+
+    lib = property(_get_lib, _set_lib, doc="The layer's :class:`Lib` object.")
 
     def _get_unicodeData(self):
         return self._unicodeData
@@ -820,6 +819,22 @@ def _testColor():
     True
     >>> str(layer.color)
     '0.5,0.5,0.5,0.5'
+    """
+
+def _testLib():
+    """
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> layer = font.layers["Layer 1"]
+    >>> layer.lib
+    {'com.typesupply.defcon.test': '1 2 3'}
+    >>> layer.lib.dirty = False
+    >>> layer.lib["blah"] = "abc"
+    >>> layer.lib["blah"]
+    'abc'
+    >>> layer.lib.dirty
+    True
     """
 
 def _testGlyphWithOutlines():

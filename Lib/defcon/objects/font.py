@@ -117,6 +117,7 @@ class Font(BaseObject):
                 glyphSet = reader.getGlyphSet(layerName)
                 layer = self._layers.newLayer(layerName, glyphSet=glyphSet)
                 glyphSet.readLayerInfo(layer)
+                layer._dirty = False
             defaultLayerName = reader.getDefaultLayerName()
             self._layers.defaultLayer = self._layers[defaultLayerName]
             self._layers.dirty = False

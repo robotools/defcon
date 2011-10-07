@@ -357,6 +357,9 @@ def _testLayerInfo():
     >>> layer.color
     '0.1,0.2,0.3,0.4'
     >>> layer.color = '0.5,0.5,0.5,0.5'
+    >>> layer.lib
+    {'com.typesupply.defcon.test': '1 2 3'}
+    >>> layer.lib["foo"] = "bar"
     >>> font.save()
     >>> path = font.path
 
@@ -365,7 +368,8 @@ def _testLayerInfo():
     >>> layer = font.layers["Layer 1"]
     >>> layer.color
     '0.5,0.5,0.5,0.5'
-
+    >>> sorted(layer.lib.items())
+    [('com.typesupply.defcon.test', '1 2 3'), ('foo', 'bar')]
     >>> tearDownTestFontCopy()
     """
 
