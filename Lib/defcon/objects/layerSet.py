@@ -192,6 +192,7 @@ class LayerSet(BaseObject):
                 isDefaultLayer = layer == self.defaultLayer
                 glyphSet = writer.getGlyphSet(layerName=layerName, defaultLayer=isDefaultLayer)
                 layer.save(glyphSet, saveAs=saveAs, progressBar=progressBar)
+                glyphSet.writeLayerInfo(layer)
                 layer.dirty = False
                 if progressBar is not None:
                     progressBar.tick()
@@ -341,6 +342,30 @@ def _testDelItem():
     False
     >>> os.path.exists(os.path.join(path, "B_.glif"))
     True
+    >>> tearDownTestFontCopy()
+    """
+
+def _testLayerInfo():
+    """
+    >>> import os
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import makeTestFontCopy, tearDownTestFontCopy
+
+    # open and change some values
+    >>> font = Font(makeTestFontCopy())
+    >>> layer = font.layers["Layer 1"]
+    >>> layer.color
+    '0.1,0.2,0.3,0.4'
+    >>> layer.color = '0.5,0.5,0.5,0.5'
+    >>> font.save()
+    >>> path = font.path
+
+    # reopen and check the changes
+    >>> font = Font(path)
+    >>> layer = font.layers["Layer 1"]
+    >>> layer.color
+    '0.5,0.5,0.5,0.5'
+
     >>> tearDownTestFontCopy()
     """
 
