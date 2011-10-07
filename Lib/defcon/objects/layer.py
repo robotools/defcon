@@ -113,6 +113,7 @@ class Layer(BaseObject):
         self._guidelines = []
         self._lib = None
         self._unicodeData = unicodeDataClass()
+        self._unicodeData.setParent(self)
 
         self._directory = None
 
@@ -278,8 +279,11 @@ class Layer(BaseObject):
         return self._color
 
     def _set_color(self, color):
+        if color is None:
+            newColor = None
+        else:
+            newColor = Color(color)
         oldColor = self._color
-        newColor = Color(color)
         if oldColor != newColor:
             self._color = newColor
             data = dict(oldColor=oldColor, newColor=newColor)
