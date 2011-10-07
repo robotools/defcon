@@ -1,0 +1,1 @@
+class DefconError(Exception): pass
