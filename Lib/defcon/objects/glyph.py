@@ -255,7 +255,7 @@ class Glyph(BaseObject):
     width = property(_get_width, _set_width, doc="The width of the glyph. Setting this posts a *Glyph.Changed* notification.")
 
     def _get_height(self):
-        return self._width
+        return self._height
 
     def _set_height(self, value):
         self._height = value
@@ -743,8 +743,6 @@ def _testName():
     >>> glyph.name = 'A'
     >>> glyph.dirty
     False
-    >>> font._scheduledForDeletion
-    []
 
     # get
     >>> from defcon.test.testTools import getTestFontPath
