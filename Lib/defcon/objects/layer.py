@@ -6,6 +6,7 @@ from defcon.objects.base import BaseObject
 from defcon.objects.glyph import Glyph
 from defcon.objects.lib import Lib
 from defcon.objects.uniData import UnicodeData
+from defcon.objects.color import Color
 
 # regular expressions used by various search methods
 outlineSearchPointRE = re.compile(
@@ -108,6 +109,8 @@ class Layer(BaseObject):
         self._libClass = libClass
 
         self._dispatcher = None
+        self._color = None
+        self._guidelines = []
         self._lib = None
         self._unicodeData = unicodeDataClass()
 
@@ -275,10 +278,15 @@ class Layer(BaseObject):
         return self._color
 
     def _set_color(self, color):
-        self._color = color
-        self.dirty = True
+        oldColor = self._color
+        newColor = Color(color)
+        if oldColor != newColor:
+            self._color = newColor
+            data = dict(oldColor=oldColor, newColor=newColor)
+            self.postNotification(notification="Layer.ColorChanged", data=data)
+            self.dirty = True
 
-    color = property(_get_color, _set_color, doc="The layer's color.")
+    color = property(_get_color, _set_color, doc="The layer's :class:`Color` object. When setting, the value can be a UFO color string, a sequence of (r, g, b, a) or a :class:`Color` object. Setting this posts *Layer.ColorChanged* and *Layer.Changed* notifications.")
 
     def _get_glyphsWithOutlines(self):
         found = []
