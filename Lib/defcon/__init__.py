@@ -21,3 +21,5 @@ from defcon.objects.kerning import Kerning
 from defcon.objects.features import Features
 from defcon.objects.lib import Lib
 from defcon.objects.uniData import UnicodeData
+from defcon.objects.color import Color
+from defcon.objects.guideline import Guideline
