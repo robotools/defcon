@@ -46,10 +46,6 @@ class Glyph(BaseObject):
     """
 
     changeNotificationName = "Glyph.Changed"
-    beginUndoNotificationName = "Glyph.BeginUndo"
-    endUndoNotificationName = "Glyph.EndUndo"
-    beginRedoNotificationName = "Glyph.BeginRedo"
-    endRedoNotificationName = "Glyph.EndRedo"
 
     def __init__(self, contourClass=None, pointClass=None, componentClass=None, anchorClass=None, libClass=None):
         super(Glyph, self).__init__()
@@ -670,47 +666,6 @@ class Glyph(BaseObject):
         else:
             key = name
         return key
-
-    # ----
-    # Undo
-    # ----
-
-    def getDataToSerializeForUndo(self):
-        data = dict(
-            contours=[contour.serializeForUndo(pack=False) for contour in self._contours],
-            components=[component.serializeForUndo(pack=False) for component in self._components],
-            anchors=[anchor.serializeForUndo(pack=False) for anchor in self._anchors],
-            name=self.name,
-            unicodes=self.unicodes,
-            width=self.width,
-            lib=self.lib.serializeForUndo(pack=False)
-        )
-        return data
-
-    def loadDeserializedDataFromUndo(self, data):
-        # clear contours, components, anchors
-        self.clear()
-        # contours
-        for contourData in data["contours"]:
-            contour = self.contourClass(pointClass=self.pointClass)
-            contour.deserializeFromUndo(contourData)
-            self.appendContour(contour)
-        # components
-        for componentData in data["components"]:
-            component = self.componentClass()
-            component.deserializeFromUndo(componentData)
-            self.appendComponent(component)
-        # anchors
-        for anchorData in data["anchors"]:
-            anchor = self.anchorClass()
-            anchor.deserializeFromUndo(anchorData)
-            self.appendAnchor(anchor)
-        # basic attributes
-        self.name = data["name"]
-        self.unicodes = data["unicodes"]
-        self.width = data["width"]
-        # lib
-        self.lib.deserializeFromUndo(data["lib"])
 
     # ----------------------
     # Notification Callbacks

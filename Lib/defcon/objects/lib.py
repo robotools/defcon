@@ -30,16 +30,12 @@ class Lib(BaseDictObject):
     change notification system. These changes will be saved the next time you
     save the font, however.
 
-    **Note 2:** The keys used for storing data in the lib shoudl follow the
+    **Note 2:** The keys used for storing data in the lib should follow the
     reverse domain naming convention detailed in the
     `UFO specification <http://unifiedfontobject.org/filestructure/lib.html>`_.
     """
 
     changeNotificationName = "Lib.Changed"
-    beginUndoNotificationName = "Lib.BeginUndo"
-    endUndoNotificationName = "Lib.EndUndo"
-    beginRedoNotificationName = "Lib.BeginRedo"
-    endRedoNotificationName = "Lib.EndRedo"
 
 
 if __name__ == "__main__":

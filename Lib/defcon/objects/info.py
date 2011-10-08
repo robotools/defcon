@@ -24,10 +24,6 @@ class Info(BaseObject):
     """
 
     changeNotificationName = "Info.Changed"
-    beginUndoNotificationName = "Info.BeginUndo"
-    endUndoNotificationName = "Info.EndUndo"
-    beginRedoNotificationName = "Info.BeginRedo"
-    endRedoNotificationName = "Info.EndRedo"
 
     def __init__(self):
         super(Info, self).__init__()

@@ -13,20 +13,12 @@ class BaseObject(object):
     Name                  Note
     ====================  ====
     BaseObject.Changed    Posted when the *dirty* attribute is set.
-    BaseObject.BeginUndo  Posted when an undo begins.
-    BaseObject.EndUndo    Posted when an undo ends.
-    BaseObject.BeginRedo  Posted when a redo begins.
-    BaseObject.EndRedo    Posted when a redo ends.
     ====================  ====
 
     Keep in mind that subclasses will not post these same notifications.
     """
 
     changeNotificationName = "BaseObject.Changed"
-    beginUndoNotificationName = "BaseObject.BeginUndo"
-    endUndoNotificationName = "BaseObject.EndUndo"
-    beginRedoNotificationName = "BaseObject.BeginRedo"
-    endRedoNotificationName = "BaseObject.EndRedo"
 
     def __init__(self):
         self._init()
@@ -36,7 +28,6 @@ class BaseObject(object):
         self._dispatcher = None
         self._dataOnDisk = None
         self._dataOnDiskTimeStamp = None
-        self._undoManager = None
         # handle the old _notificationName attribute
         if hasattr(self, "_notificationName"):
             from warnings import warn
@@ -241,138 +232,6 @@ class BaseObject(object):
 
     dirty = property(_get_dirty, _set_dirty, doc="The dirty state of the object. True if the object has been changed. False if not. Setting this to True will cause the base changed notification to be posted. The object will automatically maintain this attribute and update it as you change the object.")
 
-    # ----
-    # Undo
-    # ----
-
-    # manager
-
-    def _get_undoManager(self):
-        return self._undoManager
-
-    def _set_undoManager(self, manager):
-        self._undoManager = manager
-        manager.setObject(self)
-
-    undoManager = property(_get_undoManager, _set_undoManager, doc="The undo manager assigned to this object.")
-
-    # state registration
-
-    def prepareUndo(self, title=None):
-        self.undoManager.prepareTarget(title=title)
-
-    # undo
-
-    def canUndo(self):
-        manager = self.undoManager
-        if manager is None:
-            raise NotImplementedError
-        return manager.canUndo()
-
-    def getUndoTitle(self, index=-1):
-        manager = self.undoManager
-        if manager is None:
-            raise NotImplementedError
-        return manager.getUndoTitle(index)
-
-    def getUndoTitles(self):
-        manager = self.undoManager
-        if manager is None:
-            raise NotImplementedError
-        return manager.getUndoTitles()
-
-    def undo(self, index=-1):
-        manager = self.undoManager
-        if manager is None:
-            raise NotImplementedError
-        dispatcher = self._dispatcher
-        if dispatcher is not None:
-            self.dispatcher.postNotification(notification=self.beginUndoNotificationName, observable=self)
-        manager.undo(index)
-        if dispatcher is not None:
-            self.dispatcher.postNotification(notification=self.endUndoNotificationName, observable=self)
-
-    # redo
-
-    def canRedo(self):
-        manager = self.undoManager
-        if manager is None:
-            raise NotImplementedError
-        return manager.canRedo()
-
-    def getRedoTitle(self, index=0):
-        manager = self.undoManager
-        if manager is None:
-            raise NotImplementedError
-        return manager.getRedoTitle(index)
-
-    def getRedoTitles(self):
-        manager = self.undoManager
-        if manager is None:
-            raise NotImplementedError
-        return manager.getRedoTitles()
-
-    def redo(self, index=0):
-        manager = self.undoManager
-        if manager is None:
-            raise NotImplementedError
-        dispatcher = self._dispatcher
-        if dispatcher is not None:
-            self.dispatcher.postNotification(notification=self.beginRedoNotificationName, observable=self)
-        manager.undo(index)
-        if dispatcher is not None:
-            self.dispatcher.postNotification(notification=self.endRedoNotificationName, observable=self)
-
-    # serialization
-
-    def serializeForUndo(self, pack=True):
-        from cPickle import dumps
-        import zlib
-        # make the data dict
-        data = dict(
-            serializedData=self.getDataToSerializeForUndo(),
-            customData=self.getCustomDataToSerializeForUndo()
-        )
-        if pack:
-            # pickle
-            data = dumps(data, 0)
-            # compress
-            data = zlib.compress(data, 9)
-        return dict(packed=pack, data=data)
-
-    def getDataToSerializeForUndo(self):
-        raise NotImplementedError
-
-    def getCustomDataToSerializeForUndo(self):
-        return None
-
-    # deserealization
-
-    def deserializeFromUndo(self, data):
-        from cPickle import loads
-        import zlib
-        packed = data["packed"]
-        data = data["data"]
-        if packed:
-            # decompress
-            data = zlib.decompress(data)
-            # unpickle
-            data = loads(data)
-        # hold notifications
-        self.holdNotifications()
-        # deserialize basic data
-        self.loadDeserializedDataFromUndo(data["serializedData"])
-        # deserialize custom data
-        self.loadDeserializedCustomDataFromUndo(data["customData"])
-        # release held notifications
-        self.releaseHeldNotifications()
-
-    def loadDeserializedDataFromUndo(self, data):
-        raise NotImplementedError
-
-    def loadDeserializedCustomDataFromUndo(self, data):
-        pass
-
 
 class BaseDictObject(dict, BaseObject):
 
@@ -431,16 +290,6 @@ class BaseDictObject(dict, BaseObject):
     def update(self, other):
         super(BaseDictObject, self).update(other)
         self.dirty = True
-
-    # ----
-    # Undo
-    # ----
-
-    def getDataToSerializeForUndo(self):
-        return self._dict
-
-    def loadDeserializedDataFromUndo(self, data):
-        self.update(data)
 
 
 def _testDirty():

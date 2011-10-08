@@ -94,10 +94,6 @@ doc = """
 print doc
 
 print "    changeNotificationName = \"Info.Changed\""
-print "    beginUndoNotificationName = \"Info.BeginUndo\""
-print "    endUndoNotificationName = \"Info.EndUndo\""
-print "    beginRedoNotificationName = \"Info.BeginRedo\""
-print "    endRedoNotificationName = \"Info.EndRedo\""
 print
 
 print "    def __init__(self):"

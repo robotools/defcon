@@ -172,21 +172,6 @@ class Component(BaseObject):
         identifier = makeRandomIdentifier(existing=self.identifiers)
         self.identifier = identifier
 
-    # ----
-    # Undo
-    # ----
-
-    def getDataToSerializeForUndo(self):
-        data = dict(
-            baseGlyph=self.baseGlyph,
-            transformation=self.transformation
-        )
-        return data
-
-    def loadDeserializedDataFromUndo(self, data):
-        self.baseGlyph = data["baseGlyph"]
-        self.transformation = data["transformation"]
-
 
 if __name__ == "__main__":
     import doctest

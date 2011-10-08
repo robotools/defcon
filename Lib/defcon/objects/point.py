@@ -113,27 +113,6 @@ class Point(object):
         identifier = makeRandomIdentifier(existing=self.identifiers)
         self.identifier = identifier
 
-    # ----
-    # Undo
-    # ----
-
-    def getDataToSerializeForUndo(self):
-        data = dict(
-            x=self.x,
-            y=self.y,
-            segmentType=self.segmentType,
-            smooth=self.smooth,
-            name=self.name
-        )
-        return data
-
-    def loadDeserializedDataFromUndo(self, data):
-        self.x = data["x"]
-        self.y = data["y"]
-        self.segmentType = data["segmentType"]
-        self.smooth = data["smooth"]
-        self.name = data["name"]
-
 
 if __name__ == "__main__":
     import doctest

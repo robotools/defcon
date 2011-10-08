@@ -57,10 +57,6 @@ class Groups(BaseDictObject):
     """
 
     changeNotificationName = "Groups.Changed"
-    beginUndoNotificationName = "Groups.BeginUndo"
-    endUndoNotificationName = "Groups.EndUndo"
-    beginRedoNotificationName = "Groups.BeginRedo"
-    endRedoNotificationName = "Groups.EndRedo"
 
 
 if __name__ == "__main__":
