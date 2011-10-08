@@ -15,6 +15,7 @@ class GlyphObjectPointPen(AbstractPointPen):
 
     def endPath(self):
         if len(self._contour) == 1 and self._contour[0].name is not None:
+            self._contour.identifier = None
             point = self._contour[0]
             anchor = self._glyph.anchorClass()
             anchor.x = point.x
