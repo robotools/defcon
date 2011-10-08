@@ -146,6 +146,11 @@ class Glyph(BaseObject):
 
     anchorClass = property(_get_anchorClass, doc="The class used for anchors.")
 
+    def _get_identifiers(self):
+        return self._identifiers
+
+    identifiers = property(_get_identifiers, doc="Set of identifiers for the glyph. This is primarily for internal use.")
+
     def _set_name(self, value):
         oldName = self._name
         if oldName != value:
@@ -329,7 +334,7 @@ class Glyph(BaseObject):
         Get the point pen used to draw into this glyph.
         """
         from defcon.pens.glyphObjectPointPen import GlyphObjectPointPen
-        return GlyphObjectPointPen(self, self._identifiers)
+        return GlyphObjectPointPen(self)
 
     # -------
     # Methods

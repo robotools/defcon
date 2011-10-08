@@ -12,16 +12,6 @@ class Guideline(BaseDictObject):
     # Properties
     # ----------
 
-    def _set_identifiers(self, value):
-        self._identifiers = weakref.ref(value)
-
-    def _get_identifiers(self):
-        if self._identifiers is None:
-            return set()
-        return self._identifiers()
-
-    identifiers = property(_get_identifiers, _set_identifiers, doc="Set of identifiers for teh object that this guideline belongs to. This is primarily for internal use.")
-
     def _get_x(self):
         return self.get("x")
 
@@ -86,23 +76,40 @@ class Guideline(BaseDictObject):
 
     color = property(_get_color, _set_color, doc="The guideline's :class:`Color` object. When setting, the value can be a UFO color string, a sequence of (r, g, b, a) or a :class:`Color` object. Setting this posts *Guideline.ColorChanged* and *Guideline.Changed* notifications.")
 
+    # -------
+    # Methods
+    # -------
+
+    def _set_identifiers(self, value):
+        self._identifiers = weakref.ref(value)
+
+    def _get_identifiers(self):
+        if self._identifiers is None:
+            return set()
+        return self._identifiers()
+
+    identifiers = property(_get_identifiers, _set_identifiers, doc="Set of identifiers for the object that this guideline belongs to. This is primarily for internal use.")
+
     def _get_identifier(self):
         return self.get("identifier")
 
     def _set_identifier(self, value):
-        oldIdentifier = self.get("identifier")
+        oldIdentifier = self.identifier
         if value == oldIdentifier:
             return
-        assert value not in self.identifiers
+        # don't allow a duplicate
+        identifiers = self.identifiers
+        assert value not in identifiers
+        # free the old identifier
+        if oldIdentifier in identifiers:
+            identifiers.remove(oldIdentifier)
+        # store
         self["identifier"] = value
         self.identifiers.add(value)
+        # post notifications
         self.postNotification("Guideline.IdentifierChanged", data=dict(oldIdentifier=oldIdentifier, newIdentifier=value))
 
     identifier = property(_get_identifier, _set_identifier, doc="The identifier. Setting this will post *Guideline.IdentifierChanged* and *Guideline.Changed* notifications.")
-
-    # -------
-    # Methods
-    # -------
 
     def generateIdentifier(self):
         """

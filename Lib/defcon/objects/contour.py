@@ -1,3 +1,4 @@
+import weakref
 from fontTools.misc import bezierTools
 from defcon.objects.base import BaseObject
 from defcon.tools import bezierMath
@@ -45,6 +46,8 @@ class Contour(BaseObject):
             from point import Point
             pointClass = Point
         self._pointClass = pointClass
+        self._identifiers = None
+        self._identifier = None
 
     def _destroyBoundsCache(self):
         self._boundsCache = None
@@ -402,12 +405,12 @@ class Contour(BaseObject):
         """
         pass
 
-    def addPoint(self, (x, y), segmentType=None, smooth=False, name=None):
+    def addPoint(self, (x, y), segmentType=None, smooth=False, name=None, identifier=None, identifiers=None, **kwargs):
         """
         Standard point pen *addPoint* method.
         This should not be used externally.
         """
-        point = self._pointClass((x, y), segmentType=segmentType, smooth=smooth, name=name)
+        point = self._pointClass((x, y), segmentType=segmentType, smooth=smooth, name=name, identifier=identifier, identifiers=identifiers)
         self._addPoint(point)
 
     def _addPoint(self, point):
@@ -432,6 +435,50 @@ class Contour(BaseObject):
         for point in self._points:
             pointPen.addPoint((point.x, point.y), segmentType=point.segmentType, smooth=point.smooth, name=point.name)
         pointPen.endPath()
+
+    # ----------
+    # Identifier
+    # ----------
+
+    def _set_identifiers(self, value):
+        self._identifiers = weakref.ref(value)
+
+    def _get_identifiers(self):
+        if self._identifiers is None:
+            return set()
+        return self._identifiers()
+
+    identifiers = property(_get_identifiers, _set_identifiers, doc="Set of identifiers for the glyph that this contour belongs to. This is primarily for internal use.")
+
+    def _get_identifier(self):
+        return self._identifier
+
+    def _set_identifier(self, value):
+        oldIdentifier = self.identifier
+        if value == oldIdentifier:
+            return
+        # don't allow a duplicate
+        identifiers = self.identifiers
+        assert value not in identifiers
+        # free the old identifier
+        if oldIdentifier in identifiers:
+            identifiers.remove(oldIdentifier)
+        # store
+        self._identifier = value
+        self.identifiers.add(value)
+        # post notifications
+        self.postNotification("Contour.IdentifierChanged", data=dict(oldIdentifier=oldIdentifier, newIdentifier=value))
+        self.dirty = True
+
+    identifier = property(_get_identifier, _set_identifier, doc="The identifier. Setting this will post *Contour.IdentifierChanged* and *Contour.Changed* notifications.")
+
+    def generateIdentifier(self):
+        """
+        Create a new, unique identifier for and assign it to the contour.
+        This will post *Contour.IdentifierChanged* and *Contour.Changed* notifications.
+        """
+        identifier = makeRandomIdentifier(existing=self.identifiers)
+        self.identifier = identifier
 
     # ----
     # Undo

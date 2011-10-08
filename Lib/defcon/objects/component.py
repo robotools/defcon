@@ -1,3 +1,4 @@
+import weakref
 from defcon.objects.base import BaseObject
 
 
@@ -23,6 +24,8 @@ class Component(BaseObject):
         self._dirty = False
         self._baseGlyph = None
         self._transformation = (1, 0, 0, 1, 0, 0)
+        self._identifiers = None
+        self._identifier = None
 
     # ----------
     # Attributes
@@ -124,6 +127,50 @@ class Component(BaseObject):
         pen = PointInsidePen(glyphSet=font, testPoint=(x, y), evenOdd=evenOdd)
         self.draw(pen)
         return pen.getResult()
+
+    # ----------
+    # Identifier
+    # ----------
+
+    def _set_identifiers(self, value):
+        self._identifiers = weakref.ref(value)
+
+    def _get_identifiers(self):
+        if self._identifiers is None:
+            return set()
+        return self._identifiers()
+
+    identifiers = property(_get_identifiers, _set_identifiers, doc="Set of identifiers for the glyph that this component belongs to. This is primarily for internal use.")
+
+    def _get_identifier(self):
+        return self._identifier
+
+    def _set_identifier(self, value):
+        oldIdentifier = self.identifier
+        if value == oldIdentifier:
+            return
+        # don't allow a duplicate
+        identifiers = self.identifiers
+        assert value not in identifiers
+        # free the old identifier
+        if oldIdentifier in identifiers:
+            identifiers.remove(oldIdentifier)
+        # store
+        self._identifier = value
+        self.identifiers.add(value)
+        # post notifications
+        self.postNotification("Component.IdentifierChanged", data=dict(oldIdentifier=oldIdentifier, newIdentifier=value))
+        self.dirty = True
+
+    identifier = property(_get_identifier, _set_identifier, doc="The identifier. Setting this will post *Component.IdentifierChanged* and *Component.Changed* notifications.")
+
+    def generateIdentifier(self):
+        """
+        Create a new, unique identifier for and assign it to the contour.
+        This will post *Component.IdentifierChanged* and *Component.Changed* notifications.
+        """
+        identifier = makeRandomIdentifier(existing=self.identifiers)
+        self.identifier = identifier
 
     # ----
     # Undo
