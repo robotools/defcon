@@ -1,4 +1,5 @@
 from defcon.objects.base import BaseDictObject
+from defcon.objects.color import Color
 from defcon.tools.identifiers import makeRandomIdentifier
 
 
@@ -203,14 +204,21 @@ def _test():
     True
 
     >>> g = Guideline()
+    >>> g.color = "1,1,1,1"
+    >>> g.color
+    '1,1,1,1'
+    >>> g.dirty
+    True
+
+    >>> g = Guideline()
     >>> g.identifier
     >>> g.generateIdentifier()
     >>> g.identifier is None
     False
 
-    >>> g = Guideline(dict(x=1, y=2, angle=3, name="4", identifier="5"))
-    >>> g.x, g.y, g.angle, g.name, g.identifier
-    (1, 2, 3, '4', '5')
+    >>> g = Guideline(dict(x=1, y=2, angle=3, name="4", identifier="5", color="1,1,1,1"))
+    >>> g.x, g.y, g.angle, g.name, g.identifier, g.color
+    (1, 2, 3, '4', '5', '1,1,1,1')
     """
 
 if __name__ == "__main__":
