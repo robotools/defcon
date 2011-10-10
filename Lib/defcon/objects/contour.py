@@ -46,7 +46,6 @@ class Contour(BaseObject):
             from point import Point
             pointClass = Point
         self._pointClass = pointClass
-        self._identifiers = None
         self._identifier = None
 
     def _destroyBoundsCache(self):

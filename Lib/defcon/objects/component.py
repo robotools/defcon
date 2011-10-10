@@ -24,7 +24,6 @@ class Component(BaseObject):
         self._dirty = False
         self._baseGlyph = None
         self._transformation = (1, 0, 0, 1, 0, 0)
-        self._identifiers = None
         self._identifier = None
 
     # ----------
