@@ -29,6 +29,7 @@ class Guideline(BaseDictObject):
 
     def __init__(self, guidelineDict=None):
         super(Guideline, self).__init__()
+        self._dirty = False
         if guidelineDict is not None:
             self.x = guidelineDict.get("x")
             self.y = guidelineDict.get("y")
