@@ -395,33 +395,36 @@ class Glyph(BaseObject):
     def appendContour(self, contour):
         """
         Append **contour** to the glyph. The contour must be a defcon
-        :class:`Contour` object or a subclass of that object.
+        :class:`Contour` object or a subclass of that object. An error
+        will be raised if the contour's identifier or a point identifier
+        conflicts with any of the identifiers within the glyph.
 
         This will post a *Glyph.Changed* notification.
         """
-        # XXX handle identifiers
         assert contour not in self._contours
         self.insertContour(len(self._contours), contour)
 
     def appendComponent(self, component):
         """
         Append **component** to the glyph. The component must be a defcon
-        :class:`Component` object or a subclass of that object.
+        :class:`Component` object or a subclass of that object. An error
+        will be raised if the component's identifier conflicts with any of
+        the identifiers within the glyph.
 
         This will post a *Glyph.Changed* notification.
         """
-        # XXX handle identifiers
         assert component not in self._components
         self.insertComponent(len(self._components), component)
 
     def appendAnchor(self, anchor):
         """
         Append **anchor** to the glyph. The anchor must be a defcon
-        :class:`Anchor` object or a subclass of that object.
+        :class:`Anchor` object or a subclass of that object. An error
+        will be raised if the anchors's identifier conflicts with any of
+        the identifiers within the glyph.
 
         This will post a *Glyph.Changed* notification.
         """
-        # XXX handle identifiers
         assert anchor not in self._anchors
         self.insertAnchor(len(self._anchors), anchor)
 
@@ -429,12 +432,22 @@ class Glyph(BaseObject):
         """
         Insert **contour** into the glyph at index. The contour
         must be a defcon :class:`Contour` object or a subclass
-        of that object.
+        of that object. An error will be raised if the contour's
+        identifier or a point identifier conflicts with any of
+        the identifiers within the glyph.
 
         This will post a *Glyph.Changed* notification.
         """
-        # XXX handle identifiers
         assert contour not in self._contours
+        identifiers = self._identifiers
+        if contour.identifier is not None:
+            assert contour.identifier not in identifiers
+            if contour.identifier is not None:
+                identifiers.add(contour.identifier)
+        for point in contour:
+            if point.identifier is not None:
+                assert point.identifier not in identifiers
+                self._identifiers.add(point.identifier)
         if contour.getParent() != self:
             self._setParentDataInContour(contour)
         self._contours.insert(index, contour)
@@ -445,12 +458,18 @@ class Glyph(BaseObject):
         """
         Insert **component** into the glyph at index. The component
         must be a defcon :class:`Component` object or a subclass
-        of that object.
+        of that object. An error will be raised if the component's
+        identifier conflicts with any of the identifiers within
+        the glyph.
 
         This will post a *Glyph.Changed* notification.
         """
-        # XXX handle identifiers
         assert component not in self._components
+        if component.identifier is not None:
+            identifiers = self._identifiers
+            assert component.identifier not in identifiers
+            if component.identifier is not None:
+                identifiers.add(component.identifier)
         if component.getParent() != self:
             self._setParentDataInComponent(component)
         self._components.insert(index, component)
@@ -461,7 +480,9 @@ class Glyph(BaseObject):
         """
         Insert **anchor** into the glyph at index. The anchor
         must be a defcon :class:`Anchor` object or a subclass
-        of that object.
+        of that object. An error will be raised if the anchor's
+        identifier conflicts with any of the identifiers within
+        the glyph.
 
         This will post a *Glyph.Changed* notification.
         """
@@ -478,7 +499,12 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
-        # XXX handle identifiers
+        identifiers = self._identifiers
+        if contour.identifier is not None:
+            identifiers.remove(contour.identifier)
+        for point in contour:
+            if point.identifier is not None:
+                identifiers.remove(point.identifier)
         self._contours.remove(contour)
         self._removeParentDataInContour(contour)
         self._destroyBoundsCache()
@@ -490,7 +516,8 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
-        # XXX handle identifiers
+        if component.identifier is not None:
+            self._identifiers.remove(component.identifier)
         self._components.remove(component)
         self._removeParentDataInComponent(component)
         self._destroyBoundsCache()
@@ -543,7 +570,6 @@ class Glyph(BaseObject):
 
         This posts a *Glyph.Changed* notification.
         """
-        # XXX handle identifiers
         self.holdNotifications()
         for contour in reversed(self._contours):
             self.removeContour(contour)
@@ -555,7 +581,6 @@ class Glyph(BaseObject):
 
         This posts a *Glyph.Changed* notification.
         """
-        # XXX handle identifiers
         self.holdNotifications()
         for component in reversed(self._components):
             self.removeComponent(component)
@@ -567,7 +592,6 @@ class Glyph(BaseObject):
 
         This posts a *Glyph.Changed* notification.
         """
-        # XXX handle identifiers
         self.holdNotifications()
         for anchor in reversed(self._anchors):
             self.removeAnchor(anchor)
@@ -1113,6 +1137,61 @@ def _testPointInside():
     False
     >>> glyph.pointInside((-100, -100))
     False
+    """
+
+def _testIdentifiers():
+    """
+    >>> glyph = Glyph()
+    >>> pointPen = glyph.getPointPen()
+    >>> pointPen.beginPath(identifier="contour 1")
+    >>> pointPen.addPoint((0, 0), identifier="point 1")
+    >>> pointPen.addPoint((0, 0), identifier="point 2")
+    >>> pointPen.endPath()
+    >>> pointPen.beginPath(identifier="contour 2")
+    >>> pointPen.endPath()
+    >>> pointPen.addComponent("A", (1, 1, 1, 1, 1, 1), identifier="component 1")
+    >>> pointPen.addComponent("A", (1, 1, 1, 1, 1, 1), identifier="component 2")
+
+    >>> for contour in glyph:
+    ...     contour.identifier
+    'contour 1'
+    'contour 2'
+    >>> for point in glyph[0]:
+    ...     point.identifier
+    'point 1'
+    'point 2'
+    >>> for component in glyph.components:
+    ...     component.identifier
+    'component 1'
+    'component 2'
+
+    >>> pointPen.beginPath(identifier="contour 1")
+    >>> pointPen.endPath()
+    Traceback (most recent call last):
+        ...
+    AssertionError
+
+    >>> pointPen.beginPath()
+    >>> pointPen.addPoint((0, 0))
+    >>> pointPen.addPoint((0, 0), identifier="point 1")
+    >>> pointPen.endPath()
+    Traceback (most recent call last):
+        ...
+    AssertionError
+
+    >>> pointPen.addComponent("A", (1, 1, 1, 1, 1, 1), identifier="component 1")
+    Traceback (most recent call last):
+        ...
+    AssertionError
+
+    >>> list(sorted(glyph.identifiers))
+    ['component 1', 'component 2', 'contour 1', 'contour 2', 'point 1', 'point 2']
+    >>> glyph.removeContour(glyph[0])
+    >>> list(sorted(glyph.identifiers))
+    ['component 1', 'component 2', 'contour 2']
+    >>> glyph.removeComponent(glyph.components[0])
+    >>> list(sorted(glyph.identifiers))
+    ['component 2', 'contour 2']
     """
 
 if __name__ == "__main__":

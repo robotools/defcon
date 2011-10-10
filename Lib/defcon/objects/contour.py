@@ -405,7 +405,7 @@ class Contour(BaseObject):
         """
         pass
 
-    def addPoint(self, (x, y), segmentType=None, smooth=False, name=None, identifier=None, identifiers=None, **kwargs):
+    def addPoint(self, (x, y), segmentType=None, smooth=False, name=None, identifier=None, **kwargs):
         """
         Standard point pen *addPoint* method.
         This should not be used externally.
@@ -466,7 +466,8 @@ class Contour(BaseObject):
             identifiers.remove(oldIdentifier)
         # store
         self._identifier = value
-        identifiers.add(value)
+        if value is not None:
+            identifiers.add(value)
         # post notifications
         self.postNotification("Contour.IdentifierChanged", data=dict(oldIdentifier=oldIdentifier, newIdentifier=value))
         self.dirty = True
@@ -484,6 +485,37 @@ class Contour(BaseObject):
 # -----
 # Tests
 # -----
+
+def _testIdentifier():
+    """
+    >>> from defcon import Glyph
+    >>> glyph = Glyph()
+    >>> contour = Contour()
+    >>> glyph.appendContour(contour)
+    >>> contour.identifier = "contour 1"
+    >>> contour.identifier
+    'contour 1'
+    >>> list(sorted(glyph.identifiers))
+    ['contour 1']
+    >>> contour = Contour()
+    >>> glyph.appendContour(contour)
+    >>> contour.identifier = "contour 1"
+    Traceback (most recent call last):
+        ...
+    AssertionError
+    >>> contour.identifier = "contour 2"
+    >>> list(sorted(glyph.identifiers))
+    ['contour 1', 'contour 2']
+    >>> contour.identifier = "not contour 2 anymore"
+    >>> contour.identifier
+    'not contour 2 anymore'
+    >>> list(sorted(glyph.identifiers))
+    ['contour 1', 'not contour 2 anymore']
+    >>> contour.identifier = None
+    >>> contour.identifier
+    >>> list(sorted(glyph.identifiers))
+    ['contour 1']
+    """
 
 def _testBounds():
     """

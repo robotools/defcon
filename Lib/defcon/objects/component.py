@@ -158,7 +158,8 @@ class Component(BaseObject):
             identifiers.remove(oldIdentifier)
         # store
         self._identifier = value
-        identifiers.add(value)
+        if value is not None:
+            identifiers.add(value)
         # post notifications
         self.postNotification("Component.IdentifierChanged", data=dict(oldIdentifier=oldIdentifier, newIdentifier=value))
         self.dirty = True
@@ -172,6 +173,37 @@ class Component(BaseObject):
         """
         identifier = makeRandomIdentifier(existing=self.identifiers)
         self.identifier = identifier
+
+def _testIdentifier():
+    """
+    >>> from defcon import Glyph
+    >>> glyph = Glyph()
+    >>> component = Component()
+    >>> glyph.appendComponent(component)
+    >>> component.identifier = "component 1"
+    >>> component.identifier
+    'component 1'
+    >>> list(sorted(glyph.identifiers))
+    ['component 1']
+    >>> component = Component()
+    >>> glyph.appendComponent(component)
+    >>> component.identifier = "component 1"
+    Traceback (most recent call last):
+        ...
+    AssertionError
+    >>> component.identifier = "component 2"
+    >>> list(sorted(glyph.identifiers))
+    ['component 1', 'component 2']
+    >>> component.identifier = "not component 2 anymore"
+    >>> component.identifier
+    'not component 2 anymore'
+    >>> list(sorted(glyph.identifiers))
+    ['component 1', 'not component 2 anymore']
+    >>> component.identifier = None
+    >>> component.identifier
+    >>> list(sorted(glyph.identifiers))
+    ['component 1']
+    """
 
 
 if __name__ == "__main__":
