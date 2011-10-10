@@ -1,4 +1,3 @@
-import weakref
 from defcon.objects.base import BaseDictObject
 from defcon.tools.identifiers import makeRandomIdentifier
 
