@@ -802,6 +802,9 @@ class Glyph(BaseObject):
         self._destroyBoundsCache()
         self.dirty = True
 
+    def _guidelineChanged(self, notification):
+        self.dirty = True
+
     def _libContentChanged(self, notification):
         self.dirty = True
 
