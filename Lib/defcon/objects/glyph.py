@@ -285,7 +285,7 @@ class Glyph(BaseObject):
             self.appendGuideline(guideline)
         self.releaseHeldNotifications()
 
-    guidelines = property(_get_guidelines, _set_guidelines, doc="An ordered list of :class:`Guideline` objects stored in the glyph. Setting this will post a *Glyph.Changed* notification along with any notifications posted by the :py:meth:`Contour.appendGuideline` and :py:meth:`Contour.clearGuidelines` methods.")
+    guidelines = property(_get_guidelines, _set_guidelines, doc="An ordered list of :class:`Guideline` objects stored in the glyph. Setting this will post a *Glyph.Changed* notification along with any notifications posted by the :py:meth:`Glyph.appendGuideline` and :py:meth:`Glyph.clearGuidelines` methods.")
 
     def _get_note(self):
         return self._note
