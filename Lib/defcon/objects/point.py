@@ -8,23 +8,19 @@ class Point(object):
     This object represents a single point.
     """
 
-    __slots__ = ["_x", "_y", "_segmentType", "_smooth", "_name", "_identifiers", "_identifier"]
+    __slots__ = ["_x", "_y", "_segmentType", "_smooth", "_name", "_identifier"]
 
-    def __init__(self, (x, y), segmentType=None, smooth=False, name=None, identifier=None, identifiers=None):
+    def __init__(self, (x, y), segmentType=None, smooth=False, name=None, identifier=None):
         super(Point, self).__init__()
         self._x = x
         self._y = y
         self._segmentType = segmentType
         self._smooth = smooth
         self._name = name
-        self._identifiers = identifiers
-        # use the full API to set the identifiers
-        # so that the checking is performed
-        self._identifier = None
-        self.identifier = identifier
+        self._identifier = identifier
 
     def __repr__(self):
-        return "<%s position: (%s, %s) type: %s smooth: %s name: %s>" % (self.__class__.__name__, self.x, self.y, str(self.segmentType), str(self.smooth), str(self.name))
+        return "<%s position: (%s, %s) type: %s smooth: %s name: %s identifier: %s>" % (self.__class__.__name__, self.x, self.y, str(self.segmentType), str(self.smooth), str(self.name), str(self.identifier))
 
     def _get_segmentType(self):
         return self._segmentType
@@ -77,41 +73,13 @@ class Point(object):
     # Identifier
     # ----------
 
-    def _set_identifiers(self, value):
-        self._identifiers = weakref.ref(value)
-
-    def _get_identifiers(self):
-        if self._identifiers is None:
-            return set()
-        return self._identifiers()
-
-    identifiers = property(_get_identifiers, _set_identifiers, doc="Set of identifiers for the glyph that this point belongs to. This is primarily for internal use.")
-
     def _get_identifier(self):
         return self._identifier
 
     def _set_identifier(self, value):
-        oldIdentifier = self.identifier
-        if value == oldIdentifier:
-            return
-        # don't allow a duplicate
-        identifiers = self.identifiers
-        assert value not in identifiers
-        # free the old identifier
-        if oldIdentifier in identifiers:
-            identifiers.remove(oldIdentifier)
-        # store
-        self._identifier = value
-        self.identifiers.add(value)
+        self._identifier = valie
 
     identifier = property(_get_identifier, _set_identifier, doc="The identifier.")
-
-    def generateIdentifier(self):
-        """
-        Create a new, unique identifier for and assign it to the contour.
-        """
-        identifier = makeRandomIdentifier(existing=self.identifiers)
-        self.identifier = identifier
 
 
 if __name__ == "__main__":

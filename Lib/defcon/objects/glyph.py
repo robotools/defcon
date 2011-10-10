@@ -399,6 +399,7 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
+        # XXX handle identifiers
         assert contour not in self._contours
         self.insertContour(len(self._contours), contour)
 
@@ -409,6 +410,7 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
+        # XXX handle identifiers
         assert component not in self._components
         self.insertComponent(len(self._components), component)
 
@@ -419,6 +421,7 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
+        # XXX handle identifiers
         assert anchor not in self._anchors
         self.insertAnchor(len(self._anchors), anchor)
 
@@ -430,6 +433,7 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
+        # XXX handle identifiers
         assert contour not in self._contours
         if contour.getParent() != self:
             self._setParentDataInContour(contour)
@@ -445,6 +449,7 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
+        # XXX handle identifiers
         assert component not in self._components
         if component.getParent() != self:
             self._setParentDataInComponent(component)
@@ -460,6 +465,7 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
+        # XXX handle identifiers
         assert anchor not in self._anchors
         if anchor.getParent() != self:
             self._setParentDataInAnchor(anchor)
@@ -472,6 +478,7 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
+        # XXX handle identifiers
         self._contours.remove(contour)
         self._removeParentDataInContour(contour)
         self._destroyBoundsCache()
@@ -483,6 +490,7 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
+        # XXX handle identifiers
         self._components.remove(component)
         self._removeParentDataInComponent(component)
         self._destroyBoundsCache()
@@ -494,6 +502,7 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
+        # XXX handle identifiers
         self._anchors.remove(anchor)
         self._removeParentDataInAnchor(anchor)
         self.dirty = True
@@ -534,6 +543,7 @@ class Glyph(BaseObject):
 
         This posts a *Glyph.Changed* notification.
         """
+        # XXX handle identifiers
         self.holdNotifications()
         for contour in reversed(self._contours):
             self.removeContour(contour)
@@ -545,6 +555,7 @@ class Glyph(BaseObject):
 
         This posts a *Glyph.Changed* notification.
         """
+        # XXX handle identifiers
         self.holdNotifications()
         for component in reversed(self._components):
             self.removeComponent(component)
@@ -556,6 +567,7 @@ class Glyph(BaseObject):
 
         This posts a *Glyph.Changed* notification.
         """
+        # XXX handle identifiers
         self.holdNotifications()
         for anchor in reversed(self._anchors):
             self.removeAnchor(anchor)

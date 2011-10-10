@@ -24,13 +24,6 @@ class GlyphObjectPointPen(AbstractPointPen):
             self._glyph.appendAnchor(anchor)
         else:
             self._contour.dirty = False
-            # pull the identifier off, then reset it to
-            # ensure that it makes it into the registry
-            identifier = self._contour.identifier
-            self._contour.identifier = None
-            self._contour.identifiers = self._identifiers
-            self._contour.identifier = identifier
-            # store
             self._glyph.appendContour(self._contour)
         self._contour = None
 
@@ -45,6 +38,5 @@ class GlyphObjectPointPen(AbstractPointPen):
         component = self._glyph.componentClass()
         component.baseGlyph = baseGlyphName
         component.transformation = transformation
-        component.identifiers = self._glyph.identifiers
         component.identifier = identifier
         self._glyph.appendComponent(component)

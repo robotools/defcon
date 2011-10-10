@@ -80,15 +80,16 @@ class Guideline(BaseDictObject):
     # Methods
     # -------
 
-    def _set_identifiers(self, value):
-        self._identifiers = weakref.ref(value)
-
     def _get_identifiers(self):
-        if self._identifiers is None:
-            return set()
-        return self._identifiers()
+        identifiers = None
+        parent = self.getParent()
+        if parent is not None:
+            identifiers = parent.identifiers
+        if identifiers is None:
+            identifiers = set()
+        return identifiers
 
-    identifiers = property(_get_identifiers, _set_identifiers, doc="Set of identifiers for the object that this guideline belongs to. This is primarily for internal use.")
+    identifiers = property(_get_identifiers, doc="Set of identifiers for the object that this guideline belongs to. This is primarily for internal use.")
 
     def _get_identifier(self):
         return self.get("identifier")
@@ -105,7 +106,7 @@ class Guideline(BaseDictObject):
             identifiers.remove(oldIdentifier)
         # store
         self["identifier"] = value
-        self.identifiers.add(value)
+        identifiers.add(value)
         # post notifications
         self.postNotification("Guideline.IdentifierChanged", data=dict(oldIdentifier=oldIdentifier, newIdentifier=value))
 

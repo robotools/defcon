@@ -132,15 +132,16 @@ class Component(BaseObject):
     # Identifier
     # ----------
 
-    def _set_identifiers(self, value):
-        self._identifiers = weakref.ref(value)
-
     def _get_identifiers(self):
-        if self._identifiers is None:
-            return set()
-        return self._identifiers()
+        identifiers = None
+        parent = self.getParent()
+        if parent is not None:
+            identifiers = parent.identifiers
+        if identifiers is None:
+            identifiers = set()
+        return identifiers
 
-    identifiers = property(_get_identifiers, _set_identifiers, doc="Set of identifiers for the glyph that this component belongs to. This is primarily for internal use.")
+    identifiers = property(_get_identifiers, doc="Set of identifiers for the glyph that this component belongs to. This is primarily for internal use.")
 
     def _get_identifier(self):
         return self._identifier
@@ -157,7 +158,7 @@ class Component(BaseObject):
             identifiers.remove(oldIdentifier)
         # store
         self._identifier = value
-        self.identifiers.add(value)
+        identifiers.add(value)
         # post notifications
         self.postNotification("Component.IdentifierChanged", data=dict(oldIdentifier=oldIdentifier, newIdentifier=value))
         self.dirty = True
