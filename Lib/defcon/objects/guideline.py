@@ -5,8 +5,38 @@ from defcon.tools.identifiers import makeRandomIdentifier
 
 class Guideline(BaseDictObject):
 
+    """
+    This object represents a guideline.
+
+    **This object posts the following notifications:**
+
+    =====================       ====
+    Name                        Note
+    =====================       ====
+    Guideline.Changed           Posted when the *dirty* attribute is set.
+    Guideline.XChanged          Posted when the *x* attribute is set.
+    Guideline.YChanged          Posted when the *y* attribute is set.
+    Guideline.AngleChanged      Posted when the *angle* attribute is set.
+    Guideline.NameChanged       Posted when the *name* attribute is set.
+    Guideline.IdentifierChanged Posted when the *identifier* attribute is set.
+    =====================       ====
+
+    During initialization a guideline dictionary, following the format defined
+    in the UFO spec, can be passed. If so, the new object will be populated
+    with the data from the dictionary.
+    """
+
     changeNotificationName = "Guideline.Changed"
-    _identifiers = None
+
+    def __init__(self, guidelineDict=None):
+        super(Guideline, self).__init__()
+        if guidelineDict is not None:
+            self.x = guidelineDict.get("x")
+            self.y = guidelineDict.get("y")
+            self.angle = guidelineDict.get("angle")
+            self.name = guidelineDict.get("name")
+            self.color = guidelineDict.get("color")
+            self.identifier = guidelineDict.get("identifier")
 
     # ----------
     # Properties
@@ -106,7 +136,8 @@ class Guideline(BaseDictObject):
             identifiers.remove(oldIdentifier)
         # store
         self["identifier"] = value
-        identifiers.add(value)
+        if value is not None:
+            identifiers.add(value)
         # post notifications
         self.postNotification("Guideline.IdentifierChanged", data=dict(oldIdentifier=oldIdentifier, newIdentifier=value))
 
@@ -176,6 +207,10 @@ def _test():
     >>> g.generateIdentifier()
     >>> g.identifier is None
     False
+
+    >>> g = Guideline(dict(x=1, y=2, angle=3, name="4", identifier="5"))
+    >>> g.x, g.y, g.angle, g.name, g.identifier
+    (1, 2, 3, '4', '5')
     """
 
 if __name__ == "__main__":

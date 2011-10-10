@@ -1,6 +1,6 @@
 from fontTools.misc import arrayTools
 from defcon.objects.base import BaseObject
-from defcon.tools.fuzzyNumber import FuzzyNumber
+from defcon.objects.guideline import Guideline
 from defcon.tools.notifications import NotificationCenter
 
 _representationFactories = {}
@@ -64,6 +64,7 @@ class Glyph(BaseObject):
         self._contours = []
         self._components = []
         self._anchors = []
+        self._guidelines = []
 
         self._lib = None
 
@@ -274,6 +275,18 @@ class Glyph(BaseObject):
 
     anchors = property(_get_anchors, doc="An ordered list of :class:`Anchor` objects stored in the glyph.")
 
+    def _get_guidelines(self):
+        return list(self._guidelines)
+
+    def _set_guidelines(self, value):
+        self.clearGuidelines()
+        self.holdNotifications()
+        for guideline in value:
+            self.appendGuideline(guideline)
+        self.releaseHeldNotifications()
+
+    guidelines = property(_get_guidelines, _set_guidelines, doc="An ordered list of :class:`Guideline` objects stored in the glyph. Setting this will post a *Glyph.Changed* notification along with any notifications posted by the :py:meth:`Contour.appendGuideline` and :py:meth:`Contour.clearGuidelines` methods.")
+
     def _get_note(self):
         return self._note
 
@@ -392,6 +405,19 @@ class Glyph(BaseObject):
             anchor.removeObserver(observer=self, notification="Anchor.Changed")
             anchor._dispatcher = None
 
+    def _setParentDataInGuideline(self, guideline):
+        guideline.setParent(self)
+        dispatcher = self.dispatcher
+        if dispatcher is not None:
+            guideline.dispatcher = dispatcher
+            guideline.addObserver(observer=self, methodName="_guidelineChanged", notification="Guideline.Changed")
+
+    def _removeParentDataInGuideline(self, guideline):
+        guideline.setParent(None)
+        if guideline._dispatcher is not None:
+            guideline.removeObserver(observer=self, notification="Guideline.Changed")
+            guideline._dispatcher = None
+
     def appendContour(self, contour):
         """
         Append **contour** to the glyph. The contour must be a defcon
@@ -420,13 +446,25 @@ class Glyph(BaseObject):
         """
         Append **anchor** to the glyph. The anchor must be a defcon
         :class:`Anchor` object or a subclass of that object. An error
-        will be raised if the anchors's identifier conflicts with any of
+        will be raised if the anchor's identifier conflicts with any of
         the identifiers within the glyph.
 
         This will post a *Glyph.Changed* notification.
         """
         assert anchor not in self._anchors
         self.insertAnchor(len(self._anchors), anchor)
+
+    def appendGuideline(self, guideline):
+        """
+        Append **guideline** to the glyph. The guideline must be a defcon
+        :class:`Guideline` object or a subclass of that object. An error
+        will be raised if the guideline's identifier conflicts with any of
+        the identifiers within the glyph.
+
+        This will post a *Glyph.Changed* notification.
+        """
+        assert guideline not in self._guidelines
+        self.insertGuideline(len(self._guidelines), guideline)
 
     def insertContour(self, index, contour):
         """
@@ -493,6 +531,29 @@ class Glyph(BaseObject):
         self._anchors.insert(index, anchor)
         self.dirty = True
 
+    def insertGuideline(self, index, guideline):
+        """
+        Insert **guideline** into the glyph at index. The guideline
+        must be a defcon :class:`Guideline` object or a subclass
+        of that object. An error will be raised if the guideline's
+        identifier conflicts with any of the identifiers within
+        the glyph.
+
+        This will post a *Glyph.Changed* notification.
+        """
+        assert guideline not in self._guidelines
+        if not isinstance(guideline, Guideline):
+            guideline = Guideline(guideline)
+        if guideline.identifier is not None:
+            identifiers = self._identifiers
+            assert guideline.identifier not in identifiers
+            if guideline.identifier is not None:
+                identifiers.add(guideline.identifier)
+        if guideline.getParent() != self:
+            self._setParentDataInGuideline(guideline)
+        self._guidelines.insert(index, guideline)
+        self.dirty = True
+
     def removeContour(self, contour):
         """
         Remove **contour** from the glyph.
@@ -534,6 +595,18 @@ class Glyph(BaseObject):
         self._removeParentDataInAnchor(anchor)
         self.dirty = True
 
+    def removeGuideline(self, guideline):
+        """
+        Remove **guideline** from the glyph.
+
+        This will post a *Glyph.Changed* notification.
+        """
+        if guideline.identifier is not None:
+            self._identifiers.remove(guideline.identifier)
+        self._guidelines.remove(guideline)
+        self._removeParentDataInGuideline(guideline)
+        self.dirty = True
+
     def contourIndex(self, contour):
         """
         Get the index for **contour**.
@@ -552,9 +625,15 @@ class Glyph(BaseObject):
         """
         return self._anchors.index(anchor)
 
+    def guidelineIndex(self, guideline):
+        """
+        Get the index for **guideline**.
+        """
+        return self._guidelines.index(guideline)
+
     def clear(self):
         """
-        Clear all contours, components and anchors from the glyph.
+        Clear all contours, components, anchors and guidelines from the glyph.
 
         This posts a *Glyph.Changed* notification.
         """
@@ -562,6 +641,7 @@ class Glyph(BaseObject):
         self.clearContours()
         self.clearComponents()
         self.clearAnchors()
+        self.clearGuidelines()
         self.releaseHeldNotifications()
 
     def clearContours(self):
@@ -595,6 +675,17 @@ class Glyph(BaseObject):
         self.holdNotifications()
         for anchor in reversed(self._anchors):
             self.removeAnchor(anchor)
+        self.releaseHeldNotifications()
+
+    def clearGuidelines(self):
+        """
+        Clear all guidelines from the glyph.
+
+        This posts a *Glyph.Changed* notification.
+        """
+        self.holdNotifications()
+        for guideline in reversed(self._guidelines):
+            self.removeGuideline(guideline)
         self.releaseHeldNotifications()
 
     def move(self, (x, y)):
@@ -951,6 +1042,8 @@ def _testAppendContour():
     1
     >>> glyph.dirty
     True
+    >>> contour.getParent() == glyph
+    True
     """
 
 def _testAppendComponent():
@@ -963,6 +1056,8 @@ def _testAppendComponent():
     >>> len(glyph.components)
     1
     >>> glyph.dirty
+    True
+    >>> component.getParent() == glyph
     True
     """
 
@@ -977,6 +1072,23 @@ def _testAppendAnchor():
     1
     >>> glyph.dirty
     True
+    >>> anchor.getParent() == glyph
+    True
+    """
+
+def _testAppendGuideline():
+    """
+    >>> from defcon.objects.guideline import Guideline
+    >>> glyph = Glyph()
+    >>> glyph.dirty = False
+    >>> guideline = Guideline()
+    >>> glyph.appendGuideline(guideline)
+    >>> len(glyph.guidelines)
+    1
+    >>> glyph.dirty
+    True
+    >>> guideline.getParent() == glyph
+    True
     """
 
 def _testRemoveContour():
@@ -989,6 +1101,7 @@ def _testRemoveContour():
     >>> glyph.removeContour(contour)
     >>> contour in glyph._contours
     False
+    >>> contour.getParent()
     """
 
 def _testRemoveComponent():
@@ -1001,6 +1114,7 @@ def _testRemoveComponent():
     >>> glyph.removeComponent(component)
     >>> component in glyph.components
     False
+    >>> component.getParent()
     """
 
 def _testRemoveAnchor():
@@ -1013,6 +1127,20 @@ def _testRemoveAnchor():
     >>> glyph.removeAnchor(anchor)
     >>> anchor in glyph.anchors
     False
+    >>> anchor.getParent()
+    """
+
+def _testRemoveGuideline():
+    """
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> from defcon.objects.font import Font
+    >>> font = Font(getTestFontPath())
+    >>> glyph = font.layers["Layer 1"]["A"]
+    >>> guideline = glyph.guidelines[0]
+    >>> glyph.removeGuideline(guideline)
+    >>> guideline in glyph.guidelines
+    False
+    >>> guideline.getParent()
     """
 
 def _testContourIndex():
@@ -1072,6 +1200,10 @@ def _testClear():
     >>> glyph.clear()
     >>> len(glyph.components)
     0
+    >>> glyph = font.layers["Layer 1"]["A"]
+    >>> glyph.clear()
+    >>> len(glyph.guidelines)
+    0
     """
 
 def _testClearContours():
@@ -1085,7 +1217,7 @@ def _testClearContours():
     0
     """
 
-def _testClearComonents():
+def _testClearComponents():
     """
     >>> from defcon.test.testTools import getTestFontPath
     >>> from defcon.objects.font import Font
@@ -1104,6 +1236,17 @@ def _testClearAnchors():
     >>> glyph = font['A']
     >>> glyph.clearAnchors()
     >>> len(glyph.anchors)
+    0
+    """
+
+def _testClearGuidelines():
+    """
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> from defcon.objects.font import Font
+    >>> font = Font(getTestFontPath())
+    >>> glyph = font['A']
+    >>> glyph.clearGuidelines()
+    >>> len(glyph.guidelines)
     0
     """
 
@@ -1151,6 +1294,12 @@ def _testIdentifiers():
     >>> pointPen.endPath()
     >>> pointPen.addComponent("A", (1, 1, 1, 1, 1, 1), identifier="component 1")
     >>> pointPen.addComponent("A", (1, 1, 1, 1, 1, 1), identifier="component 2")
+    >>> guideline = Guideline()
+    >>> guideline.identifier = "guideline 1"
+    >>> glyph.appendGuideline(guideline)
+    >>> guideline = Guideline()
+    >>> guideline.identifier = "guideline 2"
+    >>> glyph.appendGuideline(guideline)
 
     >>> for contour in glyph:
     ...     contour.identifier
@@ -1184,14 +1333,24 @@ def _testIdentifiers():
         ...
     AssertionError
 
+    >>> g = Guideline()
+    >>> g.identifier = "guideline 1"
+    >>> glyph.appendGuideline(g)
+    Traceback (most recent call last):
+        ...
+    AssertionError
+
     >>> list(sorted(glyph.identifiers))
-    ['component 1', 'component 2', 'contour 1', 'contour 2', 'point 1', 'point 2']
+    ['component 1', 'component 2', 'contour 1', 'contour 2', 'guideline 1', 'guideline 2', 'point 1', 'point 2']
     >>> glyph.removeContour(glyph[0])
     >>> list(sorted(glyph.identifiers))
-    ['component 1', 'component 2', 'contour 2']
+    ['component 1', 'component 2', 'contour 2', 'guideline 1', 'guideline 2']
     >>> glyph.removeComponent(glyph.components[0])
     >>> list(sorted(glyph.identifiers))
-    ['component 2', 'contour 2']
+    ['component 2', 'contour 2', 'guideline 1', 'guideline 2']
+    >>> glyph.removeGuideline(glyph.guidelines[0])
+    >>> list(sorted(glyph.identifiers))
+    ['component 2', 'contour 2', 'guideline 2']
     """
 
 if __name__ == "__main__":
