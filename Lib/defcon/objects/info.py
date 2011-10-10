@@ -27,17 +27,18 @@ class Info(BaseObject):
 
     def __init__(self):
         super(Info, self).__init__()
+        self._identifiers = set()
         self._ascender = None
         self._capHeight = None
         self._copyright = None
         self._descender = None
         self._familyName = None
-        self._guidelines = None
+        self._guidelines = []
         self._italicAngle = None
         self._macintoshFONDFamilyID = None
         self._macintoshFONDName = None
         self._note = None
-        self._openTypeGaspRangeRecords = None
+        self._openTypeGaspRangeRecords = []
         self._openTypeHeadCreated = None
         self._openTypeHeadFlags = None
         self._openTypeHeadLowestRecPPEM = None
@@ -57,7 +58,7 @@ class Info(BaseObject):
         self._openTypeNameManufacturerURL = None
         self._openTypeNamePreferredFamilyName = None
         self._openTypeNamePreferredSubfamilyName = None
-        self._openTypeNameRecords = None
+        self._openTypeNameRecords = []
         self._openTypeNameSampleText = None
         self._openTypeNameUniqueID = None
         self._openTypeNameVersion = None
@@ -96,20 +97,20 @@ class Info(BaseObject):
         self._postscriptBlueFuzz = None
         self._postscriptBlueScale = None
         self._postscriptBlueShift = None
-        self._postscriptBlueValues = None
+        self._postscriptBlueValues = []
         self._postscriptDefaultCharacter = None
         self._postscriptDefaultWidthX = None
-        self._postscriptFamilyBlues = None
-        self._postscriptFamilyOtherBlues = None
+        self._postscriptFamilyBlues = []
+        self._postscriptFamilyOtherBlues = []
         self._postscriptFontName = None
         self._postscriptForceBold = None
         self._postscriptFullName = None
         self._postscriptIsFixedPitch = None
         self._postscriptNominalWidthX = None
-        self._postscriptOtherBlues = None
+        self._postscriptOtherBlues = []
         self._postscriptSlantAngle = None
-        self._postscriptStemSnapH = None
-        self._postscriptStemSnapV = None
+        self._postscriptStemSnapH = []
+        self._postscriptStemSnapV = []
         self._postscriptUnderlinePosition = None
         self._postscriptUnderlineThickness = None
         self._postscriptUniqueID = None
@@ -126,7 +127,7 @@ class Info(BaseObject):
         self._woffMetadataCopyright = None
         self._woffMetadataCredits = None
         self._woffMetadataDescription = None
-        self._woffMetadataExtensions = None
+        self._woffMetadataExtensions = []
         self._woffMetadataLicense = None
         self._woffMetadataLicensee = None
         self._woffMetadataTrademark = None
@@ -283,6 +284,22 @@ class Info(BaseObject):
         self.dirty = True
 
     note = property(_get_note, _set_note, doc="Arbitrary note about the font. This should be a string. Setting this will post an *Info.Changed* notification.")
+
+    def _get_openTypeGaspRangeRecords(self):
+        return self._openTypeGaspRangeRecords
+
+    def _set_openTypeGaspRangeRecords(self, value):
+        if value is None:
+            self._openTypeGaspRangeRecords = None
+        else:
+            valid = ufoLib.validateFontInfoVersion3ValueForAttribute("openTypeGaspRangeRecords", value)
+            if not valid:
+                raise ValueError("Invalid value (%s) for attribute openTypeGaspRangeRecords." % repr(value))
+            else:
+                self._openTypeGaspRangeRecords = value
+        self.dirty = True
+
+    openTypeGaspRangeRecords = property(_get_openTypeGaspRangeRecords, _set_openTypeGaspRangeRecords, doc="A list of gasp Range Records. These must be sorted in ascending order based on the <code>rangeMaxPPEM</code> value of the record. This should be a list. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeHeadCreated(self):
         return self._openTypeHeadCreated
@@ -587,6 +604,22 @@ class Info(BaseObject):
         self.dirty = True
 
     openTypeNamePreferredSubfamilyName = property(_get_openTypeNamePreferredSubfamilyName, _set_openTypeNamePreferredSubfamilyName, doc="Preferred subfamily name. Corresponds to the OpenType name table name ID 17. This should be a string. Setting this will post an *Info.Changed* notification.")
+
+    def _get_openTypeNameRecords(self):
+        return self._openTypeNameRecords
+
+    def _set_openTypeNameRecords(self, value):
+        if value is None:
+            self._openTypeNameRecords = None
+        else:
+            valid = ufoLib.validateFontInfoVersion3ValueForAttribute("openTypeNameRecords", value)
+            if not valid:
+                raise ValueError("Invalid value (%s) for attribute openTypeNameRecords." % repr(value))
+            else:
+                self._openTypeNameRecords = value
+        self.dirty = True
+
+    openTypeNameRecords = property(_get_openTypeNameRecords, _set_openTypeNameRecords, doc="A list of name records. This name record storage area is intended for records that require platform, encoding and or language localization. This should be a list. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeNameSampleText(self):
         return self._openTypeNameSampleText
@@ -1197,8 +1230,6 @@ class Info(BaseObject):
     postscriptBlueShift = property(_get_postscriptBlueShift, _set_postscriptBlueShift, doc="BlueShift value. This corresponds to the Type 1/CFF <code>BlueShift</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
 
     def _get_postscriptBlueValues(self):
-        if self._postscriptBlueValues is None:
-            return []
         return self._postscriptBlueValues
 
     def _set_postscriptBlueValues(self, value):
@@ -1247,8 +1278,6 @@ class Info(BaseObject):
     postscriptDefaultWidthX = property(_get_postscriptDefaultWidthX, _set_postscriptDefaultWidthX, doc="Default width for glyphs. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
 
     def _get_postscriptFamilyBlues(self):
-        if self._postscriptFamilyBlues is None:
-            return []
         return self._postscriptFamilyBlues
 
     def _set_postscriptFamilyBlues(self, value):
@@ -1265,8 +1294,6 @@ class Info(BaseObject):
     postscriptFamilyBlues = property(_get_postscriptFamilyBlues, _set_postscriptFamilyBlues, doc="A list of up to 14 integers or floats specifying the values that should be in the Type 1/CFF FamilyBlues field. This list must contain an even number of integers following the rules defined in the Type 1/CFF specification. This should be a number list. Setting this will post an *Info.Changed* notification.")
 
     def _get_postscriptFamilyOtherBlues(self):
-        if self._postscriptFamilyOtherBlues is None:
-            return []
         return self._postscriptFamilyOtherBlues
 
     def _set_postscriptFamilyOtherBlues(self, value):
@@ -1363,8 +1390,6 @@ class Info(BaseObject):
     postscriptNominalWidthX = property(_get_postscriptNominalWidthX, _set_postscriptNominalWidthX, doc="Nominal width for glyphs. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
 
     def _get_postscriptOtherBlues(self):
-        if self._postscriptOtherBlues is None:
-            return []
         return self._postscriptOtherBlues
 
     def _set_postscriptOtherBlues(self, value):
@@ -1397,8 +1422,6 @@ class Info(BaseObject):
     postscriptSlantAngle = property(_get_postscriptSlantAngle, _set_postscriptSlantAngle, doc="Artificial slant angle. This must be an angle in counter-clockwise degrees from the vertical. This should be a float. Setting this will post an *Info.Changed* notification.")
 
     def _get_postscriptStemSnapH(self):
-        if self._postscriptStemSnapH is None:
-            return []
         return self._postscriptStemSnapH
 
     def _set_postscriptStemSnapH(self, value):
@@ -1415,8 +1438,6 @@ class Info(BaseObject):
     postscriptStemSnapH = property(_get_postscriptStemSnapH, _set_postscriptStemSnapH, doc="List of horizontal stems sorted in the order specified in the Type 1/CFF specification. Up to 12 integers or floats are possible. This corresponds to the Type 1/CFF <code>StemSnapH</code> field. This should be a number list. Setting this will post an *Info.Changed* notification.")
 
     def _get_postscriptStemSnapV(self):
-        if self._postscriptStemSnapV is None:
-            return []
         return self._postscriptStemSnapV
 
     def _set_postscriptStemSnapV(self, value):
@@ -1624,6 +1645,182 @@ class Info(BaseObject):
 
     versionMinor = property(_get_versionMinor, _set_versionMinor, doc="Minor version. This should be a non-negative integer. Setting this will post an *Info.Changed* notification.")
 
+    def _get_woffMajorVersion(self):
+        return self._woffMajorVersion
+
+    def _set_woffMajorVersion(self, value):
+        if value is None:
+            self._woffMajorVersion = None
+        else:
+            valid = ufoLib.validateFontInfoVersion3ValueForAttribute("woffMajorVersion", value)
+            if not valid:
+                raise ValueError("Invalid value (%s) for attribute woffMajorVersion." % repr(value))
+            else:
+                self._woffMajorVersion = value
+        self.dirty = True
+
+    woffMajorVersion = property(_get_woffMajorVersion, _set_woffMajorVersion, doc="Major version of the font. This should be a non-negative integer. Setting this will post an *Info.Changed* notification.")
+
+    def _get_woffMetadataCopyright(self):
+        return self._woffMetadataCopyright
+
+    def _set_woffMetadataCopyright(self, value):
+        if value is None:
+            self._woffMetadataCopyright = None
+        else:
+            valid = ufoLib.validateFontInfoVersion3ValueForAttribute("woffMetadataCopyright", value)
+            if not valid:
+                raise ValueError("Invalid value (%s) for attribute woffMetadataCopyright." % repr(value))
+            else:
+                self._woffMetadataCopyright = value
+        self.dirty = True
+
+    woffMetadataCopyright = property(_get_woffMetadataCopyright, _set_woffMetadataCopyright, doc="Font copyright. Corresponds to the WOFF <code>copyright</code> element. The dictionary must follow the WOFF Metadata Copyright Record structure. This should be a dictionary. Setting this will post an *Info.Changed* notification.")
+
+    def _get_woffMetadataCredits(self):
+        return self._woffMetadataCredits
+
+    def _set_woffMetadataCredits(self, value):
+        if value is None:
+            self._woffMetadataCredits = None
+        else:
+            valid = ufoLib.validateFontInfoVersion3ValueForAttribute("woffMetadataCredits", value)
+            if not valid:
+                raise ValueError("Invalid value (%s) for attribute woffMetadataCredits." % repr(value))
+            else:
+                self._woffMetadataCredits = value
+        self.dirty = True
+
+    woffMetadataCredits = property(_get_woffMetadataCredits, _set_woffMetadataCredits, doc="Font credits. Corresponds to the WOFF <code>credits</code> element. The dictionary must follow the WOFF Metadata Credits Record structure. This should be a dictionary. Setting this will post an *Info.Changed* notification.")
+
+    def _get_woffMetadataDescription(self):
+        return self._woffMetadataDescription
+
+    def _set_woffMetadataDescription(self, value):
+        if value is None:
+            self._woffMetadataDescription = None
+        else:
+            valid = ufoLib.validateFontInfoVersion3ValueForAttribute("woffMetadataDescription", value)
+            if not valid:
+                raise ValueError("Invalid value (%s) for attribute woffMetadataDescription." % repr(value))
+            else:
+                self._woffMetadataDescription = value
+        self.dirty = True
+
+    woffMetadataDescription = property(_get_woffMetadataDescription, _set_woffMetadataDescription, doc="Font description. Corresponds to the WOFF <code>description</code> element. The dictionary must follow the WOFF Metadata Description Record structure. This should be a dictionary. Setting this will post an *Info.Changed* notification.")
+
+    def _get_woffMetadataExtensions(self):
+        return self._woffMetadataExtensions
+
+    def _set_woffMetadataExtensions(self, value):
+        if value is None:
+            self._woffMetadataExtensions = None
+        else:
+            valid = ufoLib.validateFontInfoVersion3ValueForAttribute("woffMetadataExtensions", value)
+            if not valid:
+                raise ValueError("Invalid value (%s) for attribute woffMetadataExtensions." % repr(value))
+            else:
+                self._woffMetadataExtensions = value
+        self.dirty = True
+
+    woffMetadataExtensions = property(_get_woffMetadataExtensions, _set_woffMetadataExtensions, doc="List of metadata extension records. The dictionaries must follow the WOFF Metadata Extension Record structure. There must be at least one extension record in the list. This should be a list. Setting this will post an *Info.Changed* notification.")
+
+    def _get_woffMetadataLicense(self):
+        return self._woffMetadataLicense
+
+    def _set_woffMetadataLicense(self, value):
+        if value is None:
+            self._woffMetadataLicense = None
+        else:
+            valid = ufoLib.validateFontInfoVersion3ValueForAttribute("woffMetadataLicense", value)
+            if not valid:
+                raise ValueError("Invalid value (%s) for attribute woffMetadataLicense." % repr(value))
+            else:
+                self._woffMetadataLicense = value
+        self.dirty = True
+
+    woffMetadataLicense = property(_get_woffMetadataLicense, _set_woffMetadataLicense, doc="Font description. Corresponds to the WOFF <code>license</code> element. The dictionary must follow the WOFF Metadata License Record structure. This should be a dictionary. Setting this will post an *Info.Changed* notification.")
+
+    def _get_woffMetadataLicensee(self):
+        return self._woffMetadataLicensee
+
+    def _set_woffMetadataLicensee(self, value):
+        if value is None:
+            self._woffMetadataLicensee = None
+        else:
+            valid = ufoLib.validateFontInfoVersion3ValueForAttribute("woffMetadataLicensee", value)
+            if not valid:
+                raise ValueError("Invalid value (%s) for attribute woffMetadataLicensee." % repr(value))
+            else:
+                self._woffMetadataLicensee = value
+        self.dirty = True
+
+    woffMetadataLicensee = property(_get_woffMetadataLicensee, _set_woffMetadataLicensee, doc="Font licensee. Corresponds to the WOFF <code>licensee</code> element. The dictionary must follow the WOFF Metadata Licensee Record structure. This should be a dictionary. Setting this will post an *Info.Changed* notification.")
+
+    def _get_woffMetadataTrademark(self):
+        return self._woffMetadataTrademark
+
+    def _set_woffMetadataTrademark(self, value):
+        if value is None:
+            self._woffMetadataTrademark = None
+        else:
+            valid = ufoLib.validateFontInfoVersion3ValueForAttribute("woffMetadataTrademark", value)
+            if not valid:
+                raise ValueError("Invalid value (%s) for attribute woffMetadataTrademark." % repr(value))
+            else:
+                self._woffMetadataTrademark = value
+        self.dirty = True
+
+    woffMetadataTrademark = property(_get_woffMetadataTrademark, _set_woffMetadataTrademark, doc="Font trademark. Corresponds to the WOFF <code>trademark</code> element. The dictionary must follow the WOFF Metadata Trademark Record structure. This should be a dictionary. Setting this will post an *Info.Changed* notification.")
+
+    def _get_woffMetadataUniqueID(self):
+        return self._woffMetadataUniqueID
+
+    def _set_woffMetadataUniqueID(self, value):
+        if value is None:
+            self._woffMetadataUniqueID = None
+        else:
+            valid = ufoLib.validateFontInfoVersion3ValueForAttribute("woffMetadataUniqueID", value)
+            if not valid:
+                raise ValueError("Invalid value (%s) for attribute woffMetadataUniqueID." % repr(value))
+            else:
+                self._woffMetadataUniqueID = value
+        self.dirty = True
+
+    woffMetadataUniqueID = property(_get_woffMetadataUniqueID, _set_woffMetadataUniqueID, doc="Identification string. Corresponds to the WOFF <code>uniqueid</code>. The dictionary must follow the WOFF Metadata Unique ID Record structure. This should be a dictionary. Setting this will post an *Info.Changed* notification.")
+
+    def _get_woffMetadataVendor(self):
+        return self._woffMetadataVendor
+
+    def _set_woffMetadataVendor(self, value):
+        if value is None:
+            self._woffMetadataVendor = None
+        else:
+            valid = ufoLib.validateFontInfoVersion3ValueForAttribute("woffMetadataVendor", value)
+            if not valid:
+                raise ValueError("Invalid value (%s) for attribute woffMetadataVendor." % repr(value))
+            else:
+                self._woffMetadataVendor = value
+        self.dirty = True
+
+    woffMetadataVendor = property(_get_woffMetadataVendor, _set_woffMetadataVendor, doc="Font vendor. Corresponds to the WOFF <code>vendor</code> element. The dictionary must follow the the WOFF Metadata Vendor Record structure. This should be a dictionary. Setting this will post an *Info.Changed* notification.")
+
+    def _get_woffMinorVersion(self):
+        return self._woffMinorVersion
+
+    def _set_woffMinorVersion(self, value):
+        if value is None:
+            self._woffMinorVersion = None
+        else:
+            valid = ufoLib.validateFontInfoVersion3ValueForAttribute("woffMinorVersion", value)
+            if not valid:
+                raise ValueError("Invalid value (%s) for attribute woffMinorVersion." % repr(value))
+            else:
+                self._woffMinorVersion = value
+        self.dirty = True
+
+    woffMinorVersion = property(_get_woffMinorVersion, _set_woffMinorVersion, doc="Minor version of the font. This should be a non-negative integer. Setting this will post an *Info.Changed* notification.")
+
     def _get_xHeight(self):
         return self._xHeight
 
@@ -1656,3 +1853,111 @@ class Info(BaseObject):
 
     year = property(_get_year, _set_year, doc="The year the font was created. This attribute is deprecated as of version 2. It's presence should not be relied upon by authoring tools. However, it may occur in a font's info so authoring tools should preserve it if present. This should be a integer. Setting this will post an *Info.Changed* notification.")
 
+    # -----------
+    # Identifiers
+    # -----------
+
+    def _get_identifiers(self):
+        return self._identifiers
+
+    identifiers = property(_get_identifiers, doc="Set of identifiers for the info. This is primarily for internal use.")
+
+    # ----------
+    # Guidelines
+    # ----------
+
+    def _get_guidelines(self):
+        return list(self._guidelines)
+
+    def _set_guidelines(self, value):
+        self.clearGuidelines()
+        self.holdNotifications()
+        for guideline in value:
+            self.appendGuideline(guideline)
+        self.releaseHeldNotifications()
+
+    guidelines = property(_get_guidelines, _set_guidelines, doc="An ordered list of :class:`Guideline` objects stored in the info. Setting this will post a *Info.Changed* notification along with any notifications posted by the :py:meth:`Info.appendGuideline` and :py:meth:`Info.clearGuidelines` methods.")
+
+    def _setParentDataInGuideline(self, guideline):
+        guideline.setParent(self)
+        dispatcher = self.dispatcher
+        if dispatcher is not None:
+            guideline.dispatcher = dispatcher
+            guideline.addObserver(observer=self, methodName="_guidelineChanged", notification="Guideline.Changed")
+
+    def _removeParentDataInGuideline(self, guideline):
+        guideline.setParent(None)
+        if guideline._dispatcher is not None:
+            guideline.removeObserver(observer=self, notification="Guideline.Changed")
+            guideline._dispatcher = None
+
+    def appendGuideline(self, guideline):
+        """
+        Append **guideline** to the info. The guideline must be a defcon
+        :class:`Guideline` object or a subclass of that object. An error
+        will be raised if the guideline's identifier conflicts with any of
+        the identifiers within the info.
+
+        This will post a *Glyph.Changed* notification.
+        """
+        assert guideline not in self._guidelines
+        self.insertGuideline(len(self._guidelines), guideline)
+
+    def insertGuideline(self, index, guideline):
+        """
+        Insert **guideline** into the info at index. The guideline
+        must be a defcon :class:`Guideline` object or a subclass
+        of that object. An error will be raised if the guideline's
+        identifier conflicts with any of the identifiers within
+        the info.
+
+        This will post a *Glyph.Changed* notification.
+        """
+        assert guideline not in self._guidelines
+        if not isinstance(guideline, Guideline):
+            guideline = Guideline(guideline)
+        if guideline.identifier is not None:
+            identifiers = self._identifiers
+            assert guideline.identifier not in identifiers
+            if guideline.identifier is not None:
+                identifiers.add(guideline.identifier)
+        if guideline.getParent() != self:
+            self._setParentDataInGuideline(guideline)
+        self._guidelines.insert(index, guideline)
+        self.dirty = True
+
+    def removeGuideline(self, guideline):
+        """
+        Remove **guideline** from the info.
+
+        This will post a *Glyph.Changed* notification.
+        """
+        if guideline.identifier is not None:
+            self._identifiers.remove(guideline.identifier)
+        self._guidelines.remove(guideline)
+        self._removeParentDataInGuideline(guideline)
+        self.dirty = True
+
+    def guidelineIndex(self, guideline):
+        """
+        Get the index for **guideline**.
+        """
+        return self._guidelines.index(guideline)
+
+    def clearGuidelines(self):
+        """
+        Clear all guidelines from the info.
+    
+        This posts a *Glyph.Changed* notification.
+        """
+        self.holdNotifications()
+        for guideline in reversed(self._guidelines):
+            self.removeGuideline(guideline)
+        self.releaseHeldNotifications()
+
+    # ----------------------
+    # Notification Callbacks
+    # ----------------------
+
+    def _guidelineChanged(self, notification):
+        self.dirty = True

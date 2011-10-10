@@ -98,15 +98,7 @@ print
 
 print "    def __init__(self):"
 print "        super(Info, self).__init__()"
-
-for attr in sorted(ufoLib.fontInfoAttributesVersion3):
-    print "        self._%s = None" % attr
-print
-
-print "    # ----------"
-print "    # Properties"
-print "    # ----------"
-print
+print "        self._identifiers = set()"
 
 defaults = dict(
     guidelines=[],
@@ -121,11 +113,20 @@ defaults = dict(
     woffMetadataExtensions=[]
 )
 
-for attr in sorted(ufoLib.fontInfoAttributesVersion2):
+for attr in sorted(ufoLib.fontInfoAttributesVersion3):
+    print "        self._%s = %s" % (attr, str(defaults.get(attr)))
+print
+
+print "    # ----------"
+print "    # Properties"
+print "    # ----------"
+print
+
+for attr in sorted(ufoLib.fontInfoAttributesVersion3):
+    if attr == "guidelines":
+        continue
     print "    def _get_%s(self):" % attr
     if attr in defaults:
-        print "        if self._%s is None:" % attr
-        print "            return %s" % repr(defaults[attr])
         print "        return self._%s" % attr
     else:
         print "        return self._%s" % attr
@@ -143,3 +144,116 @@ for attr in sorted(ufoLib.fontInfoAttributesVersion2):
     print
     print "    %s = property(_get_%s, _set_%s, doc=\"%s\")" % (attr, attr, attr, attributeDocumentation[attr])
     print
+
+handBuilt = """
+    # -----------
+    # Identifiers
+    # -----------
+
+    def _get_identifiers(self):
+        return self._identifiers
+
+    identifiers = property(_get_identifiers, doc="Set of identifiers for the info. This is primarily for internal use.")
+
+    # ----------
+    # Guidelines
+    # ----------
+
+    def _get_guidelines(self):
+        return list(self._guidelines)
+
+    def _set_guidelines(self, value):
+        self.clearGuidelines()
+        self.holdNotifications()
+        for guideline in value:
+            self.appendGuideline(guideline)
+        self.releaseHeldNotifications()
+
+    guidelines = property(_get_guidelines, _set_guidelines, doc="An ordered list of :class:`Guideline` objects stored in the info. Setting this will post a *Info.Changed* notification along with any notifications posted by the :py:meth:`Info.appendGuideline` and :py:meth:`Info.clearGuidelines` methods.")
+
+    def _setParentDataInGuideline(self, guideline):
+        guideline.setParent(self)
+        dispatcher = self.dispatcher
+        if dispatcher is not None:
+            guideline.dispatcher = dispatcher
+            guideline.addObserver(observer=self, methodName="_guidelineChanged", notification="Guideline.Changed")
+
+    def _removeParentDataInGuideline(self, guideline):
+        guideline.setParent(None)
+        if guideline._dispatcher is not None:
+            guideline.removeObserver(observer=self, notification="Guideline.Changed")
+            guideline._dispatcher = None
+
+    def appendGuideline(self, guideline):
+        \"\"\"
+        Append **guideline** to the info. The guideline must be a defcon
+        :class:`Guideline` object or a subclass of that object. An error
+        will be raised if the guideline's identifier conflicts with any of
+        the identifiers within the info.
+
+        This will post a *Glyph.Changed* notification.
+        \"\"\"
+        assert guideline not in self._guidelines
+        self.insertGuideline(len(self._guidelines), guideline)
+
+    def insertGuideline(self, index, guideline):
+        \"\"\"
+        Insert **guideline** into the info at index. The guideline
+        must be a defcon :class:`Guideline` object or a subclass
+        of that object. An error will be raised if the guideline's
+        identifier conflicts with any of the identifiers within
+        the info.
+
+        This will post a *Glyph.Changed* notification.
+        \"\"\"
+        assert guideline not in self._guidelines
+        if not isinstance(guideline, Guideline):
+            guideline = Guideline(guideline)
+        if guideline.identifier is not None:
+            identifiers = self._identifiers
+            assert guideline.identifier not in identifiers
+            if guideline.identifier is not None:
+                identifiers.add(guideline.identifier)
+        if guideline.getParent() != self:
+            self._setParentDataInGuideline(guideline)
+        self._guidelines.insert(index, guideline)
+        self.dirty = True
+
+    def removeGuideline(self, guideline):
+        \"\"\"
+        Remove **guideline** from the info.
+
+        This will post a *Glyph.Changed* notification.
+        \"\"\"
+        if guideline.identifier is not None:
+            self._identifiers.remove(guideline.identifier)
+        self._guidelines.remove(guideline)
+        self._removeParentDataInGuideline(guideline)
+        self.dirty = True
+
+    def guidelineIndex(self, guideline):
+        \"\"\"
+        Get the index for **guideline**.
+        \"\"\"
+        return self._guidelines.index(guideline)
+
+    def clearGuidelines(self):
+        \"\"\"
+        Clear all guidelines from the info.
+    
+        This posts a *Glyph.Changed* notification.
+        \"\"\"
+        self.holdNotifications()
+        for guideline in reversed(self._guidelines):
+            self.removeGuideline(guideline)
+        self.releaseHeldNotifications()
+
+    # ----------------------
+    # Notification Callbacks
+    # ----------------------
+
+    def _guidelineChanged(self, notification):
+        self.dirty = True
+""".strip()
+
+print "    " + handBuilt
