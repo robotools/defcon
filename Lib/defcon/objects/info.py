@@ -38,7 +38,7 @@ class Info(BaseObject):
         self._macintoshFONDFamilyID = None
         self._macintoshFONDName = None
         self._note = None
-        self._openTypeGaspRangeRecords = []
+        self._openTypeGaspRangeRecords = None
         self._openTypeHeadCreated = None
         self._openTypeHeadFlags = None
         self._openTypeHeadLowestRecPPEM = None
@@ -58,7 +58,7 @@ class Info(BaseObject):
         self._openTypeNameManufacturerURL = None
         self._openTypeNamePreferredFamilyName = None
         self._openTypeNamePreferredSubfamilyName = None
-        self._openTypeNameRecords = []
+        self._openTypeNameRecords = None
         self._openTypeNameSampleText = None
         self._openTypeNameUniqueID = None
         self._openTypeNameVersion = None
@@ -127,7 +127,7 @@ class Info(BaseObject):
         self._woffMetadataCopyright = None
         self._woffMetadataCredits = None
         self._woffMetadataDescription = None
-        self._woffMetadataExtensions = []
+        self._woffMetadataExtensions = None
         self._woffMetadataLicense = None
         self._woffMetadataLicensee = None
         self._woffMetadataTrademark = None
