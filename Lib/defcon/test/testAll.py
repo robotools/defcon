@@ -19,7 +19,7 @@ from defcon.objects import image
 
 test = [
     base,
-    # XXX font,
+    font,
     layerSet,
     layer,
     glyph,

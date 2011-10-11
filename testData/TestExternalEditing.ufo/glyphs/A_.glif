@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<glyph name="A" format="2">
+<glyph name="A" format="1">
   <advance height="700" width="700"/>
   <unicode hex="0041"/>
   <outline>
@@ -17,4 +17,3 @@
     </contour>
   </outline>
 </glyph>
-       
