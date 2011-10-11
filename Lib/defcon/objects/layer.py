@@ -531,7 +531,7 @@ class Layer(BaseObject):
                     glyphSet.deleteGlyph(glyphName)
         glyphSet.writeContents()
         self._glyphSet = glyphSet
-        self._scheduledForDeletion = []
+        self._scheduledForDeletion.clear()
 
     def saveGlyph(self, glyph, glyphSet, saveAs=False, progressBar=None):
         if glyph.dirty:

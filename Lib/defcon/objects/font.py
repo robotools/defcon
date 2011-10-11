@@ -15,6 +15,7 @@ from defcon.objects.kerning import Kerning
 from defcon.objects.groups import Groups
 from defcon.objects.features import Features
 from defcon.objects.lib import Lib
+from defcon.objects.images import Images
 from defcon.tools.notifications import NotificationCenter
 
 
@@ -63,7 +64,7 @@ class Font(BaseObject):
 
     def __init__(self, path=None,
                     kerningClass=None, infoClass=None, groupsClass=None, featuresClass=None, libClass=None, unicodeDataClass=None,
-                    layerSetClass=None, layerClass=None,
+                    layerSetClass=None, layerClass=None, imagesClass=None,
                     glyphClass=None, glyphContourClass=None, glyphPointClass=None, glyphComponentClass=None, glyphAnchorClass=None):
         super(Font, self).__init__()
         if infoClass is None:
@@ -78,6 +79,8 @@ class Font(BaseObject):
             libClass = Lib
         if layerSetClass is None:
             layerSetClass = LayerSet
+        if imagesClass is None:
+            imagesClass = Images
 
         self._dispatcher = NotificationCenter()
 
@@ -106,6 +109,10 @@ class Font(BaseObject):
         self._layers.setParent(self)
         self._layers.addObserver(self, "_objectDirtyStateChange", "LayerSet.Changed")
 
+        self._images = Images()
+        self._images.setParent(self)
+        self._images._dispatcher = self._dispatcher
+
         self._dirty = False
 
         if path:
@@ -121,6 +128,8 @@ class Font(BaseObject):
             defaultLayerName = reader.getDefaultLayerName()
             self._layers.defaultLayer = self._layers[defaultLayerName]
             self._layers.dirty = False
+            # get the image file names
+            self._images.fileNames = reader.getImageDirectoryListing()
             # if the UFO version is 1, do some conversion.
             if self._ufoFormatVersion == 1:
                 self._convertFromFormatVersion1RoboFabData()
@@ -343,6 +352,11 @@ class Font(BaseObject):
 
     unicodeData = property(_get_unicodeData, doc="The font's :class:`UnicodeData` object.")
 
+    def _get_images(self):
+        return self._images
+
+    images = property(_get_images, doc="The font's :class:`Images` object.")
+
     # -------
     # Methods
     # -------
@@ -472,7 +486,11 @@ class Font(BaseObject):
             progressBar.tick()
 
     def saveImages(self, writer, saveAs=False, progressBar=None):
-        pass
+        if progressBar is not None:
+            progressBar.setTitle("Saving images...")
+        self.images.save(writer, saveAs=saveAs, progressBar=progressBar)
+        if progressBar is not None:
+            progressBar.tick()
 
     def saveData(self, writer, saveAs=False, progressBar=None):
         pass

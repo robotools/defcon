@@ -1,6 +1,7 @@
 from fontTools.misc import arrayTools
 from defcon.objects.base import BaseObject
 from defcon.objects.guideline import Guideline
+from defcon.objects.image import Image
 from defcon.tools.notifications import NotificationCenter
 
 _representationFactories = {}
@@ -57,20 +58,16 @@ class Glyph(BaseObject):
         self._width = 0
         self._height = 0
         self._note = None
+        self._image = None
         self._dispatcher = None
-
         self._identifiers = set()
-
         self._contours = []
         self._components = []
         self._anchors = []
         self._guidelines = []
-
         self._lib = None
-
         self._boundsCache = None
         self._controlPointBoundsCache = None
-
         self._representations = {}
 
         if contourClass is None:
@@ -308,6 +305,26 @@ class Glyph(BaseObject):
 
     lib = property(_get_lib, _set_lib, doc="The glyph's :class:`Lib` object. Setting this will clear any existing lib data and post a *Glyph.Changed* notification if data was replaced.")
 
+    def _get_image(self):
+        return self._image
+
+    def _set_image(self, image):
+        if image is None:
+            if self._image is not None:
+                self._removeParentDataInImage()
+                self._image = None
+                self.dirty = True
+        else:
+            if self._image is None:
+                self._image = Image()
+                self._setParentDataInImage()
+            if set(self.image.items()) != set(image.items()):
+                for key in self._image.keys():
+                    self._image[key] = image.get(key)
+                self.dirty = True
+
+    image = property(_get_image, _set_image, doc="The glyph's :class:`Image` object. Setting this will post a *Glyph.Changed* notification.")
+
     # -----------
     # Pen Methods
     # -----------
@@ -417,6 +434,19 @@ class Glyph(BaseObject):
         if guideline._dispatcher is not None:
             guideline.removeObserver(observer=self, notification="Guideline.Changed")
             guideline._dispatcher = None
+
+    def _setParentDataInImage(self):
+        self._image.setParent(self)
+        dispatcher = self.dispatcher
+        if dispatcher is not None:
+            guideline.dispatcher = dispatcher
+            guideline.addObserver(observer=self, methodName="_imageChanged", notification="Image.Changed")
+
+    def _removeParentDataInGuideline(self):
+        self._image.setParent(None)
+        if self._image._dispatcher is not None:
+            self._image.removeObserver(observer=self, notification="Image.Changed")
+            self._image._dispatcher = None
 
     def appendContour(self, contour):
         """
@@ -797,6 +827,9 @@ class Glyph(BaseObject):
     # ----------------------
     # Notification Callbacks
     # ----------------------
+
+    def _imageChanged(self, notification):
+        self.dirty = True
 
     def _outlineContentChanged(self, notification):
         self._destroyBoundsCache()
