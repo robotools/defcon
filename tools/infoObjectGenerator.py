@@ -102,15 +102,15 @@ print "        self._identifiers = set()"
 
 defaults = dict(
     guidelines=[],
-    openTypeGaspRangeRecords=[],
-    openTypeNameRecords=[],
+#    openTypeGaspRangeRecords=[],
+#    openTypeNameRecords=[],
     postscriptBlueValues=[],
     postscriptOtherBlues=[],
     postscriptFamilyBlues=[],
     postscriptFamilyOtherBlues=[],
     postscriptStemSnapH=[],
     postscriptStemSnapV=[],
-    woffMetadataExtensions=[]
+#    woffMetadataExtensions=[]
 )
 
 for attr in sorted(ufoLib.fontInfoAttributesVersion3):
