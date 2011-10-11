@@ -8,6 +8,37 @@ pngSignature = "\x89PNG\r\n\x1a\n"
 
 class Images(BaseObject):
 
+    """
+    This object manages all images in the font.
+
+    **This object posts the following notifications:**
+
+    ===========    ====
+    Name           Note
+    ===========    ====
+    Images.Changed Posted when the *dirty* attribute is set.
+    ===========    ====
+
+    This object behaves like a dict. For example, to get the
+    raw image data for a particular image::
+
+        image = images["image file name"]
+
+    To add an image, do this::
+
+        images["image file name"] = rawImageData
+
+    When setting an image, the provided file name must be a file
+    system legal string. This will be checked by comparing the
+    provided file name to the results of :py:meth:`Images.makeFileName`.
+    If the two don't match an error will be raised.
+
+    To remove an image from this object, and from the UFO during save,
+    do this::
+
+        del images["image file name"]
+    """
+
     def __init__(self, fileNames=None):
         super(Images, self).__init__()
         self._data = {}
@@ -50,6 +81,10 @@ class Images(BaseObject):
     # ---------------
 
     def save(self, writer, saveAs=False, progressBar=None):
+        """
+        Save images. This method should not be called externally.
+        Subclasses may override this method to implement custom saving behavior.
+        """
         for fileName in self._scheduledForDeletion:
             try:
                 writer.removeImage(fileName)
@@ -68,12 +103,17 @@ class Images(BaseObject):
             data["dirty"] = False
 
     def makeFileName(self, fileName):
+        """
+        Make a file system legal version of **fileName**.
+        """
         if not isinstance(fileName, unicode):
             fileName = unicode(fileName)
+        suffix = ""
         if fileName.lower().endswith(".png"):
+            suffix = fileName[-4:]
             fileName = fileName[:-4]
         existing = set([i.lower() for i in self.fileNames])
-        return userNameToFileName(fileName, existing, suffix=".png")
+        return userNameToFileName(fileName, existing, suffix=suffix)
 
 
 def _imageDict(data=None, dirty=False):

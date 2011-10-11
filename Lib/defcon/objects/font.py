@@ -430,6 +430,10 @@ class Font(BaseObject):
         self.dirty = False
 
     def saveInfo(self, writer, saveAs=False, progressBar=None):
+        """
+        Save info. This method should not be called externally.
+        Subclasses may override this method to implement custom saving behavior.
+        """
         # info should always be saved
         if progressBar is not None:
             progressBar.setTitle("Saving info...")
@@ -440,6 +444,10 @@ class Font(BaseObject):
             progressBar.tick()
 
     def saveGroups(self, writer, saveAs=False, progressBar=None):
+        """
+        Save groups. This method should not be called externally.
+        Subclasses may override this method to implement custom saving behavior.
+        """
         # groups should always be saved
         if progressBar is not None:
             progressBar.setTitle("Saving groups...")
@@ -450,6 +458,10 @@ class Font(BaseObject):
             progressBar.tick()
 
     def saveKerning(self, writer, saveAs=False, progressBar=None):
+        """
+        Save kerning. This method should not be called externally.
+        Subclasses may override this method to implement custom saving behavior.
+        """
         if progressBar is not None:
             progressBar.setTitle("Saving kerning...")
         if self.kerning.dirty or saveAs:
@@ -460,6 +472,10 @@ class Font(BaseObject):
             progressBar.tick()
 
     def saveFeatures(self, writer, saveAs=False, progressBar=None):
+        """
+        Save features. This method should not be called externally.
+        Subclasses may override this method to implement custom saving behavior.
+        """
         if progressBar is not None:
             progressBar.setTitle("Saving features...")
         if self.features.dirty or saveAs:
@@ -470,6 +486,10 @@ class Font(BaseObject):
             progressBar.tick()
 
     def saveLib(self, writer, saveAs=False, progressBar=None):
+        """
+        Save lib. This method should not be called externally.
+        Subclasses may override this method to implement custom saving behavior.
+        """
         # lib should always be saved
         if progressBar is not None:
             progressBar.setTitle("Saving lib...")
@@ -486,6 +506,10 @@ class Font(BaseObject):
             progressBar.tick()
 
     def saveImages(self, writer, saveAs=False, progressBar=None):
+        """
+        Save images. This method should not be called externally.
+        Subclasses may override this method to implement custom saving behavior.
+        """
         if progressBar is not None:
             progressBar.setTitle("Saving images...")
         self.images.save(writer, saveAs=saveAs, progressBar=progressBar)

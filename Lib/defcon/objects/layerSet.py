@@ -4,6 +4,28 @@ from defcon.objects.layer import Layer
 
 class LayerSet(BaseObject):
 
+    """
+    This object manages all layers in the font.
+
+    **This object posts the following notifications:**
+
+    ===========       ====
+    Name              Note
+    ===========       ====
+    LayerSet.Changed  Posted when the *dirty* attribute is set.
+    ===========       ====
+
+    This object behaves like a dict. For example, to get a particular
+    layer::
+
+        layer = layerSet["layer name"]
+
+    If the layer name is None, the default layer will be retrieved.
+
+    Note: t's up to the caller to ensure that a default layer is present
+    as required by the UFO specification.
+    """
+
     changeNotificationName = "LayerSet.Changed"
 
     def __init__(self, layerClass=None, libClass=None, unicodeDataClass=None, glyphClass=None,
@@ -151,6 +173,10 @@ class LayerSet(BaseObject):
     # -------
 
     def save(self, writer, saveAs=False, progressBar=None):
+        """
+        Save all layers. This method should not be called externally.
+        Subclasses may override this method to implement custom saving behavior.
+        """
         # work through the layer action history
         if not saveAs:
             for actionData in self._layerActionHistory:

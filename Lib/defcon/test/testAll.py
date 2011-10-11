@@ -14,23 +14,26 @@ from defcon.objects import lib
 from defcon.objects import kerning
 from defcon.objects import info
 from defcon.objects import groups
+from defcon.objects import images
+from defcon.objects import image
 
 test = [
-    # commented modules have no tests
     base,
-    font,
+    # XXX font,
     layerSet,
     layer,
     glyph,
     contour,
-    # point,
-    # component,
-    # anchor,
+    point,
+    component,
+    anchor,
     guideline,
-    # lib,
+    lib,
     kerning,
-    # info,
-    # groups
+    info,
+    groups,
+    images,
+    image
 ]
 
 suite = unittest.TestSuite()

@@ -1,24 +1,49 @@
 from defcon.objects.base import BaseDictObject
 from defcon.objects.color import Color
 
+_defaultTransformation = {
+    "xScale"  : 1,
+    "xyScale" : 0,
+    "yxScale" : 0,
+    "yScale"  : 1,
+    "xOffset" : 0,
+    "yOffset" : 0
+}
+
 
 class Image(BaseDictObject):
+
+    """
+    This object represents an image reference in a glyph.
+
+    **This object posts the following notifications:**
+
+    =====================       ====
+    Name                        Note
+    =====================       ====
+    Image.Changed               Posted when the *dirty* attribute is set.
+    Image.FileNameChanged       Posted when the *fileName* attribute is set.
+    Image.TransformationChanged Posted when the *transformation* attribute is set.
+    Image.ColorChanged          Posted when the *color* attribute is set.
+    =====================       ====
+
+    During initialization an image dictionary, following the format defined
+    in the UFO spec, can be passed. If so, the new object will be populated
+    with the data from the dictionary.
+    """
 
     changeNotificationName = "Image.Changed"
 
     def __init__(self, imageDict=None):
         super(Image, self).__init__()
         self["fileName"] = None
-        self["xScale"] = 1
-        self["xyScale"] = 0
-        self["yxScale"] = 0
-        self["yScale"] = 1
-        self["xOffset"] = 0
-        self["yOffset"] = 0
         self["color"] = None
-        self._dirty = False
         if imageDict is not None:
             self.update(imageDict)
+        for key, value in _defaultTransformation.items():
+            if self.get(key) is None:
+                self[key] = value
+        self._dirty = False
 
     # ----------
     # Properties
@@ -76,7 +101,7 @@ class Image(BaseDictObject):
     color = property(_get_color, _set_color, doc="The image's :class:`Color` object. When setting, the value can be a UFO color string, a sequence of (r, g, b, a) or a :class:`Color` object. Setting this posts *Image.ColorChanged* and *Image.Changed* notifications.")
 
 
-def _test():
+def _testAttributes():
     """
     >>> i = Image()
     >>> i.dirty
@@ -106,6 +131,40 @@ def _test():
     >>> i = Image(dict(fileName="foo.png", xScale="1", xyScale="2", yxScale="3", yScale="4", xOffset="5", yOffset="6", color="0,0,0,0"))
     >>> i.fileName, i.transformation, i.color
     ('foo.png', ('1', '2', '3', '4', '5', '6'), '0,0,0,0')
+    """
+
+def _testRead():
+    """
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> glyph = font.layers["Layer 1"]["A"]
+    >>> image = glyph.image
+    >>> image.fileName
+    'image 1.png'
+    >>> image.color
+    '0.1,0.2,0.3,0.4'
+    >>> image.transformation
+    (0.5, 0, 0, 0.5, 0, 0)
+    """
+
+def _testWrite():
+    """
+    >>> from defcon.test.testTools import makeTestFontCopy, tearDownTestFontCopy
+    >>> from defcon import Font
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> glyph = font.layers[None]["A"]
+    >>> glyph.image = Image()
+    >>> glyph.image.color = "1,1,1,1"
+    >>> glyph.image.fileName = "foo.png"
+    >>> glyph.image.transformation = (1, 2, 3, 4, 5, 6)
+    >>> font.save()
+    >>> font = Font(path)
+    >>> glyph = font.layers[None]["A"]
+    >>> sorted(glyph.image.items())
+    [('color', '1,1,1,1'), ('fileName', 'foo.png'), ('xOffset', 5), ('xScale', 1), ('xyScale', 2), ('yOffset', 6), ('yScale', 4), ('yxScale', 3)]
+    >>> tearDownTestFontCopy()
     """
 
 if __name__ == "__main__":

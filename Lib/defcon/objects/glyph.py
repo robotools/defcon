@@ -439,10 +439,10 @@ class Glyph(BaseObject):
         self._image.setParent(self)
         dispatcher = self.dispatcher
         if dispatcher is not None:
-            guideline.dispatcher = dispatcher
-            guideline.addObserver(observer=self, methodName="_imageChanged", notification="Image.Changed")
+            self._image.dispatcher = dispatcher
+            self._image.addObserver(observer=self, methodName="_imageChanged", notification="Image.Changed")
 
-    def _removeParentDataInGuideline(self):
+    def _removeParentDataInImage(self):
         self._image.setParent(None)
         if self._image._dispatcher is not None:
             self._image.removeObserver(observer=self, notification="Image.Changed")

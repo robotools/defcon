@@ -260,7 +260,7 @@ class BaseDictObject(dict, BaseObject):
         return id(self)
 
     def __setitem__(self, key, value):
-        if self.get(key) == value:
+        if key in self and self[key] == value:
             return
         super(BaseDictObject, self).__setitem__(key, value)
         self.dirty = True

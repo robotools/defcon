@@ -5,7 +5,7 @@
   <note>
     Blah blah blah
   </note>
-  <image fileName="A sketch.png" xScale="0.5" yScale="0.5"/>
+  <image fileName="image 1.png" xScale="0.5" yScale="0.5" color="0.1,0.2,0.3,0.4"/>
   <guideline y="720" name="top overshoot" identifier="guide1"/>
   <guideline y="-100" name="bottom overshoot" identifier="guide2"/>
   <outline>
