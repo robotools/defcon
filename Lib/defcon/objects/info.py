@@ -4,6 +4,7 @@
 from warnings import warn
 import ufoLib
 from defcon.objects.base import BaseObject
+from defcon.objects.guideline import Guideline
 
 
 class Info(BaseObject):

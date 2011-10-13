@@ -70,6 +70,7 @@ print
 print "from warnings import warn"
 print "import ufoLib"
 print "from defcon.objects.base import BaseObject"
+print "from defcon.objects.guideline import Guideline"
 print
 print
 
