@@ -94,7 +94,7 @@ class Component(BaseObject):
         """
         Draw the component with **pointPen**.
         """
-        pointPen.addComponent(self._baseGlyph, self._transformation)
+        pointPen.addComponent(self._baseGlyph, self._transformation, identifier=self.identifier)
 
     # -------
     # Methods

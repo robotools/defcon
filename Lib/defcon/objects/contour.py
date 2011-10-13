@@ -430,9 +430,9 @@ class Contour(BaseObject):
         """
         Draw the contour with **pointPen**.
         """
-        pointPen.beginPath()
+        pointPen.beginPath(identifier=self.identifier)
         for point in self._points:
-            pointPen.addPoint((point.x, point.y), segmentType=point.segmentType, smooth=point.smooth, name=point.name)
+            pointPen.addPoint((point.x, point.y), segmentType=point.segmentType, smooth=point.smooth, name=point.name, identifier=point.identifier)
         pointPen.endPath()
 
     # ----------
