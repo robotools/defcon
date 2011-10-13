@@ -218,7 +218,8 @@ class LayerSet(BaseObject):
                 isDefaultLayer = layer == self.defaultLayer
                 glyphSet = writer.getGlyphSet(layerName=layerName, defaultLayer=isDefaultLayer)
                 layer.save(glyphSet, saveAs=saveAs, progressBar=progressBar)
-                glyphSet.writeLayerInfo(layer)
+                if layer.lib or layer.color:
+                    glyphSet.writeLayerInfo(layer)
                 layer.dirty = False
                 if progressBar is not None:
                     progressBar.tick()
