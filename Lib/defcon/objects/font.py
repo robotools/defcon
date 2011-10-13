@@ -126,6 +126,7 @@ class Font(BaseObject):
                 glyphSet.readLayerInfo(layer)
                 layer._dirty = False
             defaultLayerName = reader.getDefaultLayerName()
+            self._layers.layerOrder = layerNames
             self._layers.defaultLayer = self._layers[defaultLayerName]
             self._layers.dirty = False
             # get the image file names
