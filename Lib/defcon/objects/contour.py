@@ -1,4 +1,5 @@
 import weakref
+from warnings import warn
 from fontTools.misc import bezierTools
 from defcon.objects.base import BaseObject
 from defcon.tools import bezierMath
@@ -430,9 +431,17 @@ class Contour(BaseObject):
         """
         Draw the contour with **pointPen**.
         """
-        pointPen.beginPath(identifier=self.identifier)
+        try:
+            pointPen.beginPath(identifier=self.identifier)
+        except TypeError:
+            pointPen.beginPath()
+            warn("The beginPath method needs an identifier kwarg. The contour's identifier value has been discarded.", DeprecationWarning)
         for point in self._points:
-            pointPen.addPoint((point.x, point.y), segmentType=point.segmentType, smooth=point.smooth, name=point.name, identifier=point.identifier)
+            try:
+                pointPen.addPoint((point.x, point.y), segmentType=point.segmentType, smooth=point.smooth, name=point.name, identifier=point.identifier)
+            except TypeError:
+                pointPen.addPoint((point.x, point.y), segmentType=point.segmentType, smooth=point.smooth, name=point.name)
+                warn("The addPoint method needs an identifier kwarg. The point's identifier value has been discarded.", DeprecationWarning)
         pointPen.endPath()
 
     # ----------

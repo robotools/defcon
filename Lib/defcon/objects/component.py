@@ -1,4 +1,5 @@
 import weakref
+from warnings import warn
 from defcon.objects.base import BaseObject
 
 
@@ -94,7 +95,11 @@ class Component(BaseObject):
         """
         Draw the component with **pointPen**.
         """
-        pointPen.addComponent(self._baseGlyph, self._transformation, identifier=self.identifier)
+        try:
+            pointPen.addComponent(self._baseGlyph, self._transformation, identifier=self.identifier)
+        except TypeError:
+            pointPen.addComponent(self._baseGlyph, self._transformation)
+            warn("The addComponent method needs an identifier kwarg. The component's identifier value has been discarded.", DeprecationWarning)
 
     # -------
     # Methods
