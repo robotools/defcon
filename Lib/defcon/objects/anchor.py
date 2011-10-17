@@ -10,11 +10,18 @@ class Anchor(BaseDictObject):
 
     **This object posts the following notifications:**
 
-    ==============  ====
-    Name            Note
-    ==============  ====
-    Anchor.Changed  Posted when the *dirty* attribute is set.
-    ==============  ====
+    =====================    ====
+    Name                     Note
+    =====================    ====
+    Anchor.Changed           Posted when the *dirty* attribute is set.
+    Anchor.XChanged          Posted when the *x* attribute is set.
+    Anchor.YChanged          Posted when the *y* attribute is set.
+    Anchor.NameChanged       Posted when the *name* attribute is set.
+    Anchor.IdentifierChanged Posted when the *identifier* attribute is set.
+    =====================    ====
+
+    During initialization an anchor dictionary can be passed. If so,
+    the new object will be populated with the data from the dictionary.
     """
 
     changeNotificationName = "Anchor.Changed"
