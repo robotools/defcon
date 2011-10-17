@@ -11,16 +11,8 @@ class GlyphObjectPointPen(AbstractPointPen):
         self._contour.identifier = identifier
 
     def endPath(self):
-        if len(self._contour) == 1 and self._contour[0].name is not None:
-            point = self._contour[0]
-            anchor = self._glyph.anchorClass()
-            anchor.x = point.x
-            anchor.y = point.y
-            anchor.name = point.name
-            self._glyph.appendAnchor(anchor)
-        else:
-            self._contour.dirty = False
-            self._glyph.appendContour(self._contour)
+        self._contour.dirty = False
+        self._glyph.appendContour(self._contour)
         self._contour = None
 
     def addPoint(self, pt, segmentType=None, smooth=False, name=None, identifier=None, **kwargs):

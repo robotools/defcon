@@ -1,5 +1,10 @@
 from fontTools.misc import arrayTools
 from defcon.objects.base import BaseObject
+from defcon.objects.contour import Contour
+from defcon.objects.point import Point
+from defcon.objects.component import Component
+from defcon.objects.anchor import Anchor
+from defcon.objects.lib import Lib
 from defcon.objects.guideline import Guideline
 from defcon.objects.image import Image
 from defcon.tools.notifications import NotificationCenter
@@ -71,19 +76,14 @@ class Glyph(BaseObject):
         self._representations = {}
 
         if contourClass is None:
-            from contour import Contour
             contourClass = Contour
         if pointClass is None:
-            from point import Point
             pointClass = Point
         if componentClass is None:
-            from component import Component
             componentClass = Component
         if anchorClass is None:
-            from anchor import Anchor
             anchorClass = Anchor
         if libClass is None:
-            from lib import Lib
             libClass = Lib
 
         self._contourClass = contourClass
@@ -270,7 +270,14 @@ class Glyph(BaseObject):
     def _get_anchors(self):
         return list(self._anchors)
 
-    anchors = property(_get_anchors, doc="An ordered list of :class:`Anchor` objects stored in the glyph.")
+    def _set_anchors(self, value):
+        self.clearAnchors()
+        self.holdNotifications()
+        for anchor in value:
+            self.appendAnchor(anchor)
+        self.releaseHeldNotifications()
+
+    anchors = property(_get_anchors, _set_anchors, doc="An ordered list of :class:`Anchor` objects stored in the glyph.")
 
     def _get_guidelines(self):
         return list(self._guidelines)
@@ -345,8 +352,6 @@ class Glyph(BaseObject):
             contour.drawPoints(pointPen)
         for component in self._components:
             component.drawPoints(pointPen)
-        for anchor in self._anchors:
-            anchor.drawPoints(pointPen)
 
     def getPen(self):
         """
@@ -554,8 +559,14 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
-        # XXX handle identifiers
         assert anchor not in self._anchors
+        if not isinstance(anchor, self._anchorClass):
+            anchor = self._anchorClass(anchor)
+        if anchor.identifier is not None:
+            identifiers = self._identifiers
+            assert anchor.identifier not in identifiers
+            if anchor.identifier is not None:
+                identifiers.add(anchor.identifier)
         if anchor.getParent() != self:
             self._setParentDataInAnchor(anchor)
         self._anchors.insert(index, anchor)
