@@ -102,7 +102,6 @@ class Anchor(BaseDictObject):
         """
         self.x += x
         self.y += y
-        self.dirty = True
 
     def _get_identifiers(self):
         identifiers = None
