@@ -1,7 +1,7 @@
 import os
 import re
 import weakref
-from fontTools.misc.arrayTools import unionRect
+from fontTools.misc.arrayTools import unionRect, calcBounds
 from defcon.objects.base import BaseObject
 from defcon.objects.glyph import Glyph
 from defcon.objects.lib import Lib
@@ -13,66 +13,6 @@ outlineSearchPointRE = re.compile(
     "<\s*point\s+" # <point
     "[^>]+"        # anything except >
     ">"            # >
-)
-
-controlBoundsPointRE = re.compile(
-    "<\s*point\s+"
-    "[^>]+"
-    ">"
-)
-controlBoundsPointXRE = re.compile(
-    "\s+"
-    "x\s*=\s*"
-    "[\"\']"
-    "([-\d]+)"
-    "[\"\']"
-)
-controlBoundsPointYRE = re.compile(
-    "\s+"
-    "y\s*=\s*"
-    "[\"\']"
-    "([-\d]+)"
-    "[\"\']"
-)
-controlBoundsComponentRE = re.compile(
-    "<\s*component\s+"
-    "[^>]*?"
-    ">"
-)
-controlBoundsComponentBaseRE = re.compile(
-    "base\s*=\s*[\"\']"
-    "(.*?)"
-    "[\"\']"
-)
-controlBoundsComponentXScaleRE = re.compile(
-    "xScale\s*=\s*[\"\']"
-    "([-.\d]+)"
-    "[\"\']"
-)
-controlBoundsComponentYScaleRE = re.compile(
-    "yScale\s*=\s*[\"\']"
-    "([-.\d]+)"
-    "[\"\']"
-)
-controlBoundsComponentXYScaleRE = re.compile(
-    "xyScale\s*=\s*[\"\']"
-    "([-.\d]+)"
-    "[\"\']"
-)
-controlBoundsComponentYXScaleRE = re.compile(
-    "yxScale\s*=\s*[\"\']"
-    "([-.\d]+)"
-    "[\"\']"
-)
-controlBoundsComponentXOffsetRE = re.compile(
-    "xOffset\s*=\s*[\"\']"
-    "([-\d]+)"
-    "[\"\']"
-)
-controlBoundsComponentYOffsetRE = re.compile(
-    "yOffset\s*=\s*[\"\']"
-    "([-\d]+)"
-    "[\"\']"
 )
 
 
@@ -376,72 +316,12 @@ class Layer(BaseObject):
                 if glyphName in self._glyphs or glyphName in self._scheduledForDeletion:
                     continue
                 # get the GLIF text
-                data = self._glyphSet.getGLIF(glyphName)
-                # get the point bounding box
-                xMin = None
-                xMax = None
-                yMin = None
-                yMax = None
-                for line in controlBoundsPointRE.findall(data):
-                    x = controlBoundsPointXRE.findall(line)
-                    if not x:
-                        continue
-                    y = controlBoundsPointYRE.findall(line)
-                    if not y:
-                        continue
-                    x = int(x[0])
-                    if xMin is None:
-                        xMin = xMax = x
-                    if xMin > x:
-                        xMin = x
-                    if xMax < x:
-                        xMax = x
-                    y = int(y[0])
-                    if yMin is None:
-                        yMin = yMax = y
-                    if yMin > y:
-                        yMin = y
-                    if yMax < y:
-                        yMax = y
-                glyphRect = (xMin, yMin, xMax, yMax)
-                if None not in glyphRect:
-                    glyphRects[glyphName] = glyphRect
-                # get all component references
-                for line in controlBoundsComponentRE.findall(data):
-                    base = controlBoundsComponentBaseRE.findall(line)
-                    if not base:
-                        continue
-                    base = base[0]
-                    # xScale
-                    xScale = controlBoundsComponentXScaleRE.findall(line)
-                    if not xScale:
-                        xScale = [1]
-                    xScale = float(xScale[0])
-                    # yScale
-                    yScale = controlBoundsComponentYScaleRE.findall(line)
-                    if not yScale:
-                        yScale = [1]
-                    yScale = float(yScale[0])
-                    # xyScale
-                    xyScale = controlBoundsComponentXYScaleRE.findall(line)
-                    if not xyScale:
-                        xyScale = [0]
-                    xyScale = float(xyScale[0])
-                    # yxScale
-                    yxScale = controlBoundsComponentYXScaleRE.findall(line)
-                    if not yxScale:
-                        yxScale = [0]
-                    yxScale = float(yxScale[0])
-                    # xOffset
-                    xOffset = controlBoundsComponentXOffsetRE.findall(line)
-                    if not xOffset:
-                        xOffset = [0]
-                    xOffset = int(xOffset[0])
-                    # yOffset
-                    yOffset = controlBoundsComponentYOffsetRE.findall(line)
-                    if not yOffset:
-                        yOffset = [0]
-                    yOffset = int(yOffset[0])
+                glif = self._glyphSet.getGLIF(glyphName)
+                points, components = _fetchControlPointBoundsData(glif)
+                if points:
+                    glyphRects[glyphName] = calcBounds(points)
+                for base, transformation in components:
+                    xScale, xyScale, yxScale, yScale, xOffset, yOffset = transformation
                     if glyphName not in componentReferences:
                         componentReferences[glyphName] = []
                     componentReferences[glyphName].append((base, xScale, xyScale, yxScale, yScale, xOffset, yOffset))
@@ -582,6 +462,99 @@ class Layer(BaseObject):
         newValues = data["newValues"]
         self._unicodeData.removeGlyphData(glyphName, oldValues)
         self._unicodeData.addGlyphData(glyphName, newValues)
+
+
+# ------------
+# Fast Parsers
+# ------------
+
+# this was forked from glifLib.
+
+def _number(s):
+    try:
+        n = int(s)
+        return n
+    except ValueError:
+        pass
+    n = float(s)
+    return n
+
+class _DoneParsing(Exception): pass
+
+class _BaseParser(object):
+
+    def __init__(self):
+        self._elementStack = []
+
+    def parse(self, text):
+        from xml.parsers.expat import ParserCreate
+        parser = ParserCreate()
+        parser.returns_unicode = 0
+        parser.StartElementHandler = self.startElementHandler
+        parser.EndElementHandler = self.endElementHandler
+        parser.Parse(text)
+
+    def startElementHandler(self, name, attrs):
+        self._elementStack.append(name)
+
+    def endElementHandler(self, name):
+        other = self._elementStack.pop(-1)
+        assert other == name
+
+_onCurvePointTypes = set(("move", "line", "curve", "qcurve"))
+_transformationInfo = (
+    ("xScale",    1),
+    ("xyScale",   0),
+    ("yxScale",   0),
+    ("yScale",    1),
+    ("xOffset",   0),
+    ("yOffset",   0),
+)
+
+def _fetchControlPointBoundsData(glif):
+    """
+    Get all on-curve point coordinates in the glif.
+    """
+    parser = _FetchControlPointBoundsDataParser()
+    try:
+        parser.parse(glif)
+    except _DoneParsing:
+        pass
+    return list(parser.points), list(parser.components)
+
+class _FetchControlPointBoundsDataParser(_BaseParser):
+
+    def __init__(self):
+        self.points = set()
+        self.components = []
+        super(_FetchControlPointBoundsDataParser, self).__init__()
+
+    def startElementHandler(self, name, attrs):
+        if name == "point" and self._elementStack and self._elementStack[-1] == "contour":
+            if attrs.get("type") in _onCurvePointTypes:
+                x = attrs.get("x")
+                y = attrs.get("y")
+                if x is not None and y is not None:
+                    x = _number(x)
+                    y = _number(y)
+                    self.points.add((x, y))
+        elif name == "component" and self._elementStack and self._elementStack[-1] == "outline":
+            base = attrs.get("base")
+            transformation = []
+            for attr, default in _transformationInfo:
+                value = attrs.get(attr)
+                if value is None:
+                    value = default
+                else:
+                    value = _number(value)
+                transformation.append(value)
+            self.components.append((base, transformation))
+        super(_FetchControlPointBoundsDataParser, self).startElementHandler(name, attrs)
+
+    def endElementHandler(self, name):
+        if name == "outline":
+            raise _DoneParsing
+        super(_FetchControlPointBoundsDataParser, self).endElementHandler(name)
 
 
 # -----
