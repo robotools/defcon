@@ -1,5 +1,4 @@
 import os
-import re
 import weakref
 from fontTools.misc.arrayTools import unionRect, calcBounds
 from defcon.objects.base import BaseObject
@@ -7,13 +6,6 @@ from defcon.objects.glyph import Glyph
 from defcon.objects.lib import Lib
 from defcon.objects.uniData import UnicodeData
 from defcon.objects.color import Color
-
-# regular expressions used by various search methods
-outlineSearchPointRE = re.compile(
-    "<\s*point\s+" # <point
-    "[^>]+"        # anything except >
-    ">"            # >
-)
 
 
 class Layer(BaseObject):
@@ -241,18 +233,8 @@ class Layer(BaseObject):
             for glyphName, fileName in self._glyphSet.contents.items():
                 if glyphName in self._glyphs or glyphName in self._scheduledForDeletion:
                     continue
-                # get the raw GLIF
-                data = self._glyphSet.getGLIF(glyphName)
-                containsPoints = False
-                # use an re to extract all points
-                points = outlineSearchPointRE.findall(data)
-                # skip all moves, as individual moves
-                # are anchors and therefore not part
-                # of an outline.
-                for point in points:
-                    if 'type="move"' not in point:
-                        containsPoints = True
-                        break
+                glif = self._glyphSet.getGLIF(glyphName)
+                containsPoints = _fetchHasOutlineData(glif)
                 if containsPoints:
                     found.append(glyphName)
         return found
@@ -315,7 +297,6 @@ class Layer(BaseObject):
             for glyphName, fileName in self._glyphSet.contents.items():
                 if glyphName in self._glyphs or glyphName in self._scheduledForDeletion:
                     continue
-                # get the GLIF text
                 glif = self._glyphSet.getGLIF(glyphName)
                 points, components = _fetchControlPointBoundsData(glif)
                 if points:
@@ -501,6 +482,15 @@ class _BaseParser(object):
         other = self._elementStack.pop(-1)
         assert other == name
 
+
+def _fetchControlPointBoundsData(glif):
+    parser = _FetchControlPointBoundsDataParser()
+    try:
+        parser.parse(glif)
+    except _DoneParsing:
+        pass
+    return list(parser.points), list(parser.components)
+
 _onCurvePointTypes = set(("move", "line", "curve", "qcurve"))
 _transformationInfo = (
     ("xScale",    1),
@@ -510,17 +500,6 @@ _transformationInfo = (
     ("xOffset",   0),
     ("yOffset",   0),
 )
-
-def _fetchControlPointBoundsData(glif):
-    """
-    Get all on-curve point coordinates in the glif.
-    """
-    parser = _FetchControlPointBoundsDataParser()
-    try:
-        parser.parse(glif)
-    except _DoneParsing:
-        pass
-    return list(parser.points), list(parser.components)
 
 class _FetchControlPointBoundsDataParser(_BaseParser):
 
@@ -556,6 +535,33 @@ class _FetchControlPointBoundsDataParser(_BaseParser):
             raise _DoneParsing
         super(_FetchControlPointBoundsDataParser, self).endElementHandler(name)
 
+
+def _fetchHasOutlineData(glif):
+    parser = _FetchHasOutlineDataParser()
+    try:
+        parser.parse(glif)
+    except _DoneParsing:
+        pass
+    return parser.hasOutline
+
+class _FetchHasOutlineDataParser(_BaseParser):
+
+    def __init__(self):
+        self.hasOutline = False
+        super(_FetchHasOutlineDataParser, self).__init__()
+
+    def startElementHandler(self, name, attrs):
+        if name == "point" and self._elementStack and self._elementStack[-1] == "contour":
+            segmentType = attrs.get("type")
+            if segmentType not in ("move", "offcurve", None):
+                self.hasOutline = True
+                raise _DoneParsing
+        super(_FetchHasOutlineDataParser, self).startElementHandler(name, attrs)
+
+    def endElementHandler(self, name):
+        if name == "outline":
+            raise _DoneParsing
+        super(_FetchHasOutlineDataParser, self).endElementHandler(name)
 
 # -----
 # Tests
