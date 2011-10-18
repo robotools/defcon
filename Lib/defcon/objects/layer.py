@@ -15,14 +15,6 @@ outlineSearchPointRE = re.compile(
     ">"            # >
 )
 
-componentSearchRE = re.compile(
-    "<\s*component\s+"  # <component
-    "[^>]*?"            # anything except >
-    "base\s*=\s*[\"\']" # base="
-    "(.*?)"             # glyph name
-    "[\"\']"            # "
-)
-
 controlBoundsPointRE = re.compile(
     "<\s*point\s+"
     "[^>]+"
@@ -342,12 +334,9 @@ class Layer(BaseObject):
                 found[baseGlyph].add(glyphName)
         # scan glyphs that have not been loaded
         if self._glyphSet is not None:
-            for glyphName, fileName in self._glyphSet.contents.items():
-                if glyphName in self._glyphs or glyphName in self._scheduledForDeletion:
-                    continue
-                data = self._glyphSet.getGLIF(glyphName)
-                baseGlyphs = componentSearchRE.findall(data)
-                for baseGlyph in baseGlyphs:
+            glyphNames = set(self._glyphSet.contents.keys()) - set(self._glyphs.keys())
+            for glyphName, baseList in self._glyphSet.getComponentReferences(glyphNames).items():
+                for baseGlyph in baseList:
                     if baseGlyph not in found:
                         found[baseGlyph] = set()
                     found[baseGlyph].add(glyphName)
