@@ -173,6 +173,12 @@ class Layer(BaseObject):
         glyph.addObserver(observer=self, methodName="_glyphNameChange", notification="Glyph.NameChanged")
         glyph.addObserver(observer=self, methodName="_glyphUnicodesChange", notification="Glyph.UnicodesChanged")
 
+    def _removeParentDataInGlyph(self, glyph):
+        glyph.removeObserver(observer=self, notification="Glyph.Changed")
+        glyph.removeObserver(observer=self, notification="Glyph.NameChanged")
+        glyph.removeObserver(observer=self, notification="Glyph.UnicodesChanged")
+        glyph.setParent(None)
+
     def newGlyph(self, name):
         """
         Create a new glyph with **name**. If a glyph with that
@@ -234,7 +240,8 @@ class Layer(BaseObject):
             raise KeyError, "%s not in layer" % name
         self._unicodeData.removeGlyphData(name, self[name].unicodes)
         if name in self._glyphs:
-            del self._glyphs[name]
+            glyph = self._glyphs.pop(name)
+            self._removeParentDataInGlyph(glyph)
         if name in self._keys:
             self._keys.remove(name)
         if self._glyphSet is not None and name in self._glyphSet:
@@ -675,7 +682,9 @@ def _testDelitem():
     >>> path = makeTestFontCopy()
     >>> font = Font(path)
     >>> layer = font.layers["public.default"]
+    >>> glyph = layer['A']
     >>> del layer['A']
+    >>> glyph.getParent()
     >>> layer.dirty
     True
     >>> layer.newGlyph('NewGlyphTest')
