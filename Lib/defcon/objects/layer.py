@@ -216,25 +216,7 @@ class Layer(BaseObject):
             name = source.name
         self.newGlyph(name)
         dest = self[name]
-        # advance
-        dest.width = source.width
-        dest.height = source.height
-        # unicodes
-        dest.unicodes = list(source.unicodes)
-        # note
-        dest.note = source.note
-        # guidelines
-        dest.guidelines = glyph.guidelines
-        # anchors
-        dest.anchors = glyph.anchors
-        # image
-        dest.image = glyph.image
-        # contours and components
-        pointPen = dest.getPointPen()
-        source.drawPoints(pointPen)
-        # lib
-        dest.lib = deepcopy(source.lib)
-        # update self.unicodeData
+        dest.copyDataFromGlyph(glyph)
         if dest.unicodes:
             self._unicodeData.addGlyphData(name, dest.unicodes)
         return dest
@@ -650,7 +632,29 @@ def _testNewGlyph():
 
 def _testInsertGlyph():
     """
-    >>> "need insert glyph test!"
+    >>> from defcon import Font, Glyph
+    >>> font = Font()
+    >>> layer = font.layers[None]
+    >>> source = Glyph()
+    >>> source.unicodes = [1, 2]
+    >>> source.name = "a"
+    >>> dest = layer.insertGlyph(source, name="nota")
+    >>> dest == source
+    False
+    >>> dest.name
+    'nota'
+    >>> layer.unicodeData.items()
+    [(1, ['nota']), (2, ['nota'])]
+    >>> source = Glyph()
+    >>> source.unicodes = [3]
+    >>> source.name = "b"
+    >>> dest = layer.insertGlyph(source)
+    >>> dest == source
+    False
+    >>> dest.name
+    'b'
+    >>> layer.unicodeData.items()
+    [(1, ['nota']), (2, ['nota']), (3, ['b'])]
     """
 
 def _testIter():

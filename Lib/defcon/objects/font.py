@@ -970,11 +970,6 @@ def _testNewGlyph():
     ['A', 'B', 'C', 'NewGlyphTest']
     """
 
-def _testInsertGlyph():
-    """
-    >>> "need insert glyph test!"
-    """
-
 def _testIter():
     """
     >>> from defcon.test.testTools import getTestFontPath

@@ -377,26 +377,9 @@ class Glyph(BaseObject):
         from defcon.pens.glyphObjectPointPen import GlyphObjectPointPen
         return GlyphObjectPointPen(self)
 
-    # -------
-    # Methods
-    # -------
-
-    def __len__(self):
-        return len(self._contours)
-
-    def __iter__(self):
-        contourCount = len(self)
-        index = 0
-        while index < contourCount:
-            contour = self[index]
-            yield contour
-            index += 1
-
-    def __getitem__(self, index):
-        return self._contours[index]
-
-    def _getContourIndex(self, contour):
-        return self._contours.index(contour)
+    # --------------------------
+    # Parent Setting and Removal
+    # --------------------------
 
     def _setParentDataInLib(self):
         self._lib.setParent(self)
@@ -461,6 +444,58 @@ class Glyph(BaseObject):
         if self.dispatcher is not None:
             self._image.removeObserver(observer=self, notification="Image.Changed")
         self._image.setParent(None)
+
+    # -------
+    # Methods
+    # -------
+
+    def __len__(self):
+        return len(self._contours)
+
+    def __iter__(self):
+        contourCount = len(self)
+        index = 0
+        while index < contourCount:
+            contour = self[index]
+            yield contour
+            index += 1
+
+    def __getitem__(self, index):
+        return self._contours[index]
+
+    def _getContourIndex(self, contour):
+        return self._contours.index(contour)
+
+    def copyDataFromGlyph(self, glyph):
+        """
+        Copy data from **glyph**. This copies the following data:
+
+        ==========
+        width
+        height
+        unicodes
+        note
+        image
+        contours
+        components
+        anchors
+        guidelines
+        lib
+        ==========
+
+        The name attribute is purposefully omitted.
+        """
+        from copy import deepcopy
+        self.width = glyph.width
+        self.height = glyph.height
+        self.unicodes = list(glyph.unicodes)
+        self.note = glyph.note
+        self.guidelines = glyph.guidelines
+        self.anchors = glyph.anchors
+        self.image = glyph.image
+        pointPen = self.getPointPen()
+        glyph.drawPoints(pointPen)
+        self.lib = deepcopy(glyph.lib)
 
     def appendContour(self, contour):
         """
@@ -1063,6 +1098,65 @@ def _testAnchors():
     >>> glyph = font['A']
     >>> len(glyph.anchors)
     2
+    """
+
+def _testCopyFromGlyph():
+    """
+    >>> source = Glyph()
+    >>> source.name = "a"
+    >>> source.width = 1
+    >>> source.height = 2
+    >>> source.unicodes = [3, 4]
+    >>> source.note = "test image"
+    >>> source.image = dict(fileName="test image")
+    >>> source.anchors = [dict(x=100, y=200, name="test anchor")]
+    >>> source.guidelines = [dict(x=10, y=20, name="test guideline")]
+    >>> source.lib = {"foo" : "bar"}
+    >>> pen = source.getPointPen()
+    >>> pen.beginPath()
+    >>> pen.addPoint((100, 200), segmentType="line")
+    >>> pen.addPoint((300, 400), segmentType="line")
+    >>> pen.endPath()
+    >>> component = Component()
+    >>> component.base = "b"
+    >>> source.appendComponent(component)
+    >>> dest = Glyph()
+    >>> dest.copyDataFromGlyph(source)
+
+    >>> source.name == dest.name
+    False
+    >>> source.width == dest.width
+    True
+    >>> source.height == dest.height
+    True
+    >>> source.unicodes == dest.unicodes
+    True
+    >>> source.note == dest.note
+    True
+    >>> source.image.items() == dest.image.items()
+    True
+    >>> [g.items() for g in source.guidelines] == [g.items() for g in dest.guidelines]
+    True
+    >>> [g.items() for g in source.anchors] == [g.items() for g in dest.anchors]
+    True
+    >>> len(source) == len(dest)
+    True
+    >>> len(source.components) == len(dest.components)
+    True
+    >>> sourceContours = []
+    >>> for contour in source:
+    ...     sourceContours.append([])
+    ...     for point in contour:
+    ...         sourceContours[-1].append((point.x, point.x, point.segmentType, point.name))
+    >>> destContours = []
+    >>> for contour in dest:
+    ...     destContours.append([])
+    ...     for point in contour:
+    ...         destContours[-1].append((point.x, point.x, point.segmentType, point.name))
+    >>> sourceContours == destContours
+    True
+    >>> source.components[0].baseGlyph == dest.components[0].baseGlyph
+    True
     """
 
 def _testLen():
