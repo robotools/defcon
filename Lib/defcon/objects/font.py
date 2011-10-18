@@ -15,7 +15,7 @@ from defcon.objects.kerning import Kerning
 from defcon.objects.groups import Groups
 from defcon.objects.features import Features
 from defcon.objects.lib import Lib
-from defcon.objects.images import Images
+from defcon.objects.imageSet import Images
 from defcon.tools.notifications import NotificationCenter
 
 

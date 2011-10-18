@@ -14,7 +14,7 @@ from defcon.objects import lib
 from defcon.objects import kerning
 from defcon.objects import info
 from defcon.objects import groups
-from defcon.objects import images
+from defcon.objects import imageSet
 from defcon.objects import image
 
 test = [
@@ -32,7 +32,7 @@ test = [
     kerning,
     info,
     groups,
-    images,
+    imageSet,
     image
 ]
 
