@@ -266,6 +266,29 @@ class Layer(BaseObject):
 
     componentReferences = property(_get_componentReferences, doc="A dict of describing the component relationships in the layer. The dictionary is of form ``{base glyph : [references]}``.")
 
+    def _get_imageReferences(self):
+        found = {}
+        # scan loaded glyphs
+        for glyphName, glyph in self._glyphs.items():
+            if glyphName in self._scheduledForDeletion:
+                continue
+            image = glyph.image
+            if image is not None and image.fileName is not None:
+                fileName = image.fileName
+                if fileName not in found:
+                    found[fileName] = []
+                found[fileName].append(glyphName)
+        # scan glyphs that have not been loaded
+        if self._glyphSet is not None:
+            glyphNames = set(self._glyphSet.contents.keys()) - set(self._glyphs.keys())
+            for glyphName, fileName in self._glyphSet.getImageReferences(glyphNames).items():
+                if fileName not in found:
+                    found[fileName] = []
+                found[fileName].append(glyphName)
+        return found
+
+    imageReferences = property(_get_imageReferences, doc="A dict of describing the image file references in the layer. The dictionary is of form ``{image file name : [references]}``.")
+
     def _get_bounds(self):
         fontRect = None
         for glyph in self:
@@ -860,6 +883,21 @@ def _testComponentReferences():
     >>> glyph = layer["C"]
     >>> layer.componentReferences
     {'A': set(['C']), 'B': set(['C'])}
+    """
+
+def _testImageReferences():
+    """
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> layer = font.layers["Layer 1"]
+    >>> layer.imageReferences
+    {'image 1.png': ['A']}
+    >>> layer.newGlyph("B")
+    >>> glyph = layer["B"]
+    >>> glyph.image = dict(fileName="test")
+    >>> layer.imageReferences
+    {'test': ['B'], 'image 1.png': ['A']}
     """
 
 def _testBounds():
