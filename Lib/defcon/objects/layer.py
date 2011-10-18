@@ -168,7 +168,6 @@ class Layer(BaseObject):
             font = layerSet.getParent()
         if font is not None:
             glyph.setParent(font)
-        glyph.dispatcher = self.dispatcher
         glyph.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Glyph.Changed")
         glyph.addObserver(observer=self, methodName="_glyphNameChange", notification="Glyph.NameChanged")
         glyph.addObserver(observer=self, methodName="_glyphUnicodesChange", notification="Glyph.UnicodesChanged")
@@ -207,6 +206,10 @@ class Layer(BaseObject):
         as **name**, already exists, the existing glyph will
         be replaced with the new glyph.
         """
+        # DO NOT ACTUALLY INSERT THE GLYPH!
+        # it is crucially important that the data be reconstructed
+        # in its entirety so that the parent data is properly set
+        # in all of the various objects.
         from copy import deepcopy
         source = glyph
         if name is None:
@@ -215,6 +218,8 @@ class Layer(BaseObject):
         dest = self[name]
         pointPen = dest.getPointPen()
         source.drawPoints(pointPen)
+        dest.anchors = glyph.anchors
+        dest.guidelines = glyph.guidelines
         dest.width = source.width
         dest.unicodes = list(source.unicodes)
         dest.note = source.note
@@ -501,7 +506,6 @@ class Layer(BaseObject):
     def _get_lib(self):
         if self._lib is None:
             self._lib = self._libClass()
-            self._lib.dispatcher = self.dispatcher
             self._lib.setParent(self)
             self._lib.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Lib.Changed")
         return self._lib
@@ -934,6 +938,102 @@ def _testGlyphUnicodesChanged():
     >>> glyph.unicodes = [65]
     >>> layer.unicodeData[65]
     ['A', 'test']
+    """
+
+def _testGlyphDispatcher():
+    """
+    >>> from defcon import Font, Component, Anchor, Guideline
+    >>> from defcon.test.testTools import getTestFontPath
+
+    # loaded
+    >>> font = Font(getTestFontPath())
+    >>> glyph = font["A"]
+    >>> glyph.dispatcher is not None
+    True
+    >>> glyph.dispatcher == font.dispatcher
+    True
+    >>> contour = glyph[0]
+    >>> contour.getParent() == glyph
+    True
+    >>> contour.dispatcher == font.dispatcher
+    True
+    >>> anchor = glyph.anchors[0]
+    >>> anchor.getParent() == glyph
+    True
+    >>> anchor.dispatcher == font.dispatcher
+    True
+    >>> glyph = font["C"]
+    >>> component = glyph.components[0]
+    >>> component.getParent() == glyph
+    True
+    >>> component.dispatcher == font.dispatcher
+    True
+    >>> glyph = font.layers["Layer 1"]["A"]
+    >>> guideline = glyph.guidelines[0]
+    >>> guideline.getParent() == glyph
+    True
+    >>> guideline.dispatcher == font.dispatcher
+    True
+
+    # new
+    >>> font = Font()
+    >>> font.newGlyph("A")
+    >>> glyph = font["A"]
+    >>> pen = glyph.getPointPen()
+    >>> pen.beginPath()
+    >>> pen.addPoint((0, 0), segmentType="line")
+    >>> pen.addPoint((0, 100), segmentType="line")
+    >>> pen.addPoint((100, 100), segmentType="line")
+    >>> pen.addPoint((100, 0), segmentType="line")
+    >>> pen.endPath()
+    >>> contour = glyph[0]
+    >>> contour.getParent() == glyph
+    True
+    >>> contour.dispatcher == font.dispatcher
+    True
+    >>> component = Component()
+    >>> glyph.appendComponent(component)
+    >>> component.getParent() == glyph
+    True
+    >>> component.dispatcher == font.dispatcher
+    True
+    >>> anchor = Anchor()
+    >>> glyph.appendAnchor(anchor)
+    >>> anchor.getParent() == glyph
+    True
+    >>> anchor.dispatcher == font.dispatcher
+    True
+    >>> guideline = Guideline()
+    >>> glyph.appendGuideline(guideline)
+    >>> guideline.getParent() == glyph
+    True
+    >>> guideline.dispatcher == font.dispatcher
+    True
+
+    # inserted
+    >>> sourceGlyph = glyph
+    >>> newFont = Font()
+    >>> insertedGlyph = newFont.insertGlyph(sourceGlyph)
+    >>> contour = insertedGlyph[0]
+    >>> contour.getParent() == insertedGlyph
+    True
+    >>> contour.dispatcher == newFont.dispatcher
+    True
+    >>> component = insertedGlyph.components[0]
+    >>> component.getParent() == insertedGlyph
+    True
+    >>> component.dispatcher == newFont.dispatcher
+    True
+    >>> anchor = insertedGlyph.anchors[0]
+    >>> anchor.getParent() == insertedGlyph
+    True
+    >>> anchor.dispatcher == newFont.dispatcher
+    True
+    >>> guideline = insertedGlyph.guidelines[0]
+    >>> guideline.getParent() == insertedGlyph
+    True
+    >>> guideline.dispatcher == newFont.dispatcher
+    True
     """
 
 if __name__ == "__main__":

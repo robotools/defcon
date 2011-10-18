@@ -108,15 +108,13 @@ class LayerSet(BaseObject):
 
     def _setParentDataInLayer(self, layer):
         layer.setParent(self)
-        layer.dispatcher = self.dispatcher
         layer.addObserver(observer=self, methodName="_layerDirtyStateChange", notification="Layer.Changed")
         layer.addObserver(observer=self, methodName="_layerNameChange", notification="Layer.NameChanged")
 
     def _removeParentDataInLayer(self, layer):
-        layer.setParent()
         layer.removeObserver(observer=self, notification="Layer.Changed")
         layer.removeObserver(observer=self, notification="Layer.NameChanged")
-        layer.dispatcher = None
+        layer.setParent(None)
 
     def newLayer(self, name, glyphSet=None):
         """

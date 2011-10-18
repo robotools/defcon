@@ -1881,16 +1881,13 @@ class Info(BaseObject):
 
     def _setParentDataInGuideline(self, guideline):
         guideline.setParent(self)
-        dispatcher = self.dispatcher
-        if dispatcher is not None:
-            guideline.dispatcher = dispatcher
+        if self.dispatcher is not None:
             guideline.addObserver(observer=self, methodName="_guidelineChanged", notification="Guideline.Changed")
 
     def _removeParentDataInGuideline(self, guideline):
-        guideline.setParent(None)
-        if guideline._dispatcher is not None:
+        if self.dispatcher is not None:
             guideline.removeObserver(observer=self, notification="Guideline.Changed")
-            guideline._dispatcher = None
+        guideline.setParent(None)
 
     def appendGuideline(self, guideline):
         """

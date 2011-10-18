@@ -105,13 +105,11 @@ class Font(BaseObject):
             glyphContourClass=glyphContourClass, glyphPointClass=glyphPointClass,
             glyphComponentClass=glyphComponentClass, glyphAnchorClass=glyphAnchorClass
         )
-        self._layers.dispatcher = self.dispatcher
         self._layers.setParent(self)
         self._layers.addObserver(self, "_objectDirtyStateChange", "LayerSet.Changed")
 
         self._images = Images()
         self._images.setParent(self)
-        self._images._dispatcher = self._dispatcher
 
         self._dirty = False
 
@@ -147,6 +145,11 @@ class Font(BaseObject):
         if self._layers.defaultLayer is None:
             layer = self.newLayer("public.default")
             self._layers.defaultLayer = layer
+
+    def _get_dispatcher(self):
+        return self._dispatcher
+
+    dispatcher = property(_get_dispatcher, doc="The :class:`defcon.tools.notifications.NotificationCenter` assigned to this font.")
 
     # ------
     # Glyphs
@@ -263,7 +266,6 @@ class Font(BaseObject):
     def _get_info(self):
         if self._info is None:
             self._info = self._infoClass()
-            self._info.dispatcher = self.dispatcher
             self._info.setParent(self)
             if self._path is not None:
                 reader = ufoLib.UFOReader(self._path)
@@ -278,7 +280,6 @@ class Font(BaseObject):
     def _get_kerning(self):
         if self._kerning is None:
             self._kerning = self._kerningClass()
-            self._kerning.dispatcher = self.dispatcher
             self._kerning.setParent(self)
             if self._path is not None:
                 # the _reader attribute may be present during __init__
@@ -299,7 +300,6 @@ class Font(BaseObject):
     def _get_groups(self):
         if self._groups is None:
             self._groups = self._groupsClass()
-            self._groups.dispatcher = self.dispatcher
             self._groups.setParent(self)
             if self._path is not None:
                 # the _reader attribute may be present during __init__
@@ -320,7 +320,6 @@ class Font(BaseObject):
     def _get_features(self):
         if self._features is None:
             self._features = self._featuresClass()
-            self._features.dispatcher = self.dispatcher
             self._features.setParent(self)
             if self._path is not None:
                 reader = ufoLib.UFOReader(self._path)
@@ -336,7 +335,6 @@ class Font(BaseObject):
     def _get_lib(self):
         if self._lib is None:
             self._lib = self._libClass()
-            self._lib.dispatcher = self.dispatcher
             self._lib.setParent(self)
             if self._path is not None:
                 reader = ufoLib.UFOReader(self._path)
@@ -480,7 +478,8 @@ class Font(BaseObject):
         if progressBar is not None:
             progressBar.setTitle("Saving features...")
         if self.features.dirty or saveAs:
-            writer.writeFeatures(self.features.text)
+            if self.features.text is not None:
+                writer.writeFeatures(self.features.text)
             self.features.dirty = False
             self._stampFeaturesDataState()
         if progressBar is not None:

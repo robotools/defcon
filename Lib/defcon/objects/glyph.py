@@ -64,7 +64,6 @@ class Glyph(BaseObject):
         self._height = 0
         self._note = None
         self._image = None
-        self._dispatcher = None
         self._identifiers = set()
         self._contours = []
         self._components = []
@@ -92,25 +91,35 @@ class Glyph(BaseObject):
         self._anchorClass = anchorClass
 
         self._lib = libClass()
-        self._lib.setParent(self)
 
-    def _set_dispatcher(self, dispatcher):
-        super(Glyph, self)._set_dispatcher(dispatcher)
-        if dispatcher is not None:
+    def setParent(self, obj):
+        if obj is None:
+            for contour in self._contours:
+                self._removeParentDataInContour(contour)
+            for component in self._components:
+                self._removeParentDataInComponent(component)
+            for anchor in self._anchors:
+                self._removeParentDataInAnchor(anchor)
+            for guideline in self._guidelines:
+                self._removeParentDataInGuideline(guideline)
+            self._removeParentDataInLib()
+            self._removeParentDataInImage()
+            self.removeObserver(observer=self, notification="Glyph.Changed")
+            super(Glyph, self).setParent(obj)
+        else:
+            assert self.getParent() is None
+            super(Glyph, self).setParent(obj)
             for contour in self._contours:
                 self._setParentDataInContour(contour)
             for component in self._components:
                 self._setParentDataInComponent(component)
             for anchor in self._anchors:
                 self._setParentDataInAnchor(anchor)
-            self._lib.dispatcher = dispatcher
-            self._lib.addObserver(observer=self, methodName="_libContentChanged", notification="Lib.Changed")
+            for guideline in self._guidelines:
+                self._setParentDataInGuideline(guideline)
+            self._setParentDataInLib()
+            self._setParentDataInImage()
             self.addObserver(observer=self, methodName="destroyAllRepresentations", notification="Glyph.Changed")
-
-    def _get_dispatcher(self):
-        return super(Glyph, self)._get_dispatcher()
-
-    dispatcher = property(_get_dispatcher, _set_dispatcher, doc="The :class:`~defcon.tools.notifications.NotificationCenter` object assigned to the glyph.")
 
     def _destroyBoundsCache(self):
         self._boundsCache = None
@@ -167,7 +176,7 @@ class Glyph(BaseObject):
             self._unicodes = value
             self.dirty = True
             data = dict(oldValues=oldValue, newValues=value)
-            self.dispatcher.postNotification(notification="Glyph.UnicodesChanged", observable=self, data=data)
+            self.postNotification(notification="Glyph.UnicodesChanged", data=data)
 
     unicodes = property(_get_unicodes, _set_unicodes, doc="The list of unicode values assigned to the glyph. Setting this posts *Glyph.UnicodesChanged* and *Glyph.Changed* notifications.")
 
@@ -388,70 +397,69 @@ class Glyph(BaseObject):
     def _getContourIndex(self, contour):
         return self._contours.index(contour)
 
+    def _setParentDataInLib(self):
+        self._lib.setParent(self)
+        if self.dispatcher is not None and not self._lib.hasObserver(observer=self, notification="Lib.Changed"):
+            self._lib.addObserver(observer=self, methodName="_libContentChanged", notification="Lib.Changed")
+
+    def _removeParentDataInLib(self):
+        if self.dispatcher is not None:
+            self._lib.removeObserver(observer=self, notification="Lib.Changed")
+        self._lib.setParent(None)
+
     def _setParentDataInContour(self, contour):
         contour.setParent(self)
-        dispatcher = self.dispatcher
-        if dispatcher is not None:
-            contour.dispatcher = dispatcher
+        if self.dispatcher is not None and not contour.hasObserver(observer=self, notification="Contour.Changed"):
             contour.addObserver(observer=self, methodName="_outlineContentChanged", notification="Contour.Changed")
 
     def _removeParentDataInContour(self, contour):
-        contour.setParent(None)
-        if contour._dispatcher is not None:
+        if self.dispatcher is not None:
             contour.removeObserver(observer=self, notification="Contour.Changed")
-            contour._dispatcher = None
+        contour.setParent(None)
 
     def _setParentDataInComponent(self, component):
         component.setParent(self)
-        dispatcher = self.dispatcher
-        if dispatcher is not None:
-            component.dispatcher = dispatcher
+        if self.dispatcher is not None and not component.hasObserver(observer=self, notification="Component.Changed"):
             component.addObserver(observer=self, methodName="_outlineContentChanged", notification="Component.Changed")
 
     def _removeParentDataInComponent(self, component):
-        component.setParent(None)
-        if component._dispatcher is not None:
+        if self.dispatcher is not None:
             component.removeObserver(observer=self, notification="Component.Changed")
-            component._dispatcher = None
+        component.setParent(None)
 
     def _setParentDataInAnchor(self, anchor):
         anchor.setParent(self)
-        dispatcher = self.dispatcher
-        if dispatcher is not None:
-            anchor.dispatcher = dispatcher
+        if self.dispatcher is not None and not anchor.hasObserver(observer=self, notification="Anchor.Changed"):
             anchor.addObserver(observer=self, methodName="_outlineContentChanged", notification="Anchor.Changed")
 
     def _removeParentDataInAnchor(self, anchor):
-        anchor.setParent(None)
-        if anchor._dispatcher is not None:
+        if self.dispatcher is not None:
             anchor.removeObserver(observer=self, notification="Anchor.Changed")
-            anchor._dispatcher = None
+        anchor.setParent(None)
 
     def _setParentDataInGuideline(self, guideline):
         guideline.setParent(self)
-        dispatcher = self.dispatcher
-        if dispatcher is not None:
-            guideline.dispatcher = dispatcher
+        if self.dispatcher is not None and not guideline.hasObserver(observer=self, notification="Guideline.Changed"):
             guideline.addObserver(observer=self, methodName="_guidelineChanged", notification="Guideline.Changed")
 
     def _removeParentDataInGuideline(self, guideline):
-        guideline.setParent(None)
-        if guideline._dispatcher is not None:
+        if self.dispatcher is not None:
             guideline.removeObserver(observer=self, notification="Guideline.Changed")
-            guideline._dispatcher = None
+        guideline.setParent(None)
 
     def _setParentDataInImage(self):
+        if self._image is None:
+            return
         self._image.setParent(self)
-        dispatcher = self.dispatcher
-        if dispatcher is not None:
-            self._image.dispatcher = dispatcher
+        if self.dispatcher is not None and not self._image.hasObserver(observer=self, notification="Image.Changed"):
             self._image.addObserver(observer=self, methodName="_imageChanged", notification="Image.Changed")
 
     def _removeParentDataInImage(self):
-        self._image.setParent(None)
-        if self._image._dispatcher is not None:
+        if self._image is None:
+            return
+        if self.dispatcher is not None:
             self._image.removeObserver(observer=self, notification="Image.Changed")
-            self._image._dispatcher = None
+        self._image.setParent(None)
 
     def appendContour(self, contour):
         """
@@ -1238,19 +1246,28 @@ def _testClear():
     >>> from defcon.objects.font import Font
     >>> font = Font(getTestFontPath())
     >>> glyph = font['A']
+    >>> contour = glyph[0]
+    >>> anchor = glyph.anchors[0]
     >>> glyph.clear()
     >>> len(glyph)
     0
     >>> len(glyph.anchors)
     0
     >>> glyph = font['C']
+    >>> component = glyph.components[0]
     >>> glyph.clear()
     >>> len(glyph.components)
     0
     >>> glyph = font.layers["Layer 1"]["A"]
+    >>> guideline = glyph.guidelines[0]
     >>> glyph.clear()
     >>> len(glyph.guidelines)
     0
+
+    >>> contour.getParent(), component.getParent(), anchor.getParent(), guideline.getParent()
+    (None, None, None, None)
+    >>> contour.dispatcher, component.dispatcher, anchor.dispatcher, guideline.dispatcher
+    (None, None, None, None)
     """
 
 def _testClearContours():

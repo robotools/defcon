@@ -67,22 +67,12 @@ class BaseObject(object):
     # -------------
 
     def _get_dispatcher(self):
-        if self._dispatcher is None:
+        parent = self.getParent()
+        if parent is None:
             return None
-        elif isinstance(self._dispatcher, NotificationCenter):
-            return self._dispatcher
-        else:
-            return self._dispatcher()
+        return parent.dispatcher
 
-    def _set_dispatcher(self, dispatcher):
-        if dispatcher is None:
-            pass
-        elif isinstance(dispatcher, NotificationCenter):
-            self._dispatcher = weakref.ref(dispatcher)
-        else:
-            self._dispatcher = dispatcher
-
-    dispatcher = property(_get_dispatcher, _set_dispatcher, doc="The :class:`defcon.tools.notifications.NotificationCenter` assigned to this object.")
+    dispatcher = property(_get_dispatcher, doc="The :class:`defcon.tools.notifications.NotificationCenter` assigned to the parent of this object.")
 
     def addObserver(self, observer, methodName, notification):
         """
@@ -105,7 +95,7 @@ class BaseObject(object):
                 notification=notification, observable=anObject)
         """
         self.dispatcher.addObserver(observer=observer, methodName=methodName,
-                                    notification=notification, observable=self)
+            notification=notification, observable=self)
 
     def removeObserver(self, observer, notification):
         """
@@ -224,7 +214,7 @@ class BaseObject(object):
 
     def _set_dirty(self, value):
         self._dirty = value
-        if self._dispatcher is not None:
+        if self.dispatcher is not None:
             self.dispatcher.postNotification(notification=self.changeNotificationName, observable=self)
 
     def _get_dirty(self):
@@ -269,16 +259,13 @@ class BaseDictObject(dict, BaseObject):
         super(BaseDictObject, self).__delitem__(key)
         self.dirty = True
 
-    def __copy__(self):
-        import copy
-        obj = self.__class__()
-        obj.update(copy.copy(self))
-        return obj
-
     def __deepcopy__(self, memo={}):
         import copy
         obj = self.__class__()
-        obj.update(copy.deepcopy(self, memo))
+        for k, v in self.items():
+            k = copy.deepcopy(k)
+            v = copy.deepcopy(v)
+            obj[k] = v
         return obj
 
     def clear(self):
@@ -298,7 +285,7 @@ def _testDirty():
     >>> from defcon.test.testTools import NotificationTestObject
     >>> notificationObject = NotificationTestObject()
     >>> obj = BaseObject()
-    >>> obj._dispatcher = NotificationCenter()
+    >>> obj.dispatcher = NotificationCenter()
     >>> obj.addObserver(notificationObject, "testCallback", "BaseObject.Changed")
     >>> obj.dirty = True
     BaseObject.Changed None
