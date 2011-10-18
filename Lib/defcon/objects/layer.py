@@ -216,14 +216,25 @@ class Layer(BaseObject):
             name = source.name
         self.newGlyph(name)
         dest = self[name]
+        # advance
+        dest.width = source.width
+        dest.height = source.height
+        # unicodes
+        dest.unicodes = list(source.unicodes)
+        # note
+        dest.note = source.note
+        # guidelines
+        dest.guidelines = glyph.guidelines
+        # anchors
+        dest.anchors = glyph.anchors
+        # image
+        dest.image = glyph.image
+        # contours and components
         pointPen = dest.getPointPen()
         source.drawPoints(pointPen)
-        dest.anchors = glyph.anchors
-        dest.guidelines = glyph.guidelines
-        dest.width = source.width
-        dest.unicodes = list(source.unicodes)
-        dest.note = source.note
+        # lib
         dest.lib = deepcopy(source.lib)
+        # update self.unicodeData
         if dest.unicodes:
             self._unicodeData.addGlyphData(name, dest.unicodes)
         return dest
