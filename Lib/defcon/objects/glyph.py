@@ -94,18 +94,19 @@ class Glyph(BaseObject):
 
     def setParent(self, obj):
         if obj is None:
-            for contour in self._contours:
-                self._removeParentDataInContour(contour)
-            for component in self._components:
-                self._removeParentDataInComponent(component)
-            for anchor in self._anchors:
-                self._removeParentDataInAnchor(anchor)
-            for guideline in self._guidelines:
-                self._removeParentDataInGuideline(guideline)
-            self._removeParentDataInLib()
-            self._removeParentDataInImage()
-            self.removeObserver(observer=self, notification="Glyph.Changed")
-            super(Glyph, self).setParent(obj)
+            if self.getParent() is not None:
+                for contour in self._contours:
+                    self._removeParentDataInContour(contour)
+                for component in self._components:
+                    self._removeParentDataInComponent(component)
+                for anchor in self._anchors:
+                    self._removeParentDataInAnchor(anchor)
+                for guideline in self._guidelines:
+                    self._removeParentDataInGuideline(guideline)
+                self._removeParentDataInLib()
+                self._removeParentDataInImage()
+                self.removeObserver(observer=self, notification="Glyph.Changed")
+                super(Glyph, self).setParent(obj)
         else:
             assert self.getParent() is None
             super(Glyph, self).setParent(obj)
