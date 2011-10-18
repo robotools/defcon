@@ -133,7 +133,7 @@ class LayerSet(BaseObject):
         if glyphSet is None:
             layer.dirty = True
         self._layers[name] = layer
-        self._layerOrder.insert(0, name)
+        self._layerOrder.append(name)
         self._layerActionHistory.append(dict(action="new", name=name))
         return layer
 
@@ -273,10 +273,10 @@ def _testLayerOrder():
     >>> font = Font(getTestFontPath())
     >>> layers = font.layers
     >>> layers.layerOrder
-    ['Layer 1', 'public.background', 'public.default']
+    ['public.default', 'public.background', 'Layer 1']
     >>> layers.layerOrder = list(reversed(layers.layerOrder))
     >>> layers.layerOrder
-    ['public.default', 'public.background', 'Layer 1']
+    ['Layer 1', 'public.background', 'public.default']
     """
 
 def _testDefaultLayer():
@@ -308,7 +308,7 @@ def _testNewLayer():
     >>> font.dirty
     True
     >>> layers.layerOrder
-    ['Test', 'Layer 1', 'public.background', 'public.default']
+    ['public.default', 'public.background', 'Layer 1', 'Test']
     """
 
 def _testIter():
@@ -318,7 +318,7 @@ def _testIter():
     >>> font = Font(getTestFontPath())
     >>> layers = font.layers
     >>> [layer.name for layer in layers]
-    ['Layer 1', 'public.background', 'public.default']
+    ['public.default', 'public.background', 'Layer 1']
     """
 
 def _testGetitem():
@@ -344,7 +344,7 @@ def _testDelItem():
     >>> del layers["public.background"]
     >>> layers.dirty = True
     >>> layers.layerOrder
-    ['Layer 1', 'public.default']
+    ['public.default', 'Layer 1']
     >>> "public.background" in layers
     False
     >>> len(layers)
@@ -427,7 +427,7 @@ def _testContains():
     False
     """
 
-def _testGlyphNameChange():
+def _testNameChange():
     """
     >>> from defcon import Font
     >>> from defcon.test.testTools import getTestFontPath
@@ -438,7 +438,7 @@ def _testGlyphNameChange():
     >>> layer.dirty = False
     >>> layer.name = "Name Change Test"
     >>> layers.layerOrder
-    ['Layer 1', 'Name Change Test', 'public.default']
+    ['public.default', 'Name Change Test', 'Layer 1']
     >>> layer.dirty
     True
     >>> layers.dirty
