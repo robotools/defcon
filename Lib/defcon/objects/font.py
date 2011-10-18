@@ -15,7 +15,7 @@ from defcon.objects.kerning import Kerning
 from defcon.objects.groups import Groups
 from defcon.objects.features import Features
 from defcon.objects.lib import Lib
-from defcon.objects.imageSet import Images
+from defcon.objects.imageSet import ImageSet
 from defcon.tools.notifications import NotificationCenter
 
 
@@ -80,7 +80,7 @@ class Font(BaseObject):
         if layerSetClass is None:
             layerSetClass = LayerSet
         if imagesClass is None:
-            imagesClass = Images
+            imagesClass = ImageSet
 
         self._dispatcher = NotificationCenter()
 
@@ -108,7 +108,7 @@ class Font(BaseObject):
         self._layers.setParent(self)
         self._layers.addObserver(self, "_objectDirtyStateChange", "LayerSet.Changed")
 
-        self._images = Images()
+        self._images = ImageSet()
         self._images.setParent(self)
 
         self._dirty = False
@@ -354,7 +354,7 @@ class Font(BaseObject):
     def _get_images(self):
         return self._images
 
-    images = property(_get_images, doc="The font's :class:`Images` object.")
+    images = property(_get_images, doc="The font's :class:`ImageSet` object.")
 
     # -------
     # Methods

@@ -6,7 +6,7 @@ from ufoLib.filenames import userNameToFileName
 pngSignature = "\x89PNG\r\n\x1a\n"
 
 
-class Images(BaseObject):
+class ImageSet(BaseObject):
 
     """
     This object manages all images in the font.
@@ -16,7 +16,7 @@ class Images(BaseObject):
     ===========    ====
     Name           Note
     ===========    ====
-    Images.Changed Posted when the *dirty* attribute is set.
+    ImageSet.Changed Posted when the *dirty* attribute is set.
     ===========    ====
 
     This object behaves like a dict. For example, to get the
@@ -30,7 +30,7 @@ class Images(BaseObject):
 
     When setting an image, the provided file name must be a file
     system legal string. This will be checked by comparing the
-    provided file name to the results of :py:meth:`Images.makeFileName`.
+    provided file name to the results of :py:meth:`ImageSet.makeFileName`.
     If the two don't match an error will be raised.
 
     To remove an image from this object, and from the UFO during save,
@@ -40,7 +40,7 @@ class Images(BaseObject):
     """
 
     def __init__(self, fileNames=None):
-        super(Images, self).__init__()
+        super(ImageSet, self).__init__()
         self._data = {}
         self._scheduledForDeletion = set()
 
