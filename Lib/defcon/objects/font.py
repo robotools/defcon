@@ -16,6 +16,7 @@ from defcon.objects.groups import Groups
 from defcon.objects.features import Features
 from defcon.objects.lib import Lib
 from defcon.objects.imageSet import ImageSet
+from defcon.objects.dataSet import DataSet
 from defcon.tools.notifications import NotificationCenter
 
 
@@ -64,7 +65,7 @@ class Font(BaseObject):
 
     def __init__(self, path=None,
                     kerningClass=None, infoClass=None, groupsClass=None, featuresClass=None, libClass=None, unicodeDataClass=None,
-                    layerSetClass=None, layerClass=None, imagesClass=None,
+                    layerSetClass=None, layerClass=None, imageSetClass=None, dataSetClass=None,
                     glyphClass=None, glyphContourClass=None, glyphPointClass=None, glyphComponentClass=None, glyphAnchorClass=None):
         super(Font, self).__init__()
         if infoClass is None:
@@ -79,8 +80,10 @@ class Font(BaseObject):
             libClass = Lib
         if layerSetClass is None:
             layerSetClass = LayerSet
-        if imagesClass is None:
-            imagesClass = ImageSet
+        if imageSetClass is None:
+            imageSetClass = ImageSet
+        if dataSetClass is None:
+            dataSetClass = DataSet
 
         self._dispatcher = NotificationCenter()
 
@@ -108,8 +111,11 @@ class Font(BaseObject):
         self._layers.setParent(self)
         self._layers.addObserver(self, "_objectDirtyStateChange", "LayerSet.Changed")
 
-        self._images = ImageSet()
+        self._images = imageSetClass()
         self._images.setParent(self)
+
+        self._data = dataSetClass()
+        self._data.setParent(self)
 
         self._dirty = False
 
@@ -129,6 +135,8 @@ class Font(BaseObject):
             self._layers.dirty = False
             # get the image file names
             self._images.fileNames = reader.getImageDirectoryListing()
+            # get the data directory listing
+            self._data.fileNames = reader.getDataDirectoryListing()
             # if the UFO version is 1, do some conversion.
             if self._ufoFormatVersion == 1:
                 self._convertFromFormatVersion1RoboFabData()
@@ -356,6 +364,11 @@ class Font(BaseObject):
 
     images = property(_get_images, doc="The font's :class:`ImageSet` object.")
 
+    def _get_data(self):
+        return self._data
+
+    data = property(_get_data, doc="The font's :class:`DataSet` object.")
+
     # -------
     # Methods
     # -------
@@ -520,7 +533,15 @@ class Font(BaseObject):
             progressBar.tick()
 
     def saveData(self, writer, saveAs=False, progressBar=None):
-        pass
+        """
+        Save data. This method should not be called externally.
+        Subclasses may override this method to implement custom saving behavior.
+        """
+        if progressBar is not None:
+            progressBar.setTitle("Saving data...")
+        self.data.save(writer, saveAs=saveAs, progressBar=progressBar)
+        if progressBar is not None:
+            progressBar.tick()
 
     # ----------------------
     # Notification Callbacks
