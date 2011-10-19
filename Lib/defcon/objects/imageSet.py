@@ -58,7 +58,7 @@ class ImageSet(BaseObject):
         for fileName in fileNames:
             self._data[fileName] = _imageDict()
 
-    fileNames = property(_get_fileNames, _set_fileNames, doc="A list of all image file names.")
+    fileNames = property(_get_fileNames, _set_fileNames, doc="A list of all image file names. This should not be set externally.")
 
     def _get_unreferencedFileNames(self):
         font = self.getParent()
@@ -90,10 +90,12 @@ class ImageSet(BaseObject):
         assert data.startswith(pngSignature)
         self._data[fileName] = _imageDict(data=data, dirty=True, digest=_makeDigest(data))
         self._scheduledForDeletion.discard(fileName)
+        self.dirty = True
 
     def __delitem__(self, fileName):
         del self._data[fileName]
         self._scheduledForDeletion.add(fileName)
+        self.dirty = True
 
     # ---------------
     # File Management
@@ -134,6 +136,7 @@ class ImageSet(BaseObject):
                 continue
             writer.writeImage(fileName, data["data"])
             data["dirty"] = False
+        self.dirty = False
 
     def makeFileName(self, fileName):
         """
