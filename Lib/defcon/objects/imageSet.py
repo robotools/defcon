@@ -101,6 +101,15 @@ class ImageSet(BaseObject):
             for fileName in self.unreferencedFileNames:
                 del self[fileName]
             self.enableNotifications()
+        if saveAs:
+            font = self.getParent()
+            if font is not None and font.path is not None and os.path.exists(font.path):
+                reader = UFOReader(font.path)
+                readerImageNames = reader.getImageDirectoryListing()
+                for fileName, data in self._data.items():
+                    if data["data"] is not None or fileName not in readerImageNames:
+                        continue
+                    writer.copyImageFromReader(reader, fileName, fileName)
         for fileName in self._scheduledForDeletion:
             try:
                 writer.removeImage(fileName)
@@ -183,6 +192,49 @@ def _testWrite():
     >>> p = os.path.join(path, "images", "image 3.png")
     >>> os.path.exists(p)
     True
+    >>> tearDownTestFontCopy()
+    """
+
+def _testSaveAs():
+    """
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath, getTestFontCopyPath, tearDownTestFontCopy
+    >>> path = getTestFontPath()
+    >>> font = Font(path)
+    >>> saveAsPath = getTestFontCopyPath(path)
+    >>> font.save(saveAsPath)
+    >>> imagesDirectory = os.path.join(saveAsPath, "images")
+    >>> os.path.exists(imagesDirectory)
+    True
+    >>> imagePath = os.path.join(imagesDirectory, "image 1.png")
+    >>> os.path.exists(imagePath)
+    True
+    >>> imagePath = os.path.join(imagesDirectory, "image 2.png")
+    >>> os.path.exists(imagePath)
+    True
+    >>> tearDownTestFontCopy(saveAsPath)
+    """
+
+def _testUnreferencedImages():
+    """
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath()
+    >>> font = Font(path)
+    >>> font.images.unreferencedFileNames
+    ['image 2.png']
+
+    >>> from defcon.test.testTools import makeTestFontCopy, tearDownTestFontCopy
+    >>> from defcon import Font
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> font.save(removeUnreferencedImages=True)
+    >>> p = os.path.join(path, "images", "image 1.png")
+    >>> os.path.exists(p)
+    True
+    >>> p = os.path.join(path, "images", "image 2.png")
+    >>> os.path.exists(p)
+    False
     >>> tearDownTestFontCopy()
     """
 
