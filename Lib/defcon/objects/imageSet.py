@@ -1,4 +1,5 @@
 import os
+import hashlib
 from ufoLib import UFOReader, UFOLibError
 from defcon.objects.base import BaseObject
 from ufoLib.filenames import userNameToFileName
@@ -13,11 +14,11 @@ class ImageSet(BaseObject):
 
     **This object posts the following notifications:**
 
-    ===========    ====
-    Name           Note
-    ===========    ====
-    ImageSet.Changed Posted when the *dirty* attribute is set.
-    ===========    ====
+    ===========       ====
+    Name              Note
+    ===========       ====
+    ImageSet.Changed  Posted when the *dirty* attribute is set.
+    ===========       ====
 
     This object behaves like a dict. For example, to get the
     raw image data for a particular image::
@@ -32,6 +33,11 @@ class ImageSet(BaseObject):
     system legal string. This will be checked by comparing the
     provided file name to the results of :py:meth:`ImageSet.makeFileName`.
     If the two don't match an error will be raised.
+
+    Before setting an image, the :py:meth:`ImageSet.findDuplicateImage`
+    method should be called. If a file name is retruend, the new image
+    data should not be added. The UFO spec recommends (but doesn't require)
+    that duplicate images be avoided. This will help with that.
 
     To remove an image from this object, and from the UFO during save,
     do this::
@@ -74,13 +80,15 @@ class ImageSet(BaseObject):
         if d["data"] is None:
             path = self.getParent().path
             reader = UFOReader(path)
-            d["data"] = reader.readImage(fileName)
+            data = reader.readImage(fileName)
+            d["data"] = data
+            d["digest"] = _makeDigest(data)
         return d["data"]
 
     def __setitem__(self, fileName, data):
         assert fileName == self.makeFileName(fileName)
         assert data.startswith(pngSignature)
-        self._data[fileName] = _imageDict(data=data, dirty=True)
+        self._data[fileName] = _imageDict(data=data, dirty=True, digest=_makeDigest(data))
         self._scheduledForDeletion.discard(fileName)
 
     def __delitem__(self, fileName):
@@ -140,9 +148,38 @@ class ImageSet(BaseObject):
         existing = set([i.lower() for i in self.fileNames])
         return userNameToFileName(fileName, existing, suffix=suffix)
 
+    def findDuplicateImage(self, data):
+        """
+        Search the images to see if an image matching
+        **image** already exists. If so, the file name
+        for the existing image will be returned.
+        """
+        digest = _makeDigest(data)
+        notYetLoaded = []
+        for fileName, image in self._data.items():
+            # skip if the image hasn't been loaded
+            if image["data"] is None:
+                notYetLoaded.append(fileName)
+                continue
+            otherDigest = image["digest"]
+            if otherDigest == digest:
+                return fileName
+        for fileName in notYetLoaded:
+            d = self[fileName]
+            image = self._data[fileName]
+            otherDigest = image["digest"]
+            if otherDigest == digest:
+                return fileName
+        return None
 
-def _imageDict(data=None, dirty=False):
-    return dict(data=data, md5=None, dirty=dirty)
+
+def _imageDict(data=None, dirty=False, digest=None):
+    return dict(data=data, digest=digest, dirty=dirty)
+
+def _makeDigest(data):
+    m = hashlib.md5()
+    m.update(data)
+    return m.digest()
 
 # -----
 # Tests
@@ -236,6 +273,23 @@ def _testUnreferencedImages():
     >>> os.path.exists(p)
     False
     >>> tearDownTestFontCopy()
+    """
+
+def _testDuplicateImage():
+    """
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath()
+    >>> font = Font(path)
+    >>> data = font.images["image 1.png"]
+    >>> font.images.findDuplicateImage(data)
+    'image 1.png'
+    >>> imagePath = os.path.join(path, "images", "image 2.png")
+    >>> f = open(imagePath, "rb")
+    >>> data = f.read()
+    >>> f.close()
+    >>> font.images.findDuplicateImage(data)
+    'image 2.png'
     """
 
 if __name__ == "__main__":
