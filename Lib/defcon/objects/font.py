@@ -360,7 +360,7 @@ class Font(BaseObject):
     # Methods
     # -------
 
-    def save(self, path=None, formatVersion=None, progressBar=None):
+    def save(self, path=None, formatVersion=None, removeUnreferencedImages=False, progressBar=None):
         """
         Save the font to **path**. If path is None, the path
         from the last save or when the font was first opened
@@ -372,6 +372,10 @@ class Font(BaseObject):
         these is available, the UFO will be written as format version 2.
         If you wish to specifiy the format version for saving, pass
         the desired number as the **formatVersion** argument.
+
+        Optionally, the uFO can be purged of unreferenced images
+        during thi operations. To do this, pass ``True`` as the
+        value for the removeUnreferencedImages argument.
         """
         saveAs = False
         if path is not None and path != self._path:
@@ -411,7 +415,7 @@ class Font(BaseObject):
             if formatVersion >= 2:
                 self.saveFeatures(writer=writer, saveAs=saveAs, progressBar=progressBar)
             if formatVersion >= 3:
-                self.saveImages(writer=writer, saveAs=saveAs, progressBar=progressBar)
+                self.saveImages(writer=writer, removeUnreferencedImages=removeUnreferencedImages, saveAs=saveAs, progressBar=progressBar)
                 self.saveData(writer=writer, saveAs=saveAs, progressBar=progressBar)
             self.layers.save(writer, saveAs=saveAs, progressBar=progressBar)
             if downConvertinginPlace:
@@ -504,14 +508,14 @@ class Font(BaseObject):
         if progressBar is not None:
             progressBar.tick()
 
-    def saveImages(self, writer, saveAs=False, progressBar=None):
+    def saveImages(self, writer, removeUnreferencedImages=False, saveAs=False, progressBar=None):
         """
         Save images. This method should not be called externally.
         Subclasses may override this method to implement custom saving behavior.
         """
         if progressBar is not None:
             progressBar.setTitle("Saving images...")
-        self.images.save(writer, saveAs=saveAs, progressBar=progressBar)
+        self.images.save(writer, removeUnreferencedImages=removeUnreferencedImages, saveAs=saveAs, progressBar=progressBar)
         if progressBar is not None:
             progressBar.tick()
 

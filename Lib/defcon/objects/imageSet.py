@@ -54,6 +54,17 @@ class ImageSet(BaseObject):
 
     fileNames = property(_get_fileNames, _set_fileNames, doc="A list of all image file names.")
 
+    def _get_unreferencedFileNames(self):
+        font = self.getParent()
+        if font is None:
+            return []
+        unreferenced = set(self.fileNames)
+        for layer in font.layers:
+            unreferenced -= set(layer.imageReferences.keys())
+        return list(unreferenced)
+
+    unreferencedFileNames = property(_get_unreferencedFileNames, doc="A list of all file names not referenced by a glyph.")
+
     # -------------
     # Dict Behavior
     # -------------
@@ -80,11 +91,16 @@ class ImageSet(BaseObject):
     # File Management
     # ---------------
 
-    def save(self, writer, saveAs=False, progressBar=None):
+    def save(self, writer, removeUnreferencedImages=False, saveAs=False, progressBar=None):
         """
         Save images. This method should not be called externally.
         Subclasses may override this method to implement custom saving behavior.
         """
+        if removeUnreferencedImages:
+            self.disableNotifications()
+            for fileName in self.unreferencedFileNames:
+                del self[fileName]
+            self.enableNotifications()
         for fileName in self._scheduledForDeletion:
             try:
                 writer.removeImage(fileName)
