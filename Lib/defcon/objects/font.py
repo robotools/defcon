@@ -395,6 +395,10 @@ class Font(BaseObject):
             saveAs = True
         else:
             path = self._path
+        # sanity checks on layer data before doing anything destructive
+        assert self.layers.defaultLayer is not None
+        if self.layers.defaultLayer != "public.default":
+            assert "public.default" not in self.layers.layerOrder
         ## work out the format version
         # if None is given, fallback to the one that
         # came in when the UFO was loaded
