@@ -12,7 +12,8 @@ class Layer(BaseObject):
 
     changeNotificationName = "Layer.Changed"
 
-    def __init__(self, glyphSet=None, libClass=None, unicodeDataClass=None, glyphClass=None,
+    def __init__(self, glyphSet=None, libClass=None, unicodeDataClass=None,
+                guidelineClass=None, glyphClass=None,
                 glyphContourClass=None, glyphPointClass=None, glyphComponentClass=None, glyphAnchorClass=None):
         super(Layer, self).__init__()
 
@@ -31,6 +32,7 @@ class Layer(BaseObject):
         self._glyphComponentClass = glyphComponentClass
         self._glyphAnchorClass = glyphAnchorClass
         self._libClass = libClass
+        self._guidelineClass = guidelineClass
 
         self._dispatcher = None
         self._color = None
@@ -68,6 +70,7 @@ class Layer(BaseObject):
             pointClass=self._glyphPointClass,
             componentClass=self._glyphComponentClass,
             anchorClass=self._glyphAnchorClass,
+            guidelineClass=self._guidelineClass,
             libClass=self._libClass
         )
         return glyph

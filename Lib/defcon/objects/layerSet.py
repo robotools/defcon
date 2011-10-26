@@ -28,7 +28,8 @@ class LayerSet(BaseObject):
 
     changeNotificationName = "LayerSet.Changed"
 
-    def __init__(self, layerClass=None, libClass=None, unicodeDataClass=None, glyphClass=None,
+    def __init__(self, layerClass=None, libClass=None, unicodeDataClass=None, 
+            guidelineClass=None, glyphClass=None,
             glyphContourClass=None, glyphPointClass=None, glyphComponentClass=None, glyphAnchorClass=None):
         super(LayerSet, self).__init__()
         if layerClass is None:
@@ -42,6 +43,7 @@ class LayerSet(BaseObject):
         self._glyphPointClass = glyphPointClass
         self._glyphComponentClass = glyphComponentClass
         self._glyphAnchorClass = glyphAnchorClass
+        self._guidelineClass = guidelineClass
 
         self._layers = {}
         self._layerOrder = []
@@ -103,6 +105,7 @@ class LayerSet(BaseObject):
             glyphPointClass=self._glyphPointClass,
             glyphComponentClass=self._glyphComponentClass,
             glyphAnchorClass=self._glyphAnchorClass,
+            guidelineClass=self._guidelineClass
         )
         return layer
 

@@ -97,9 +97,12 @@ print doc
 print "    changeNotificationName = \"Info.Changed\""
 print
 
-print "    def __init__(self):"
+print "    def __init__(self, guidelineClass=None):"
 print "        super(Info, self).__init__()"
 print "        self._identifiers = set()"
+print "        if guidelineClass is None:"
+print "            guidelineClass = Guideline"
+print "        self._guidelineClass = guidelineClass"
 
 defaults = dict(
     guidelines=[],
@@ -174,16 +177,13 @@ handBuilt = """
 
     def _setParentDataInGuideline(self, guideline):
         guideline.setParent(self)
-        dispatcher = self.dispatcher
-        if dispatcher is not None:
-            guideline.dispatcher = dispatcher
+        if self.dispatcher is not None:
             guideline.addObserver(observer=self, methodName="_guidelineChanged", notification="Guideline.Changed")
 
     def _removeParentDataInGuideline(self, guideline):
-        guideline.setParent(None)
-        if guideline._dispatcher is not None:
+        if self.dispatcher is not None:
             guideline.removeObserver(observer=self, notification="Guideline.Changed")
-            guideline._dispatcher = None
+        guideline.setParent(None)
 
     def appendGuideline(self, guideline):
         \"\"\"
@@ -208,8 +208,8 @@ handBuilt = """
         This will post a *Glyph.Changed* notification.
         \"\"\"
         assert guideline not in self._guidelines
-        if not isinstance(guideline, Guideline):
-            guideline = Guideline(guideline)
+        if not isinstance(guideline, self._guidelineClass):
+            guideline = self._guidelineClass(guideline)
         if guideline.identifier is not None:
             identifiers = self._identifiers
             assert guideline.identifier not in identifiers

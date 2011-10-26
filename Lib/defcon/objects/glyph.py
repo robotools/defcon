@@ -53,7 +53,7 @@ class Glyph(BaseObject):
 
     changeNotificationName = "Glyph.Changed"
 
-    def __init__(self, contourClass=None, pointClass=None, componentClass=None, anchorClass=None, libClass=None):
+    def __init__(self, contourClass=None, pointClass=None, componentClass=None, anchorClass=None, guidelineClass=None, libClass=None):
         super(Glyph, self).__init__()
 
         self._parent = None
@@ -82,6 +82,8 @@ class Glyph(BaseObject):
             componentClass = Component
         if anchorClass is None:
             anchorClass = Anchor
+        if guidelineClass is None:
+            guidelineClass = Guideline
         if libClass is None:
             libClass = Lib
 
@@ -89,7 +91,7 @@ class Glyph(BaseObject):
         self._pointClass = pointClass
         self._componentClass = componentClass
         self._anchorClass = anchorClass
-
+        self._guidelineClass = Guideline
         self._lib = libClass()
 
     def setParent(self, obj):
@@ -627,8 +629,8 @@ class Glyph(BaseObject):
         This will post a *Glyph.Changed* notification.
         """
         assert guideline not in self._guidelines
-        if not isinstance(guideline, Guideline):
-            guideline = Guideline(guideline)
+        if not isinstance(guideline, self._guidelineClass):
+            guideline = self._guidelineClass(guideline)
         if guideline.identifier is not None:
             identifiers = self._identifiers
             assert guideline.identifier not in identifiers

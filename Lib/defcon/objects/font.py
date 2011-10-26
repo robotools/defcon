@@ -66,6 +66,7 @@ class Font(BaseObject):
     def __init__(self, path=None,
                     kerningClass=None, infoClass=None, groupsClass=None, featuresClass=None, libClass=None, unicodeDataClass=None,
                     layerSetClass=None, layerClass=None, imageSetClass=None, dataSetClass=None,
+                    guidelineClass=None,
                     glyphClass=None, glyphContourClass=None, glyphPointClass=None, glyphComponentClass=None, glyphAnchorClass=None):
         super(Font, self).__init__()
         if infoClass is None:
@@ -92,6 +93,7 @@ class Font(BaseObject):
         self._groupsClass = groupsClass
         self._featuresClass = featuresClass
         self._libClass = libClass
+        self._guidelineClass = guidelineClass
 
         self._path = path
         self._ufoFormatVersion = None
@@ -103,7 +105,7 @@ class Font(BaseObject):
         self._lib = None
 
         self._layers = layerSetClass(
-            libClass=libClass, unicodeDataClass=unicodeDataClass,
+            libClass=libClass, unicodeDataClass=unicodeDataClass, guidelineClass=guidelineClass,
             layerClass=layerClass, glyphClass=glyphClass,
             glyphContourClass=glyphContourClass, glyphPointClass=glyphPointClass,
             glyphComponentClass=glyphComponentClass, glyphAnchorClass=glyphAnchorClass
@@ -273,7 +275,7 @@ class Font(BaseObject):
 
     def _get_info(self):
         if self._info is None:
-            self._info = self._infoClass()
+            self._info = self._infoClass(guidelineClass=self._guidelineClass)
             self._info.setParent(self)
             if self._path is not None:
                 reader = ufoLib.UFOReader(self._path)
@@ -397,7 +399,7 @@ class Font(BaseObject):
             path = self._path
         # sanity checks on layer data before doing anything destructive
         assert self.layers.defaultLayer is not None
-        if self.layers.defaultLayer != "public.default":
+        if self.layers.defaultLayer.name != "public.default":
             assert "public.default" not in self.layers.layerOrder
         ## work out the format version
         # if None is given, fallback to the one that

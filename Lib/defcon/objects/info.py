@@ -26,9 +26,12 @@ class Info(BaseObject):
 
     changeNotificationName = "Info.Changed"
 
-    def __init__(self):
+    def __init__(self, guidelineClass=None):
         super(Info, self).__init__()
         self._identifiers = set()
+        if guidelineClass is None:
+            guidelineClass = Guideline
+        self._guidelineClass = guidelineClass
         self._ascender = None
         self._capHeight = None
         self._copyright = None
@@ -236,7 +239,7 @@ class Info(BaseObject):
                 self._italicAngle = value
         self.dirty = True
 
-    italicAngle = property(_get_italicAngle, _set_italicAngle, doc="Italic angle. This must be an angle in counter-clockwise degrees from the vertical. This should be a float. Setting this will post an *Info.Changed* notification.")
+    italicAngle = property(_get_italicAngle, _set_italicAngle, doc="Italic angle. This must be an angle in counter-clockwise degrees from the vertical. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
 
     def _get_macintoshFONDFamilyID(self):
         return self._macintoshFONDFamilyID
@@ -1420,7 +1423,7 @@ class Info(BaseObject):
                 self._postscriptSlantAngle = value
         self.dirty = True
 
-    postscriptSlantAngle = property(_get_postscriptSlantAngle, _set_postscriptSlantAngle, doc="Artificial slant angle. This must be an angle in counter-clockwise degrees from the vertical. This should be a float. Setting this will post an *Info.Changed* notification.")
+    postscriptSlantAngle = property(_get_postscriptSlantAngle, _set_postscriptSlantAngle, doc="Artificial slant angle. This must be an angle in counter-clockwise degrees from the vertical. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
 
     def _get_postscriptStemSnapH(self):
         return self._postscriptStemSnapH
@@ -1912,8 +1915,8 @@ class Info(BaseObject):
         This will post a *Glyph.Changed* notification.
         """
         assert guideline not in self._guidelines
-        if not isinstance(guideline, Guideline):
-            guideline = Guideline(guideline)
+        if not isinstance(guideline, self._guidelineClass):
+            guideline = self._guidelineClass(guideline)
         if guideline.identifier is not None:
             identifiers = self._identifiers
             assert guideline.identifier not in identifiers
