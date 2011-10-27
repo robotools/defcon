@@ -103,8 +103,6 @@ class ImageSet(BaseObject):
             onDiskModTime = self._data[fileName]["onDiskModTime"]
             del self._data[fileName] # now remove it
         self._data[fileName] = _imageDict(data=data, dirty=True, digest=_makeDigest(data), onDisk=onDisk, onDiskModTime=onDiskModTime)
-        if fileName in self._scheduledForDeletion:
-            del self._scheduledForDeletion[fileName]
         self.dirty = True
 
     def __delitem__(self, fileName):
