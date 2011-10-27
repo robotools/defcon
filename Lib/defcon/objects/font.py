@@ -5,7 +5,7 @@ from copy import deepcopy
 import tempfile
 import shutil
 from fontTools.misc.arrayTools import unionRect
-import ufoLib
+from ufoLib import UFOReader, UFOWriter
 from defcon.errors import DefconError
 from defcon.objects.base import BaseObject
 from defcon.objects.layerSet import LayerSet
@@ -122,7 +122,7 @@ class Font(BaseObject):
         self._dirty = False
 
         if path:
-            reader = ufoLib.UFOReader(self._path)
+            reader = UFOReader(self._path)
             self._ufoFormatVersion = reader.formatVersion
             # go ahead and load the layers
             layerNames = reader.getLayerNames()
@@ -277,12 +277,13 @@ class Font(BaseObject):
         if self._info is None:
             self._info = self._infoClass(guidelineClass=self._guidelineClass)
             self._info.setParent(self)
+            reader = None
             if self._path is not None:
-                reader = ufoLib.UFOReader(self._path)
+                reader = UFOReader(self._path)
                 reader.readInfo(self._info)
                 self._info.dirty = False
             self._info.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Info.Changed")
-            self._stampInfoDataState()
+            self._stampInfoDataState(reader)
         return self._info
 
     info = property(_get_info, doc="The font's :class:`Info` object.")
@@ -291,18 +292,19 @@ class Font(BaseObject):
         if self._kerning is None:
             self._kerning = self._kerningClass()
             self._kerning.setParent(self)
+            reader = None
             if self._path is not None:
                 # the _reader attribute may be present during __init__
                 # but only under certain conditions.
                 if hasattr(self, "_reader"):
                     reader = self._reader
                 else:
-                    reader = ufoLib.UFOReader(self._path)
+                    reader = UFOReader(self._path)
                 d = reader.readKerning()
                 self._kerning.update(d)
                 self._kerning.dirty = False
             self._kerning.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Kerning.Changed")
-            self._stampKerningDataState()
+            self._stampKerningDataState(reader)
         return self._kerning
 
     kerning = property(_get_kerning, doc="The font's :class:`Kerning` object.")
@@ -311,18 +313,19 @@ class Font(BaseObject):
         if self._groups is None:
             self._groups = self._groupsClass()
             self._groups.setParent(self)
+            reader = None
             if self._path is not None:
                 # the _reader attribute may be present during __init__
                 # but only under certain conditions.
                 if hasattr(self, "_reader"):
                     reader = self._reader
                 else:
-                    reader = ufoLib.UFOReader(self._path)
+                    reader = UFOReader(self._path)
                 d = reader.readGroups()
                 self._groups.update(d)
                 self._groups.dirty = False
             self._groups.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Groups.Changed")
-            self._stampGroupsDataState()
+            self._stampGroupsDataState(reader)
         return self._groups
 
     groups = property(_get_groups, doc="The font's :class:`Groups` object.")
@@ -331,13 +334,14 @@ class Font(BaseObject):
         if self._features is None:
             self._features = self._featuresClass()
             self._features.setParent(self)
+            reader = None
             if self._path is not None:
-                reader = ufoLib.UFOReader(self._path)
+                reader = UFOReader(self._path)
                 t = reader.readFeatures()
                 self._features.text = t
                 self._features.dirty = False
             self._features.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Features.Changed")
-            self._stampFeaturesDataState()
+            self._stampFeaturesDataState(reader)
         return self._features
 
     features = property(_get_features, doc="The font's :class:`Features` object.")
@@ -346,12 +350,13 @@ class Font(BaseObject):
         if self._lib is None:
             self._lib = self._libClass()
             self._lib.setParent(self)
+            reader = None
             if self._path is not None:
-                reader = ufoLib.UFOReader(self._path)
+                reader = UFOReader(self._path)
                 d = reader.readLib()
                 self._lib.update(d)
             self._lib.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Lib.Changed")
-            self._stampLibDataState()
+            self._stampLibDataState(reader)
         return self._lib
 
     lib = property(_get_lib, doc="The font's :class:`Lib` object.")
@@ -416,7 +421,7 @@ class Font(BaseObject):
             path = os.path.join(tempfile.mkdtemp(), "temp.ufo")
         try:
             # make a UFOWriter
-            writer = ufoLib.UFOWriter(path, formatVersion=formatVersion)
+            writer = UFOWriter(path, formatVersion=formatVersion)
             # if changing ufo format versions, flag all objects
             # as dirty so that they will be saved
             if self._ufoFormatVersion != formatVersion:
@@ -461,7 +466,7 @@ class Font(BaseObject):
             progressBar.setTitle("Saving info...")
         writer.writeInfo(self.info)
         self.info.dirty = False
-        self._stampInfoDataState()
+        self._stampInfoDataState(UFOReader(writer.path))
         if progressBar is not None:
             progressBar.tick()
 
@@ -475,7 +480,7 @@ class Font(BaseObject):
             progressBar.setTitle("Saving groups...")
         writer.writeGroups(self.groups)
         self.groups.dirty = False
-        self._stampGroupsDataState()
+        self._stampGroupsDataState(UFOReader(writer.path))
         if progressBar is not None:
             progressBar.tick()
 
@@ -489,7 +494,7 @@ class Font(BaseObject):
         if self.kerning.dirty or saveAs:
             writer.writeKerning(self.kerning)
             self.kerning.dirty = False
-            self._stampKerningDataState()
+            self._stampKerningDataState(UFOReader(writer.path))
         if progressBar is not None:
             progressBar.tick()
 
@@ -503,7 +508,7 @@ class Font(BaseObject):
         if self.features.dirty or saveAs:
             writer.writeFeatures(self.features.text)
             self.features.dirty = False
-            self._stampFeaturesDataState()
+            self._stampFeaturesDataState(UFOReader(writer.path))
         if progressBar is not None:
             progressBar.tick()
 
@@ -523,7 +528,7 @@ class Font(BaseObject):
             self._convertToFormatVersion1RoboFabData(libCopy)
         writer.writeLib(libCopy)
         self.lib.dirty = False
-        self._stampLibDataState()
+        self._stampLibDataState(UFOReader(writer.path))
         if progressBar is not None:
             progressBar.tick()
 
@@ -563,63 +568,63 @@ class Font(BaseObject):
 
     # data stamping
 
-    def _stampFontDataState(self, obj, fileName):
+    def _stampFontDataState(self, obj, fileName, reader=None):
         # font is not on disk
-        if self._path is None:
+        if self.path is None:
             return
         # data has not been loaded
         if obj is None:
             return
-        path = os.path.join(self._path, fileName)
-        # file is not in UFO
-        if not os.path.exists(path):
-            text = None
+        # make a reader if necessary
+        if reader is None:
+            reader = UFOReader(self.path)
+        # get the mod time from the reader
+        modTime = reader.getFileModTime(fileName)
+        # file is not in the UFO
+        if modTime is None:
+            data = None
             modTime = -1
-        # get the text
+        # get the data
         else:
-            f = open(path, "rb")
-            text = f.read()
-            f.close()
-            # get the file modification time
-            modTime = os.stat(path).st_mtime
+            data = reader.readBytesFromPath(fileName)
         # store the data
-        obj._dataOnDisk = text
+        obj._dataOnDisk = data
         obj._dataOnDiskTimeStamp = modTime
 
-    def _stampInfoDataState(self):
-        self._stampFontDataState(self._info, "fontinfo.plist")
+    def _stampInfoDataState(self, reader=None):
+        self._stampFontDataState(self._info, "fontinfo.plist", reader=reader)
 
-    def _stampKerningDataState(self):
-        self._stampFontDataState(self._kerning, "kerning.plist")
+    def _stampKerningDataState(self, reader=None):
+        self._stampFontDataState(self._kerning, "kerning.plist", reader=reader)
 
-    def _stampGroupsDataState(self):
-        self._stampFontDataState(self._groups, "groups.plist")
+    def _stampGroupsDataState(self, reader=None):
+        self._stampFontDataState(self._groups, "groups.plist", reader=reader)
 
-    def _stampFeaturesDataState(self):
-        self._stampFontDataState(self._features, "features.fea")
+    def _stampFeaturesDataState(self, reader=None):
+        self._stampFontDataState(self._features, "features.fea", reader=reader)
 
-    def _stampLibDataState(self):
-        self._stampFontDataState(self._lib, "lib.plist")
+    def _stampLibDataState(self, reader=None):
+        self._stampFontDataState(self._lib, "lib.plist", reader=reader)
 
-    def _stampGlyphDataState(self, glyph):
-        if self._glyphSet is None:
-            return
-        glyphSet = self._glyphSet
-        glyphName = glyph.name
-        if glyphName not in glyphSet.contents:
-            return
-        path = os.path.join(self.path, "glyphs", glyphSet.contents[glyphName])
-        # get the text
-        f = open(path, "rb")
-        text = f.read()
-        f.close()
-        # get the file modification time
-        modTime = os.stat(path).st_mtime
-        # store the data
-        glyph._dataOnDisk = text
-        glyph._dataOnDiskTimeStamp = modTime
+#    def _stampGlyphDataState(self, glyph):
+#        if self._glyphSet is None:
+#            return
+#        glyphSet = self._glyphSet
+#        glyphName = glyph.name
+#        if glyphName not in glyphSet.contents:
+#            return
+#        path = os.path.join(self.path, "glyphs", glyphSet.contents[glyphName])
+#        # get the text
+#        f = open(path, "rb")
+#        text = f.read()
+#        f.close()
+#        # get the file modification time
+#        modTime = os.stat(path).st_mtime
+#        # store the data
+#        glyph._dataOnDisk = text
+#        glyph._dataOnDiskTimeStamp = modTime
 
-    # data comparison
+#    # data comparison
 
     def testForExternalChanges(self):
         """
@@ -647,93 +652,95 @@ class Font(BaseObject):
         to 2000. Which value is current? Which value is right? defcon leaves
         this decision up to you.
         """
-        infoChanged = self._testInfoForExternalModifications()
-        kerningChanged = self._testKerningForExternalModifications()
-        groupsChanged = self._testGroupsForExternalModifications()
-        featuresChanged = self._testFeaturesForExternalModifications()
-        libChanged = self._testLibForExternalModifications()
-        modifiedGlyphs, addedGlyphs, deletedGlyphs = self._testGlyphsForExternalModifications()
+        assert self.path is not None
+        reader = UFOReader(self.path)
+        infoChanged = self._testInfoForExternalModifications(reader)
+        kerningChanged = self._testKerningForExternalModifications(reader)
+        groupsChanged = self._testGroupsForExternalModifications(reader)
+        featuresChanged = self._testFeaturesForExternalModifications(reader)
+        libChanged = self._testLibForExternalModifications(reader)
+        #modifiedGlyphs, addedGlyphs, deletedGlyphs = self._testGlyphsForExternalModifications()
         return dict(
             info=infoChanged,
             kerning=kerningChanged,
             groups=groupsChanged,
             features=featuresChanged,
             lib=libChanged,
-            modifiedGlyphs=modifiedGlyphs,
-            addedGlyphs=addedGlyphs,
-            deletedGlyphs=deletedGlyphs
+            #modifiedGlyphs=modifiedGlyphs,
+            #addedGlyphs=addedGlyphs,
+            #deletedGlyphs=deletedGlyphs
         )
 
-    def _testFontDataForExternalModifications(self, obj, fileName):
+    def _testFontDataForExternalModifications(self, obj, fileName, reader=None):
         # font is not on disk
-        if self._path is None:
+        if self.path is None:
             return False
         # data has not been loaded
         if obj is None:
-            return False
-        path = os.path.join(self._path, fileName)
-        # file is not in UFO
-        if not os.path.exists(path):
-            # if there was data in the file before
+            return
+        # make a reader if necessary
+        if reader is None:
+            reader = UFOReader(self.path)
+        # get the mod time from the reader
+        modTime = reader.getFileModTime(fileName)
+        # file is not in the UFO
+        if modTime is None:
             if obj._dataOnDisk:
                 return True
             return False
-        # mod time mismatch
-        modTime = os.stat(path).st_mtime
-        if obj._dataOnDiskTimeStamp != modTime:
-            f = open(path, "rb")
-            text = f.read()
-            f.close()
-            # text mismatch
-            if text != obj._dataOnDisk:
+        # time stamp mismatch
+        if modTime != obj._dataOnDiskTimeStamp:
+            data = reader.readBytesFromPath(fileName)
+            if data != obj._dataOnDisk:
                 return True
+        # fallback
         return False
 
-    def _testInfoForExternalModifications(self):
-        return self._testFontDataForExternalModifications(self._info, "fontinfo.plist")
+    def _testInfoForExternalModifications(self, reader=None):
+        return self._testFontDataForExternalModifications(self._info, "fontinfo.plist", reader=reader)
 
-    def _testKerningForExternalModifications(self):
-        return self._testFontDataForExternalModifications(self._kerning, "kerning.plist")
+    def _testKerningForExternalModifications(self, reader=None):
+        return self._testFontDataForExternalModifications(self._kerning, "kerning.plist", reader=reader)
 
-    def _testGroupsForExternalModifications(self):
-        return self._testFontDataForExternalModifications(self._groups, "groups.plist")
+    def _testGroupsForExternalModifications(self, reader=None):
+        return self._testFontDataForExternalModifications(self._groups, "groups.plist", reader=reader)
 
-    def _testFeaturesForExternalModifications(self):
-        return self._testFontDataForExternalModifications(self._features, "features.fea")
+    def _testFeaturesForExternalModifications(self, reader=None):
+        return self._testFontDataForExternalModifications(self._features, "features.fea", reader=reader)
 
-    def _testLibForExternalModifications(self):
-        return self._testFontDataForExternalModifications(self._lib, "lib.plist")
+    def _testLibForExternalModifications(self, reader=None):
+        return self._testFontDataForExternalModifications(self._lib, "lib.plist", reader=reader)
 
-    def _testGlyphsForExternalModifications(self):
-        # font is not stored on disk
-        if self._glyphSet is None:
-            return [], [], []
-        glyphSet = self._glyphSet
-        glyphSet.rebuildContents()
-        # glyphs added since we started up
-        addedGlyphs = list(set(self._glyphSet.keys()) - self._keys)
-        # glyphs deleted since we started up
-        deletedGlyphs = list(self._keys - set(self._glyphSet.keys()))
-        # glyphs modified since loading
-        modifiedGlyphs = []
-        for glyphName, glyph in self._glyphs.items():
-            # deleted glyph. skip.
-            if glyphName not in glyphSet.contents:
-                continue
-            path = os.path.join(self.path, "glyphs", glyphSet.contents[glyphName])
-            modTime = os.stat(path).st_mtime
-            # mod time mismatch
-            if modTime != glyph._dataOnDiskTimeStamp:
-                f = open(path, "rb")
-                text = f.read()
-                f.close()
-                # data mismatch
-                if text != glyph._dataOnDisk:
-                    modifiedGlyphs.append(glyphName)
-        # add loaded glyphs to the keys
-        self._keys = self._keys | set(addedGlyphs)
-        return modifiedGlyphs, addedGlyphs, deletedGlyphs
-
+#    def _testGlyphsForExternalModifications(self):
+#        # font is not stored on disk
+#        if self._glyphSet is None:
+#            return [], [], []
+#        glyphSet = self._glyphSet
+#        glyphSet.rebuildContents()
+#        # glyphs added since we started up
+#        addedGlyphs = list(set(self._glyphSet.keys()) - self._keys)
+#        # glyphs deleted since we started up
+#        deletedGlyphs = list(self._keys - set(self._glyphSet.keys()))
+#        # glyphs modified since loading
+#        modifiedGlyphs = []
+#        for glyphName, glyph in self._glyphs.items():
+#            # deleted glyph. skip.
+#            if glyphName not in glyphSet.contents:
+#                continue
+#            path = os.path.join(self.path, "glyphs", glyphSet.contents[glyphName])
+#            modTime = os.stat(path).st_mtime
+#            # mod time mismatch
+#            if modTime != glyph._dataOnDiskTimeStamp:
+#                f = open(path, "rb")
+#                text = f.read()
+#                f.close()
+#                # data mismatch
+#                if text != glyph._dataOnDisk:
+#                    modifiedGlyphs.append(glyphName)
+#        # add loaded glyphs to the keys
+#        self._keys = self._keys | set(addedGlyphs)
+#        return modifiedGlyphs, addedGlyphs, deletedGlyphs
+#
     # data reloading
 
     def reloadInfo(self):
@@ -741,15 +748,16 @@ class Font(BaseObject):
         Reload the data in the :class:`Info` object from the
         fontinfo.plist file in the UFO.
         """
+        from ufoLib import deprecatedFontInfoAttributesVersion2
         if self._info is None:
             obj = self.info
         else:
-            r = ufoLib.UFOReader(self._path)
+            reader = UFOReader(self.path)
             newInfo = Info()
-            r.readInfo(newInfo)
+            reader.readInfo(newInfo)
             oldInfo = self._info
             for attr in dir(newInfo):
-                if attr in ufoLib.deprecatedFontInfoAttributesVersion2:
+                if attr in deprecatedFontInfoAttributesVersion2:
                     continue
                 if attr.startswith("_"):
                     continue
@@ -766,7 +774,7 @@ class Font(BaseObject):
                 if oldValue == newValue:
                     continue
                 setattr(oldInfo, attr, newValue)
-            self._stampInfoDataState()
+            self._stampInfoDataState(reader)
 
     def reloadKerning(self):
         """
@@ -776,11 +784,11 @@ class Font(BaseObject):
         if self._kerning is None:
             obj = self.kerning
         else:
-            r = ufoLib.UFOReader(self._path)
-            d = r.readKerning()
+            reader = UFOReader(self._path)
+            d = reader.readKerning()
             self._kerning.clear()
             self._kerning.update(d)
-            self._stampKerningDataState()
+            self._stampKerningDataState(reader)
 
     def reloadGroups(self):
         """
@@ -790,11 +798,11 @@ class Font(BaseObject):
         if self._groups is None:
             obj = self.groups
         else:
-            r = ufoLib.UFOReader(self._path)
-            d = r.readGroups()
+            reader = UFOReader(self._path)
+            d = reader.readGroups()
             self._groups.clear()
             self._groups.update(d)
-            self._stampGroupsDataState()
+            self._stampGroupsDataState(reader)
 
     def reloadFeatures(self):
         """
@@ -804,10 +812,10 @@ class Font(BaseObject):
         if self._features is None:
             obj = self.features
         else:
-            r = ufoLib.UFOReader(self._path)
-            text = r.readFeatures()
+            reader = UFOReader(self._path)
+            text = reader.readFeatures()
             self._features.text = text
-            self._stampFeaturesDataState()
+            self._stampFeaturesDataState(reader)
 
     def reloadLib(self):
         """
@@ -817,50 +825,50 @@ class Font(BaseObject):
         if self._lib is None:
             obj = self.lib
         else:
-            r = ufoLib.UFOReader(self._path)
-            d = r.readLib()
+            reader = UFOReader(self._path)
+            d = reader.readLib()
             self._lib.clear()
             self._lib.update(d)
-            self._stampLibDataState()
+            self._stampLibDataState(reader)
 
-    def reloadGlyphs(self, glyphNames):
-        """
-        Reload the glyphs listed in **glyphNames** from the
-        appropriate files within the UFO. When all of the
-        loading is complete, a *Font.ReloadedGlyphs* notification
-        will be posted.
-        """
-        for glyphName in glyphNames:
-            if glyphName not in self._glyphs:
-                self._loadGlyph(glyphName)
-            else:
-                glyph = self._glyphs[glyphName]
-                glyph.destroyAllRepresentations(None)
-                glyph.clear()
-                pointPen = glyph.getPointPen()
-                self._glyphSet.readGlyph(glyphName=glyphName, glyphObject=glyph, pointPen=pointPen)
-                glyph.dirty = False
-                self._stampGlyphDataState(glyph)
-        data = dict(glyphNames=glyphNames)
-        self.postNotification(notification="Font.ReloadedGlyphs", data=data)
-        # post a change notification for any glyphs that
-        # reference the reloaded glyphs via components.
-        componentReferences = self.componentReferences
-        referenceChanges = set()
-        for glyphName in glyphNames:
-            if glyphName not in componentReferences:
-                continue
-            for reference in componentReferences[glyphName]:
-                if reference in glyphNames:
-                    continue
-                if reference not in self._glyphs:
-                    continue
-                if reference in referenceChanges:
-                    continue
-                glyph = self._glyphs[reference]
-                glyph.destroyAllRepresentations(None)
-                glyph.postNotification(notification=glyph.changeNotificationName)
-                referenceChanges.add(reference)
+#    def reloadGlyphs(self, glyphNames):
+#        """
+#        Reload the glyphs listed in **glyphNames** from the
+#        appropriate files within the UFO. When all of the
+#        loading is complete, a *Font.ReloadedGlyphs* notification
+#        will be posted.
+#        """
+#        for glyphName in glyphNames:
+#            if glyphName not in self._glyphs:
+#                self._loadGlyph(glyphName)
+#            else:
+#                glyph = self._glyphs[glyphName]
+#                glyph.destroyAllRepresentations(None)
+#                glyph.clear()
+#                pointPen = glyph.getPointPen()
+#                self._glyphSet.readGlyph(glyphName=glyphName, glyphObject=glyph, pointPen=pointPen)
+#                glyph.dirty = False
+#                self._stampGlyphDataState(glyph)
+#        data = dict(glyphNames=glyphNames)
+#        self.postNotification(notification="Font.ReloadedGlyphs", data=data)
+#        # post a change notification for any glyphs that
+#        # reference the reloaded glyphs via components.
+#        componentReferences = self.componentReferences
+#        referenceChanges = set()
+#        for glyphName in glyphNames:
+#            if glyphName not in componentReferences:
+#                continue
+#            for reference in componentReferences[glyphName]:
+#                if reference in glyphNames:
+#                    continue
+#                if reference not in self._glyphs:
+#                    continue
+#                if reference in referenceChanges:
+#                    continue
+#                glyph = self._glyphs[reference]
+#                glyph.destroyAllRepresentations(None)
+#                glyph.postNotification(notification=glyph.changeNotificationName)
+#                referenceChanges.add(reference)
 
     # -----------------------------
     # UFO Format Version Conversion
@@ -1283,60 +1291,61 @@ def _testGlyphUnicodesChanged():
     ['A', 'test']
     """
 
-#def _testTestForExternalChanges():
-#    """
-#    >>> from plistlib import readPlist, writePlist
-#    >>> from defcon.test.testTools import getTestFontPath
-#    >>> path = getTestFontPath("TestExternalEditing.ufo")
-#    >>> font = Font(path)
-#
-#    # load all the objects so that they get stamped
-#    >>> i = font.info
-#    >>> k = font.kerning
-#    >>> g = font.groups
-#    >>> l = font.lib
-#    >>> g = font["A"]
-#
-#    >>> d = font.testForExternalChanges()
-#    >>> d["info"]
-#    False
-#    >>> d["kerning"]
-#    False
-#    >>> d["groups"]
-#    False
-#    >>> d["lib"]
-#    False
+def _testTestForExternalChanges():
+    """
+    >>> from plistlib import readPlist, writePlist
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath("TestExternalEditing.ufo")
+    >>> font = Font(path)
+
+    # load all the objects so that they get stamped
+    >>> i = font.info
+    >>> k = font.kerning
+    >>> g = font.groups
+    >>> l = font.lib
+    >>> g = font["A"]
+
+    >>> d = font.testForExternalChanges()
+    >>> d["info"]
+    False
+    >>> d["kerning"]
+    False
+    >>> d["groups"]
+    False
+    >>> d["lib"]
+    False
+
 #    >>> d["modifiedGlyphs"]
 #    []
 #    >>> d["addedGlyphs"]
 #    []
 #    >>> d["deletedGlyphs"]
 #    []
-#
-#    # make a simple change to the kerning data
-#    >>> path = os.path.join(font.path, "kerning.plist")
-#    >>> f = open(path, "rb")
-#    >>> t = f.read()
-#    >>> f.close()
-#    >>> t += " "
-#    >>> f = open(path, "wb")
-#    >>> f.write(t)
-#    >>> f.close()
-#    >>> os.utime(path, (k._dataOnDiskTimeStamp + 1, k._dataOnDiskTimeStamp + 1))
-#
-#    >>> d = font.testForExternalChanges()
-#    >>> d["kerning"]
-#    True
-#    >>> d["info"]
-#    False
-#
-#    # save the kerning data and test again
-#    >>> font.kerning.dirty = True
-#    >>> font.save()
-#    >>> d = font.testForExternalChanges()
-#    >>> d["kerning"]
-#    False
-#
+
+    # make a simple change to the kerning data
+    >>> path = os.path.join(font.path, "kerning.plist")
+    >>> f = open(path, "rb")
+    >>> t = f.read()
+    >>> f.close()
+    >>> t += " "
+    >>> f = open(path, "wb")
+    >>> f.write(t)
+    >>> f.close()
+    >>> os.utime(path, (k._dataOnDiskTimeStamp + 1, k._dataOnDiskTimeStamp + 1))
+
+    >>> d = font.testForExternalChanges()
+    >>> d["kerning"]
+    True
+    >>> d["info"]
+    False
+
+    # save the kerning data and test again
+    >>> font.kerning.dirty = True
+    >>> font.save()
+    >>> d = font.testForExternalChanges()
+    >>> d["kerning"]
+    False
+
 #    # make a simple change to a glyph
 #    >>> path = os.path.join(font.path, "glyphs", "A_.glif")
 #    >>> f = open(path, "rb")
@@ -1392,7 +1401,7 @@ def _testGlyphUnicodesChanged():
 #    []
 #    >>> d["deletedGlyphs"]
 #    ['XXX']
-#    """
+    """
 
 def _testReloadInfo():
     """
