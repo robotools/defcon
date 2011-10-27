@@ -638,9 +638,9 @@ class Font(BaseObject):
                 "features" : bool, # True if changed, False if not changed
                 "lib"      : bool, # True if changed, False if not changed
                 "images"   : {
-                    "modifiedImages" : ["image name 1", "image name 2"],
-                    "addedImages"    : ["image name 1", "image name 2"],
-                    "deletedImages"  : ["image name 1", "image name 2"],
+                    "modified" : ["image name 1", "image name 2"],
+                    "added"    : ["image name 1", "image name 2"],
+                    "deleted"  : ["image name 1", "image name 2"],
                 }
 
                 XXX "modifiedGlyphs" : ["a", "a.alt"],
@@ -672,9 +672,9 @@ class Font(BaseObject):
             features=featuresChanged,
             lib=libChanged,
             images=dict(
-                modifiedImages=modifiedImages,
-                addedImages=addedImages,
-                deletedImages=deletedImages
+                modified=modifiedImages,
+                added=addedImages,
+                deleted=deletedImages
             )
             #modifiedGlyphs=modifiedGlyphs,
             #addedGlyphs=addedGlyphs,

@@ -48,7 +48,7 @@ class ImageSet(BaseObject):
     def __init__(self, fileNames=None):
         super(ImageSet, self).__init__()
         self._data = {}
-        self._scheduledForDeletion = set()
+        self._scheduledForDeletion = {}
 
     def _get_fileNames(self):
         return self._data.keys()
@@ -94,19 +94,23 @@ class ImageSet(BaseObject):
         # preserve exsiting stamping
         onDisk = False
         onDiskModTime = None
+        oldData = None
+        if fileName in self._scheduledForDeletion:
+            assert fileName not in self._data
+            self._data = self._scheduledForDeletion.pop(fileName)
         if fileName in self._data:
-            onDisk = self._data[fileName]["onDisk"]
-            if onDisk:
-                # force the data to be read so that the stamping is up to date
-                old = self[fileName]
-            onDiskModTime = self._data[fileName]["onDiskModTime"]
+            n = self[fileName] # force it to load so that the stamping is correct
+            oldData = self._data.pop(fileName) # now remove it
+            onDisk = oldData["onDisk"]
+            onDiskModTime = oldData["onDiskModTime"]
         self._data[fileName] = _imageDict(data=data, dirty=True, digest=_makeDigest(data), onDisk=onDisk, onDiskModTime=onDiskModTime)
-        self._scheduledForDeletion.discard(fileName)
+        if fileName in self._scheduledForDeletion:
+            del self._scheduledForDeletion[fileName]
         self.dirty = True
 
     def __delitem__(self, fileName):
-        del self._data[fileName]
-        self._scheduledForDeletion.add(fileName)
+        n = self[fileName] # force it to load so that the stamping is correct
+        self._scheduledForDeletion[fileName] = dict(self._data.pop(fileName))
         self.dirty = True
 
     # ---------------
@@ -200,8 +204,15 @@ class ImageSet(BaseObject):
         """
         filesOnDisk = reader.getImageDirectoryListing()
         modifiedImages = []
-        addedImages = list(set(filesOnDisk) - set(self.fileNames))
+        addedImages = []
         deletedImages = []
+        for fileName in set(filesOnDisk) - set(self.fileNames):
+            if not fileName in self._scheduledForDeletion:
+                addedImages.append(fileName)
+            elif not self._scheduledForDeletion[fileName]["onDisk"]:
+                addedImages.append(fileName)
+            elif self._scheduledForDeletion[fileName]["onDiskModTime"] != reader.getFileModTime(os.path.join("images", fileName)):
+                addedImages.append(fileName)
         for fileName, imageData in self._data.items():
             # file on disk and has been loaded
             if fileName in filesOnDisk and imageData["data"] is not None:
@@ -358,7 +369,7 @@ def _testExternalChanges():
     >>> del font.images["image 1.png"]
     >>> reader = UFOReader(path)
     >>> font.images.testForExternalChanges(reader)
-    ([], ['image 1.png'], [])
+    ([], [], [])
     >>> tearDownTestFontCopy()
 
     # add in memory and scan
