@@ -94,15 +94,14 @@ class ImageSet(BaseObject):
         # preserve exsiting stamping
         onDisk = False
         onDiskModTime = None
-        oldData = None
         if fileName in self._scheduledForDeletion:
             assert fileName not in self._data
             self._data[fileName] = self._scheduledForDeletion.pop(fileName)
         if fileName in self._data:
             n = self[fileName] # force it to load so that the stamping is correct
-            oldData = self._data.pop(fileName) # now remove it
-            onDisk = oldData["onDisk"]
-            onDiskModTime = oldData["onDiskModTime"]
+            onDisk = self._data[fileName]["onDisk"]
+            onDiskModTime = self._data[fileName]["onDiskModTime"]
+            del self._data[fileName] # now remove it
         self._data[fileName] = _imageDict(data=data, dirty=True, digest=_makeDigest(data), onDisk=onDisk, onDiskModTime=onDiskModTime)
         if fileName in self._scheduledForDeletion:
             del self._scheduledForDeletion[fileName]
