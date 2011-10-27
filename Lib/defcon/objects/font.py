@@ -641,6 +641,11 @@ class Font(BaseObject):
                     "modified" : ["image name 1", "image name 2"],
                     "added"    : ["image name 1", "image name 2"],
                     "deleted"  : ["image name 1", "image name 2"],
+                },
+                "data"     : {
+                    "modified" : ["file name 1", "file name 2"],
+                    "added"    : ["file name 1", "file name 2"],
+                    "deleted"  : ["file name 1", "file name 2"],
                 }
 
                 XXX "modifiedGlyphs" : ["a", "a.alt"],
@@ -663,7 +668,12 @@ class Font(BaseObject):
         groupsChanged = self._testGroupsForExternalModifications(reader)
         featuresChanged = self._testFeaturesForExternalModifications(reader)
         libChanged = self._testLibForExternalModifications(reader)
-        modifiedImages, addedImages, deletedImages = self._images.testForExternalChanges(reader)
+        modifiedImages = addedImages = deletedImages = []
+        if self._images is not None:
+            modifiedImages, addedImages, deletedImages = self._images.testForExternalChanges(reader)
+        modifiedData = addedData = deletedData = []
+        if self._data is not None:
+            modifiedData, addedData, deletedData = self._data.testForExternalChanges(reader)
         #modifiedGlyphs, addedGlyphs, deletedGlyphs = self._testGlyphsForExternalModifications()
         return dict(
             info=infoChanged,
@@ -675,6 +685,11 @@ class Font(BaseObject):
                 modified=modifiedImages,
                 added=addedImages,
                 deleted=deletedImages
+            ),
+            data=dict(
+                modifiedData=modifiedData,
+                addedData=addedData,
+                deletedData=deletedData
             )
             #modifiedGlyphs=modifiedGlyphs,
             #addedGlyphs=addedGlyphs,
@@ -850,6 +865,16 @@ class Font(BaseObject):
         """
         self.images.reloadImages(fileNames)
         self.postNotification(notification="Font.ReloadedImages", data=data)
+
+    def reloadData(self, fileNames):
+        """
+        Reload the data files listed in **fileNames** from the
+        appropriate files within the UFO. When all of the
+        loading is complete, a *Font.ReloadedData* notification
+        will be posted.
+        """
+        self.images.reloadImages(fileNames)
+        self.postNotification(notification="Font.ReloadedData", data=data)
 
 #    def reloadGlyphs(self, glyphNames):
 #        """

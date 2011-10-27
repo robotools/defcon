@@ -23,7 +23,7 @@ class DataSet(BaseObject):
     def __init__(self, fileNames=None):
         super(DataSet, self).__init__()
         self._data = {}
-        self._scheduledForDeletion = set()
+        self._scheduledForDeletion = {}
 
     def _get_fileNames(self):
         return self._data.keys()
@@ -45,18 +45,28 @@ class DataSet(BaseObject):
             reader = UFOReader(path)
             path = os.path.join("data", fileName)
             data = reader.readBytesFromPath(path)
-            self._data[fileName] = _dataDict(data=data)
+            onDiskModTime = reader.getFileModTime(path)
+            self._data[fileName] = _dataDict(data=data, onDisk=True, onDiskModTime=onDiskModTime)
         return self._data[fileName]["data"]
 
     def __setitem__(self, fileName, data):
         assert data is not None
-        self._data[fileName] = _dataDict(data=data, dirty=True)
-        self._scheduledForDeletion.discard(fileName)
+        onDisk = False
+        onDiskModTime = None
+        if fileName in self._scheduledForDeletion:
+            assert fileName not in self._data
+            self._data[fileName] = self._scheduledForDeletion.pop(fileName)
+        if fileName in self._data:
+            n = self[fileName] # force it to load so that the stamping is correct
+            onDisk = self._data[fileName]["onDisk"]
+            onDiskModTime = self._data[fileName]["onDiskModTime"]
+            del self._data[fileName] # now remove it
+        self._data[fileName] = _dataDict(data=data, dirty=True, onDisk=onDisk, onDiskModTime=onDiskModTime)
         self.dirty = True
 
     def __delitem__(self, fileName):
-        del self._data[fileName]
-        self._scheduledForDeletion.add(fileName)
+        n = self[fileName] # force it to load so that the stamping is correct]
+        self._scheduledForDeletion[fileName] = dict(self._data.pop(fileName))
         self.dirty = True
 
     # ---------------
@@ -90,17 +100,63 @@ class DataSet(BaseObject):
                 # in the UFO.
                 pass
         self._scheduledForDeletion.clear()
+        reader = UFOReader(writer.path)
         for fileName, data in self._data.items():
             if not data["dirty"]:
                 continue
             path = os.path.join("data", fileName)
             writer.writeBytesToPath(path, data["data"])
             data["dirty"] = False
+            data["onDisk"] = True
+            data["onDiskModTime"] = reader.getFileModTime(os.path.join("data", fileName))
         self.dirty = False
 
+    # ---------------------
+    # External Edit Support
+    # ---------------------
 
-def _dataDict(data=None, dirty=False):
-    return dict(data=data, dirty=dirty)
+    def testForExternalChanges(self, reader):
+        """
+        Test for external changes. This should not be called externally.
+        """
+        filesOnDisk = reader.getDataDirectoryListing()
+        modified = []
+        added = []
+        deleted = []
+        for fileName in set(filesOnDisk) - set(self.fileNames):
+            if not fileName in self._scheduledForDeletion:
+                added.append(fileName)
+            elif not self._scheduledForDeletion[fileName]["onDisk"]:
+                added.append(fileName)
+            elif self._scheduledForDeletion[fileName]["onDiskModTime"] != reader.getFileModTime(os.path.join("data", fileName)):
+                added.append(fileName)
+        for fileName, data in self._data.items():
+            # file on disk and has been loaded
+            if fileName in filesOnDisk and data["data"] is not None:
+                path = os.path.join("data", fileName)
+                newModTime = reader.getFileModTime(path)
+                if newModTime != data["onDiskModTime"]:
+                    newData = reader.readBytesFromPath(path)
+                    if newData != data["data"]:
+                        modified.append(fileName)
+                continue
+            # file removed
+            if fileName not in filesOnDisk and data["onDisk"]:
+                deleted.append(fileName)
+                continue
+        return modified, added, deleted
+
+    def reloadData(self, fileNames):
+        """
+        Reload specified data. This should not be called externally.
+        """
+        for fileName in fileNames:
+            self._data[fileName] = _dataDict()
+            data = self[fileName]
+
+
+def _dataDict(data=None, dirty=False, onDisk=True, onDiskModTime=None):
+    return dict(data=data, dirty=dirty, onDisk=onDisk, onDiskModTime=onDiskModTime)
 
 
 # -----
@@ -169,6 +225,94 @@ def _testSaveAs():
     >>> os.path.exists(os.path.join(dataDirectory, "com.typesupply.defcon.test.file"))
     True
     >>> tearDownTestFontCopy(saveAsPath)
+    """
+
+def _testExternalChanges():
+    """
+    >>> from ufoLib import UFOReader
+    >>> from defcon.test.testTools import makeTestFontCopy, tearDownTestFontCopy
+    >>> from defcon import Font
+
+    # remove in memory and scan
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> del font.data["com.typesupply.defcon.test.file"]
+    >>> reader = UFOReader(path)
+    >>> font.data.testForExternalChanges(reader)
+    ([], [], [])
+    >>> tearDownTestFontCopy()
+
+    # add in memory and scan
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> font.data["com.typesupply.defcon.test.file2"] = "blah"
+    >>> reader = UFOReader(path)
+    >>> font.data.testForExternalChanges(reader)
+    ([], [], [])
+    >>> tearDownTestFontCopy()
+
+    # modify in memory and scan
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> font.data["com.typesupply.defcon.test.file"] = "blah"
+    >>> reader = UFOReader(path)
+    >>> font.data.testForExternalChanges(reader)
+    ([], [], [])
+    >>> tearDownTestFontCopy()
+
+    # remove on disk and scan
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> image = font.data["com.typesupply.defcon.test.file"]
+    >>> os.remove(os.path.join(path, "data", "com.typesupply.defcon.test.file"))
+    >>> font.data.testForExternalChanges(reader)
+    ([], [], ['com.typesupply.defcon.test.file'])
+    >>> tearDownTestFontCopy()
+
+    # add on disk and scan
+    >>> import shutil
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> source = os.path.join(path, "data", "com.typesupply.defcon.test.file")
+    >>> dest = os.path.join(path, "data", "com.typesupply.defcon.test.file2")
+    >>> shutil.copy(source, dest)
+    >>> font.data.testForExternalChanges(reader)
+    ([], ['com.typesupply.defcon.test.file2'], [])
+    >>> tearDownTestFontCopy()
+
+    # modify on disk and scan
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> d = font.data["com.typesupply.defcon.test.file"]
+    >>> filePath = os.path.join(path, "data", "com.typesupply.defcon.test.file")
+    >>> f = open(filePath, "wb")
+    >>> f.write("blah")
+    >>> f.close()
+    >>> reader = UFOReader(path)
+    >>> font.data.testForExternalChanges(reader)
+    (['com.typesupply.defcon.test.file'], [], [])
+    >>> tearDownTestFontCopy()
+    """
+
+def _testReloadData():
+    """
+    >>> from ufoLib import UFOReader
+    >>> from defcon.test.testTools import makeTestFontCopy, tearDownTestFontCopy
+    >>> from defcon import Font
+
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> d = font.data["com.typesupply.defcon.test.file"]
+    >>> filePath = os.path.join(path, "data", "com.typesupply.defcon.test.file")
+    >>> newData = "blah"
+    >>> f = open(filePath, "wb")
+    >>> f.write(newData)
+    >>> f.close()
+    >>> font.data.reloadData(["com.typesupply.defcon.test.file"])
+    >>> data = font.data["com.typesupply.defcon.test.file"]
+    >>> data == newData
+    True
+    >>> tearDownTestFontCopy()
     """
 
 if __name__ == "__main__":
