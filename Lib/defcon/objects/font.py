@@ -629,19 +629,23 @@ class Font(BaseObject):
     def testForExternalChanges(self):
         """
         Test the UFO for changes that occured outside of this font's
-        tree of objects. This returns a dictionary of values
-        indicating if the objects have changes on disk that are
-        not loaded. For example::
+        tree of objects. This returns a dictionary describing the changes::
 
             {
-                "info" : False,
-                "kerning" : True,
-                "groups" : True,
-                "features" : False,
-                "lib" : False,
-                "modifiedGlyphs" : ["a", "a.alt"],
-                "addedGlyphs" : [],
-                "deletedGlyphs" : []
+                "info"     : bool, # True if changed, False if not changed
+                "kerning"  : bool, # True if changed, False if not changed
+                "groups"   : bool, # True if changed, False if not changed
+                "features" : bool, # True if changed, False if not changed
+                "lib"      : bool, # True if changed, False if not changed
+                "images"   : {
+                    "modifiedImages" : ["image name 1", "image name 2"],
+                    "addedImages"    : ["image name 1", "image name 2"],
+                    "deletedImages"  : ["image name 1", "image name 2"],
+                }
+
+                XXX "modifiedGlyphs" : ["a", "a.alt"],
+                XXX "addedGlyphs" : [],
+                XXX "deletedGlyphs" : []
             }
 
         It is important to keep in mind that the user could have created
@@ -659,6 +663,7 @@ class Font(BaseObject):
         groupsChanged = self._testGroupsForExternalModifications(reader)
         featuresChanged = self._testFeaturesForExternalModifications(reader)
         libChanged = self._testLibForExternalModifications(reader)
+        modifiedImages, addedImages, deletedImages = self._images.testForExternalChanges(reader)
         #modifiedGlyphs, addedGlyphs, deletedGlyphs = self._testGlyphsForExternalModifications()
         return dict(
             info=infoChanged,
@@ -666,6 +671,11 @@ class Font(BaseObject):
             groups=groupsChanged,
             features=featuresChanged,
             lib=libChanged,
+            images=dict(
+                modifiedImages=modifiedImages,
+                addedImages=addedImages,
+                deletedImages=deletedImages
+            )
             #modifiedGlyphs=modifiedGlyphs,
             #addedGlyphs=addedGlyphs,
             #deletedGlyphs=deletedGlyphs
@@ -830,6 +840,16 @@ class Font(BaseObject):
             self._lib.clear()
             self._lib.update(d)
             self._stampLibDataState(reader)
+
+    def reloadImages(self, fileNames):
+        """
+        Reload the images listed in **fileNames** from the
+        appropriate files within the UFO. When all of the
+        loading is complete, a *Font.ReloadedImages* notification
+        will be posted.
+        """
+        self.images.reloadImages(fileNames)
+        self.postNotification(notification="Font.ReloadedImages", data=data)
 
 #    def reloadGlyphs(self, glyphNames):
 #        """

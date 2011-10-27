@@ -56,7 +56,7 @@ class ImageSet(BaseObject):
     def _set_fileNames(self, fileNames):
         assert not self._data
         for fileName in fileNames:
-            self._data[fileName] = _imageDict()
+            self._data[fileName] = _imageDict(onDisk=True)
 
     fileNames = property(_get_fileNames, _set_fileNames, doc="A list of all image file names. This should not be set externally.")
 
@@ -83,12 +83,24 @@ class ImageSet(BaseObject):
             data = reader.readImage(fileName)
             d["data"] = data
             d["digest"] = _makeDigest(data)
+            d["onDisk"] = True
+            d["onDiskModTime"] = reader.getFileModTime(os.path.join("images", fileName))
         return d["data"]
 
     def __setitem__(self, fileName, data):
-        assert fileName == self.makeFileName(fileName)
+        if fileName not in self._data:
+            assert fileName == self.makeFileName(fileName)
         assert data.startswith(pngSignature)
-        self._data[fileName] = _imageDict(data=data, dirty=True, digest=_makeDigest(data))
+        # preserve exsiting stamping
+        onDisk = False
+        onDiskModTime = None
+        if fileName in self._data:
+            onDisk = self._data[fileName]["onDisk"]
+            if onDisk:
+                # force the data to be read so that the stamping is up to date
+                old = self[fileName]
+            onDiskModTime = self._data[fileName]["onDiskModTime"]
+        self._data[fileName] = _imageDict(data=data, dirty=True, digest=_makeDigest(data), onDisk=onDisk, onDiskModTime=onDiskModTime)
         self._scheduledForDeletion.discard(fileName)
         self.dirty = True
 
@@ -131,11 +143,14 @@ class ImageSet(BaseObject):
                 # in the UFO.
                 pass
         self._scheduledForDeletion.clear()
+        reader = UFOReader(writer.path)
         for fileName, data in self._data.items():
             if not data["dirty"]:
                 continue
             writer.writeImage(fileName, data["data"])
             data["dirty"] = False
+            data["onDisk"] = True
+            data["onDiskModTime"] = reader.getFileModTime(os.path.join("images", fileName))
         self.dirty = False
 
     def makeFileName(self, fileName):
@@ -175,9 +190,45 @@ class ImageSet(BaseObject):
                 return fileName
         return None
 
+    # ---------------------
+    # External Edit Support
+    # ---------------------
 
-def _imageDict(data=None, dirty=False, digest=None):
-    return dict(data=data, digest=digest, dirty=dirty)
+    def testForExternalChanges(self, reader):
+        """
+        Test for external changes. This should not be called externally.
+        """
+        filesOnDisk = reader.getImageDirectoryListing()
+        modifiedImages = []
+        addedImages = list(set(filesOnDisk) - set(self.fileNames))
+        deletedImages = []
+        for fileName, imageData in self._data.items():
+            # file on disk and has been loaded
+            if fileName in filesOnDisk and imageData["data"] is not None:
+                newModTime = reader.getFileModTime(os.path.join("images", fileName))
+                if newModTime != imageData["onDiskModTime"]:
+                    newData = reader.readImage(fileName)
+                    newDigest = _makeDigest(newData)
+                    if newDigest != imageData["digest"]:
+                        modifiedImages.append(fileName)
+                continue
+            # file removed
+            if fileName not in filesOnDisk and imageData["onDisk"]:
+                deletedImages.append(fileName)
+                continue
+        return modifiedImages, addedImages, deletedImages
+
+    def reloadImages(self, fileNames):
+        """
+        Reload specified images. This should not be called externally.
+        """
+        for fileName in fileNames:
+            self._data[fileName] = _imageDict()
+            image = self[fileName]
+
+
+def _imageDict(data=None, dirty=False, digest=None, onDisk=True, onDiskModTime=None):
+    return dict(data=data, digest=digest, dirty=dirty, onDisk=onDisk, onDiskModTime=onDiskModTime)
 
 def _makeDigest(data):
     m = hashlib.md5()
@@ -294,6 +345,97 @@ def _testDuplicateImage():
     >>> font.images.findDuplicateImage(data)
     'image 2.png'
     """
+
+def _testExternalChanges():
+    """
+    >>> from ufoLib import UFOReader
+    >>> from defcon.test.testTools import makeTestFontCopy, tearDownTestFontCopy
+    >>> from defcon import Font
+
+    # remove in memory and scan
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> del font.images["image 1.png"]
+    >>> reader = UFOReader(path)
+    >>> font.images.testForExternalChanges(reader)
+    ([], ['image 1.png'], [])
+    >>> tearDownTestFontCopy()
+
+    # add in memory and scan
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> font.images["image 3.png"] = pngSignature + "blah"
+    >>> reader = UFOReader(path)
+    >>> font.images.testForExternalChanges(reader)
+    ([], [], [])
+    >>> tearDownTestFontCopy()
+
+    # modify in memory and scan
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> font.images["image 1.png"] = pngSignature + "blah"
+    >>> reader = UFOReader(path)
+    >>> font.images.testForExternalChanges(reader)
+    ([], [], [])
+    >>> tearDownTestFontCopy()
+
+    # remove on disk and scan
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> image = font.images["image 1.png"]
+    >>> os.remove(os.path.join(path, "images", "image 1.png"))
+    >>> font.images.testForExternalChanges(reader)
+    ([], [], ['image 1.png'])
+    >>> tearDownTestFontCopy()
+
+    # add on disk and scan
+    >>> import shutil
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> source = os.path.join(path, "images", "image 1.png")
+    >>> dest = os.path.join(path, "images", "image 3.png")
+    >>> shutil.copy(source, dest)
+    >>> font.images.testForExternalChanges(reader)
+    ([], ['image 3.png'], [])
+    >>> tearDownTestFontCopy()
+
+    # modify on disk and scan
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> image = font.images["image 1.png"]
+    >>> imagePath = os.path.join(path, "images", "image 1.png")
+    >>> f = open(imagePath, "rb")
+    >>> data = f.read()
+    >>> f.close()
+    >>> f = open(imagePath, "wb")
+    >>> f.write(data + "blah")
+    >>> f.close()
+    >>> font.images.testForExternalChanges(reader)
+    (['image 1.png'], [], [])
+    >>> tearDownTestFontCopy()
+    """
+
+def _testReloadImages():
+    """
+    >>> from ufoLib import UFOReader
+    >>> from defcon.test.testTools import makeTestFontCopy, tearDownTestFontCopy
+    >>> from defcon import Font
+
+    >>> path = makeTestFontCopy()
+    >>> font = Font(path)
+    >>> image = font.images["image 1.png"]
+    >>> imagePath = os.path.join(path, "images", "image 1.png")
+    >>> newImageData = pngSignature + "blah"
+    >>> f = open(imagePath, "wb")
+    >>> f.write(newImageData)
+    >>> f.close()
+    >>> font.images.reloadImages(["image 1.png"])
+    >>> image = font.images["image 1.png"]
+    >>> image == newImageData
+    True
+    >>> tearDownTestFontCopy()
+    """
+
 
 if __name__ == "__main__":
     import doctest
