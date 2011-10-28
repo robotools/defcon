@@ -84,7 +84,7 @@ class ImageSet(BaseObject):
             d["data"] = data
             d["digest"] = _makeDigest(data)
             d["onDisk"] = True
-            d["onDiskModTime"] = reader.getFileModTime(os.path.join("images", fileName))
+            d["onDiskModTime"] = reader.getFileModificationTime(os.path.join("images", fileName))
         return d["data"]
 
     def __setitem__(self, fileName, data):
@@ -151,7 +151,7 @@ class ImageSet(BaseObject):
             writer.writeImage(fileName, data["data"])
             data["dirty"] = False
             data["onDisk"] = True
-            data["onDiskModTime"] = reader.getFileModTime(os.path.join("images", fileName))
+            data["onDiskModTime"] = reader.getFileModificationTime(os.path.join("images", fileName))
         self.dirty = False
 
     def makeFileName(self, fileName):
@@ -208,12 +208,12 @@ class ImageSet(BaseObject):
                 addedImages.append(fileName)
             elif not self._scheduledForDeletion[fileName]["onDisk"]:
                 addedImages.append(fileName)
-            elif self._scheduledForDeletion[fileName]["onDiskModTime"] != reader.getFileModTime(os.path.join("images", fileName)):
+            elif self._scheduledForDeletion[fileName]["onDiskModTime"] != reader.getFileModificationTime(os.path.join("images", fileName)):
                 addedImages.append(fileName)
         for fileName, imageData in self._data.items():
             # file on disk and has been loaded
             if fileName in filesOnDisk and imageData["data"] is not None:
-                newModTime = reader.getFileModTime(os.path.join("images", fileName))
+                newModTime = reader.getFileModificationTime(os.path.join("images", fileName))
                 if newModTime != imageData["onDiskModTime"]:
                     newData = reader.readImage(fileName)
                     newDigest = _makeDigest(newData)

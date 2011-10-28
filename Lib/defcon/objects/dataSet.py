@@ -45,7 +45,7 @@ class DataSet(BaseObject):
             reader = UFOReader(path)
             path = os.path.join("data", fileName)
             data = reader.readBytesFromPath(path)
-            onDiskModTime = reader.getFileModTime(path)
+            onDiskModTime = reader.getFileModificationTime(path)
             self._data[fileName] = _dataDict(data=data, onDisk=True, onDiskModTime=onDiskModTime)
         return self._data[fileName]["data"]
 
@@ -108,7 +108,7 @@ class DataSet(BaseObject):
             writer.writeBytesToPath(path, data["data"])
             data["dirty"] = False
             data["onDisk"] = True
-            data["onDiskModTime"] = reader.getFileModTime(os.path.join("data", fileName))
+            data["onDiskModTime"] = reader.getFileModificationTime(os.path.join("data", fileName))
         self.dirty = False
 
     # ---------------------
@@ -128,13 +128,13 @@ class DataSet(BaseObject):
                 added.append(fileName)
             elif not self._scheduledForDeletion[fileName]["onDisk"]:
                 added.append(fileName)
-            elif self._scheduledForDeletion[fileName]["onDiskModTime"] != reader.getFileModTime(os.path.join("data", fileName)):
+            elif self._scheduledForDeletion[fileName]["onDiskModTime"] != reader.getFileModificationTime(os.path.join("data", fileName)):
                 added.append(fileName)
         for fileName, data in self._data.items():
             # file on disk and has been loaded
             if fileName in filesOnDisk and data["data"] is not None:
                 path = os.path.join("data", fileName)
-                newModTime = reader.getFileModTime(path)
+                newModTime = reader.getFileModificationTime(path)
                 if newModTime != data["onDiskModTime"]:
                     newData = reader.readBytesFromPath(path)
                     if newData != data["data"]:

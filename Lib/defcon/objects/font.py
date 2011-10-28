@@ -579,7 +579,7 @@ class Font(BaseObject):
         if reader is None:
             reader = UFOReader(self.path)
         # get the mod time from the reader
-        modTime = reader.getFileModTime(fileName)
+        modTime = reader.getFileModificationTime(fileName)
         # file is not in the UFO
         if modTime is None:
             data = None
@@ -707,7 +707,7 @@ class Font(BaseObject):
         if reader is None:
             reader = UFOReader(self.path)
         # get the mod time from the reader
-        modTime = reader.getFileModTime(fileName)
+        modTime = reader.getFileModificationTime(fileName)
         # file is not in the UFO
         if modTime is None:
             if obj._dataOnDisk:
@@ -736,36 +736,6 @@ class Font(BaseObject):
     def _testLibForExternalModifications(self, reader=None):
         return self._testFontDataForExternalModifications(self._lib, "lib.plist", reader=reader)
 
-#    def _testGlyphsForExternalModifications(self):
-#        # font is not stored on disk
-#        if self._glyphSet is None:
-#            return [], [], []
-#        glyphSet = self._glyphSet
-#        glyphSet.rebuildContents()
-#        # glyphs added since we started up
-#        addedGlyphs = list(set(self._glyphSet.keys()) - self._keys)
-#        # glyphs deleted since we started up
-#        deletedGlyphs = list(self._keys - set(self._glyphSet.keys()))
-#        # glyphs modified since loading
-#        modifiedGlyphs = []
-#        for glyphName, glyph in self._glyphs.items():
-#            # deleted glyph. skip.
-#            if glyphName not in glyphSet.contents:
-#                continue
-#            path = os.path.join(self.path, "glyphs", glyphSet.contents[glyphName])
-#            modTime = os.stat(path).st_mtime
-#            # mod time mismatch
-#            if modTime != glyph._dataOnDiskTimeStamp:
-#                f = open(path, "rb")
-#                text = f.read()
-#                f.close()
-#                # data mismatch
-#                if text != glyph._dataOnDisk:
-#                    modifiedGlyphs.append(glyphName)
-#        # add loaded glyphs to the keys
-#        self._keys = self._keys | set(addedGlyphs)
-#        return modifiedGlyphs, addedGlyphs, deletedGlyphs
-#
     # data reloading
 
     def reloadInfo(self):
