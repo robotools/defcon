@@ -6,32 +6,37 @@
 	<integer>750</integer>
 	<key>capHeight</key>
 	<integer>700</integer>
-	<key>defaultWidth</key>
-	<integer>500</integer>
 	<key>descender</key>
 	<integer>-250</integer>
-	<key>fondID</key>
-	<integer>128</integer>
-	<key>fontStyle</key>
-	<integer>64</integer>
+	<key>guidelines</key>
+	<array>
+	</array>
 	<key>italicAngle</key>
 	<integer>0</integer>
-	<key>msCharSet</key>
-	<integer>0</integer>
-	<key>slantAngle</key>
-	<integer>0</integer>
-	<key>ttVendor</key>
-	<string>pyrs</string>
-	<key>uniqueID</key>
-	<integer>-1</integer>
+	<key>postscriptBlueValues</key>
+	<array>
+	</array>
+	<key>postscriptFamilyBlues</key>
+	<array>
+	</array>
+	<key>postscriptFamilyOtherBlues</key>
+	<array>
+	</array>
+	<key>postscriptOtherBlues</key>
+	<array>
+	</array>
+	<key>postscriptStemSnapH</key>
+	<array>
+	</array>
+	<key>postscriptStemSnapV</key>
+	<array>
+	</array>
 	<key>unitsPerEm</key>
 	<integer>1000</integer>
 	<key>versionMajor</key>
 	<integer>1</integer>
 	<key>versionMinor</key>
 	<integer>0</integer>
-	<key>widthName</key>
-	<string>Medium (normal)</string>
 	<key>xHeight</key>
 	<integer>500</integer>
 	<key>year</key>

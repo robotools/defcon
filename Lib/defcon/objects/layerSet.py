@@ -1,3 +1,4 @@
+from ufoLib import UFOReader
 from defcon.objects.base import BaseObject
 from defcon.objects.layer import Layer
 
@@ -133,6 +134,9 @@ class LayerSet(BaseObject):
         self._setParentDataInLayer(layer)
         if glyphSet is None:
             layer.dirty = True
+        else:
+            glyphSet.readLayerInfo(layer)
+        self._stampLayerInfoDataState(layer)
         self._layers[name] = layer
         self._layerOrder.append(name)
         self._layerActionHistory.append(dict(action="new", name=name))
@@ -221,6 +225,7 @@ class LayerSet(BaseObject):
                 layer.save(glyphSet, saveAs=saveAs, progressBar=progressBar)
                 if layer.lib or layer.color:
                     glyphSet.writeLayerInfo(layer)
+                self._stampLayerInfoDataState(layer)
                 layer.dirty = False
                 if progressBar is not None:
                     progressBar.tick()
@@ -251,6 +256,123 @@ class LayerSet(BaseObject):
         self._layerOrder.pop(index)
         self._layerOrder.insert(index, newName)
         self._layerActionHistory.append(dict(action="rename", oldName=oldName, newName=newName))
+
+    # ---------------------
+    # External Edit Support
+    # ---------------------
+
+    def _stampLayerInfoDataState(self, layer):
+        if layer._glyphSet is None:
+            return
+        # there isn't a mod time function
+        # so load the data and pack it.
+        i = _StaticLayerInfoMaker()
+        layer._glyphSet.readLayerInfo(i)
+        layer._dataOnDisk = i.pack()
+
+    def testForExternalChanges(self, reader):
+        """
+        Test for external changes. This should not be called externally.
+        """
+        # changed default
+        defaultLayerName = self._defaultLayerName
+        onDiskDefaultLayerName = reader.getDefaultLayerName()
+        defaultLayerChanged = defaultLayerName != onDiskDefaultLayerName
+        # changed layer order
+        onDiskLayerOrder = reader.getLayerNames()
+        layerOrderChanged = onDiskLayerOrder != self.layerOrder
+        # layers added since we started up
+        addedLayers = []
+        for layerName in set(onDiskLayerOrder) - set(self.layerOrder):
+            # try to filter out layers that were removed in memory
+            wasDeletedInMemory = False
+            for actionData in self._layerActionHistory:
+                action = actionData["action"]
+                if action == "delete" and actionData["name"] == layerName:
+                    wasDeletedInMemory = True
+            if not wasDeletedInMemory:
+                addedLayers.append(layerName)
+        # layers deleted since we started up
+        deletedLayers = list(set(self.layerOrder) - set(onDiskLayerOrder))
+        # modified layers
+        modifiedLayers = {}
+        for layerName in self.layerOrder:
+            layer = self[layerName]
+            newLayerInfo = _StaticLayerInfoMaker()
+            layerInfoChanged = False
+            if layer._glyphSet is not None:
+                layer._glyphSet.readLayerInfo(newLayerInfo)
+                layerInfoChanged = layer._dataOnDisk != newLayerInfo.pack()
+            modifiedGlyphs, addedGlyphs, deletedGlyphs = layer.testForExternalChanges()
+            if modifiedGlyphs or addedGlyphs or deletedGlyphs or layerInfoChanged:
+                modifiedLayers[layerName] = dict(
+                    info=layerInfoChanged,
+                    modified=modifiedGlyphs,
+                    added=addedGlyphs,
+                    deleted=deletedGlyphs
+                )
+        # pack
+        result = dict(
+            defaultLayer=defaultLayerChanged,
+            order=layerOrderChanged,
+            added=addedLayers,
+            deleted=deletedLayers,
+            modified=modifiedLayers
+        )
+        # cross your fingers
+        return result
+
+    def reloadLayers(self, layerData):
+        """
+        Reload the layers. This should not be called externally.
+        """
+        reader = UFOReader(self.getParent().path)
+        # handle the layers
+        currentLayerOrder = self.layerOrder
+        for layerName, l in layerData.get("layers", {}).items():
+            # new layer
+            if layerName not in currentLayerOrder:
+                glyphSet = reader.getGlyphSet(layerName)
+                self.newLayer(layerName, glyphSet)
+            # get the layer
+            layer = self[layerName]
+            # reload the layer info
+            if l.get("info"):
+                layer.color = None
+                layer.lib.clear()
+                layer._glyphSet.readLayerInfo(layer)
+                self._stampLayerInfoDataState(layer)
+            # reload the glyphs
+            glyphNames = l.get("glyphNames", [])
+            if glyphNames:
+                layer.reloadGlyphs(glyphNames)
+        # handle the order
+        if layerData.get("order", False):
+            newLayerOrder = reader.getLayerNames()
+            for layerName in self.layerOrder:
+                if layerName not in newLayerOrder:
+                    newLayerOrder.append(layerName)
+            self.layerOrder = newLayerOrder
+        # handle the default layer
+        if layerData.get("default", False):
+            newDefaultLayerName = reader.getDefaultLayerName()
+            self.defaultLayer = self[newDefaultLayerName]
+
+
+class _StaticLayerInfoMaker(object):
+
+    def __init__(self):
+        self.lib = {}
+        self.color = None
+
+    def pack(self):
+        from plistlib import writePlistToString
+        data = {}
+        if self.lib:
+            data["lib"] = self.lib
+        if self.color is not None:
+            data["color"] = self.color
+        return writePlistToString(data)
 
 # -----
 # Tests
@@ -444,6 +566,163 @@ def _testNameChange():
     True
     >>> layers.dirty
     True
+    """
+
+def _testExternalChanges():
+    """
+    >>> import os
+    >>> import shutil
+    >>> from plistlib import readPlist, writePlist
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath, makeTestFontCopy, tearDownTestFontCopy
+
+    >>> path = getTestFontPath("TestExternalEditing.ufo")
+    >>> path = makeTestFontCopy(path)
+    >>> font = Font(path)
+    >>> reader = UFOReader(path)
+    >>> font.layers.testForExternalChanges(reader)
+    {'deleted': [], 'added': [], 'modified': {}, 'defaultLayer': False, 'order': False}
+    >>> tearDownTestFontCopy(font.path)
+
+    # layerinfo.plist
+    >>> path = getTestFontPath("TestExternalEditing.ufo")
+    >>> path = makeTestFontCopy(path)
+    >>> font = Font(path)
+    >>> reader = UFOReader(path)
+    >>> p = os.path.join(path, "glyphs", "layerinfo.plist")
+    >>> data = {"lib" : {}}
+    >>> data["lib"]["testForExternalChanges.test"] = 1
+    >>> writePlist(data, p)
+    >>> font.layers.testForExternalChanges(reader)["modified"]["public.default"]["info"]
+    True
+    >>> tearDownTestFontCopy(font.path)
+
+    # add a layer
+    >>> path = getTestFontPath("TestExternalEditing.ufo")
+    >>> path = makeTestFontCopy(path)
+    >>> font = Font(path)
+    >>> shutil.copytree(os.path.join(path, "glyphs"), os.path.join(path, "glyphs.test"))
+    >>> contents = readPlist(os.path.join(path, "layercontents.plist"))
+    >>> contents.append(("test", "glyphs.test"))
+    >>> writePlist(contents, os.path.join(path, "layercontents.plist"))
+    >>> reader = UFOReader(path)
+    >>> font.layers.testForExternalChanges(reader)["added"]
+    ['test']
+    >>> tearDownTestFontCopy(font.path)
+
+    # remove a layer
+    >>> path = getTestFontPath("TestExternalEditing.ufo")
+    >>> path = makeTestFontCopy(path)
+    >>> shutil.copytree(os.path.join(path, "glyphs"), os.path.join(path, "glyphs.test"))
+    >>> contents = readPlist(os.path.join(path, "layercontents.plist"))
+    >>> contents.append(("test", "glyphs.test"))
+    >>> writePlist(contents, os.path.join(path, "layercontents.plist"))
+    >>> font = Font(path)
+    >>> shutil.rmtree(os.path.join(path, "glyphs.test"))
+    >>> contents = readPlist(os.path.join(path, "layercontents.plist"))
+    >>> n = contents.pop(1)
+    >>> writePlist(contents, os.path.join(path, "layercontents.plist"))
+    >>> reader = UFOReader(path)
+    >>> font.layers.testForExternalChanges(reader)["deleted"]
+    ['test']
+    >>> tearDownTestFontCopy(font.path)
+
+    # change the layer order
+    >>> path = getTestFontPath("TestExternalEditing.ufo")
+    >>> path = makeTestFontCopy(path)
+    >>> shutil.copytree(os.path.join(path, "glyphs"), os.path.join(path, "glyphs.test"))
+    >>> contents = readPlist(os.path.join(path, "layercontents.plist"))
+    >>> contents.append(("test", "glyphs.test"))
+    >>> writePlist(contents, os.path.join(path, "layercontents.plist"))
+    >>> font = Font(path)
+    >>> contents = readPlist(os.path.join(path, "layercontents.plist"))
+    >>> contents.reverse()
+    >>> writePlist(contents, os.path.join(path, "layercontents.plist"))
+    >>> reader = UFOReader(path)
+    >>> font.layers.testForExternalChanges(reader)
+    {'deleted': [], 'added': [], 'modified': {}, 'defaultLayer': False, 'order': True}
+    >>> tearDownTestFontCopy(font.path)
+
+    # change the default layer
+    >>> path = getTestFontPath("TestExternalEditing.ufo")
+    >>> path = makeTestFontCopy(path)
+    >>> shutil.copytree(os.path.join(path, "glyphs"), os.path.join(path, "glyphs.test"))
+    >>> contents = [("foo", "glyphs"), ("test", "glyphs.test")]
+    >>> writePlist(contents, os.path.join(path, "layercontents.plist"))
+    >>> font = Font(path)
+    >>> contents = [("test", "glyphs"), ("foo", "glyphs.test")]
+    >>> contents.reverse()
+    >>> writePlist(contents, os.path.join(path, "layercontents.plist"))
+    >>> reader = UFOReader(path)
+    >>> font.layers.testForExternalChanges(reader)
+    {'deleted': [], 'added': [], 'modified': {}, 'defaultLayer': True, 'order': False}
+    >>> tearDownTestFontCopy(font.path)
+    """
+
+def _testReloadLayers():
+    """
+    >>> import os
+    >>> import shutil
+    >>> from plistlib import readPlist, writePlist
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath, makeTestFontCopy, tearDownTestFontCopy
+
+    # layerinfo.plist
+    >>> path = getTestFontPath("TestExternalEditing.ufo")
+    >>> path = makeTestFontCopy(path)
+    >>> font = Font(path)
+    >>> p = os.path.join(path, "glyphs", "layerinfo.plist")
+    >>> data = {"lib" : {}}
+    >>> data["lib"]["testForExternalChanges.test"] = 1
+    >>> writePlist(data, p)
+    >>> font.reloadLayers(dict(layers={"public.default" : dict(info=True)}))
+    >>> font.layers["public.default"].lib
+    {'testForExternalChanges.test': 1}
+    >>> tearDownTestFontCopy(font.path)
+
+    # add a layer
+    >>> path = getTestFontPath("TestExternalEditing.ufo")
+    >>> path = makeTestFontCopy(path)
+    >>> font = Font(path)
+    >>> shutil.copytree(os.path.join(path, "glyphs"), os.path.join(path, "glyphs.test"))
+    >>> contents = readPlist(os.path.join(path, "layercontents.plist"))
+    >>> contents.append(("test", "glyphs.test"))
+    >>> writePlist(contents, os.path.join(path, "layercontents.plist"))
+    >>> font.reloadLayers(dict(layers={"test" : {}}))
+    >>> font.layers.layerOrder
+    ['public.default', 'test']
+    >>> tearDownTestFontCopy(font.path)
+
+    # change the layer order
+    >>> path = getTestFontPath("TestExternalEditing.ufo")
+    >>> path = makeTestFontCopy(path)
+    >>> shutil.copytree(os.path.join(path, "glyphs"), os.path.join(path, "glyphs.test"))
+    >>> contents = readPlist(os.path.join(path, "layercontents.plist"))
+    >>> contents.append(("test", "glyphs.test"))
+    >>> writePlist(contents, os.path.join(path, "layercontents.plist"))
+    >>> font = Font(path)
+    >>> contents = readPlist(os.path.join(path, "layercontents.plist"))
+    >>> contents.reverse()
+    >>> writePlist(contents, os.path.join(path, "layercontents.plist"))
+    >>> font.reloadLayers(dict(order=True))
+    >>> font.layers.layerOrder
+    ['test', 'public.default']
+    >>> tearDownTestFontCopy(font.path)
+
+    # change the default layer
+    >>> path = getTestFontPath("TestExternalEditing.ufo")
+    >>> path = makeTestFontCopy(path)
+    >>> shutil.copytree(os.path.join(path, "glyphs"), os.path.join(path, "glyphs.test"))
+    >>> contents = [("foo", "glyphs"), ("test", "glyphs.test")]
+    >>> writePlist(contents, os.path.join(path, "layercontents.plist"))
+    >>> font = Font(path)
+    >>> contents = [("test", "glyphs"), ("foo", "glyphs.test")]
+    >>> contents.reverse()
+    >>> writePlist(contents, os.path.join(path, "layercontents.plist"))
+    >>> font.reloadLayers(dict(default=True))
+    >>> font.layers.defaultLayer.name
+    'test'
+    >>> tearDownTestFontCopy(font.path)
     """
 
 if __name__ == "__main__":

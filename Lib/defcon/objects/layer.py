@@ -44,7 +44,7 @@ class Layer(BaseObject):
 
         self._glyphs = {}
         self._glyphSet = glyphSet
-        self._scheduledForDeletion = set()
+        self._scheduledForDeletion = {}
         self._keys = set()
 
         self._dirty = False
@@ -121,7 +121,7 @@ class Layer(BaseObject):
         # a glyph by the same name could be
         # scheduled for deletion
         if name in self._scheduledForDeletion:
-            self._scheduledForDeletion.remove(name)
+            del self._scheduledForDeletion[name]
         # keep the keys up to date
         self._keys.add(name)
 
@@ -164,13 +164,17 @@ class Layer(BaseObject):
         if name not in self:
             raise KeyError, "%s not in layer" % name
         self._unicodeData.removeGlyphData(name, self[name].unicodes)
+        dataOnDiskTimeStamp = None
+        dataOnDisk = None
         if name in self._glyphs:
             glyph = self._glyphs.pop(name)
             self._removeParentDataInGlyph(glyph)
+            dataOnDiskTimeStamp = glyph._dataOnDiskTimeStamp
+            dataOnDisk = glyph._dataOnDisk
         if name in self._keys:
             self._keys.remove(name)
         if self._glyphSet is not None and name in self._glyphSet:
-            self._scheduledForDeletion.add(name)
+            self._scheduledForDeletion[name] = dict(dataOnDiskTimeStamp=dataOnDiskTimeStamp, dataOnDisk=dataOnDisk)
         self.dirty = True
 
     def __len__(self):
@@ -186,7 +190,7 @@ class Layer(BaseObject):
         # this is not generated dynamically since we
         # support external editing. it must be fixed.
         names = self._keys
-        names = names - self._scheduledForDeletion
+        names = names - set(self._scheduledForDeletion.keys())
         return list(names)
 
     # ----------
@@ -406,7 +410,7 @@ class Layer(BaseObject):
             self.saveGlyph(glyph, glyphSet, saveAs=saveAs, progressBar=progressBar)
         # remove deleted glyphs
         if not saveAs and self._scheduledForDeletion:
-            for glyphName in self._scheduledForDeletion:
+            for glyphName in self._scheduledForDeletion.keys():
                 if glyphName in glyphSet:
                     glyphSet.deleteGlyph(glyphName)
         glyphSet.writeContents()
@@ -422,26 +426,97 @@ class Layer(BaseObject):
     # External Edit Support
     # ---------------------
 
-    # data stamping
-
     def _stampGlyphDataState(self, glyph):
-        pass
-        #if self._glyphSet is None:
-        #    return
-        #glyphSet = self._glyphSet
-        #glyphName = glyph.name
-        #if glyphName not in glyphSet.contents:
-        #    return
-        #path = os.path.join(self.path, "glyphs", glyphSet.contents[glyphName])
-        ## get the text
-        #f = open(path, "rb")
-        #text = f.read()
-        #f.close()
-        ## get the file modification time
-        #modTime = os.stat(path).st_mtime
-        ## store the data
-        #glyph._dataOnDisk = text
-        #glyph._dataOnDiskTimeStamp = modTime
+        if self._glyphSet is None:
+            return
+        glyphSet = self._glyphSet
+        glyphName = glyph.name
+        if glyphName not in glyphSet.contents:
+            return
+        modTime = self._glyphSet.getGLIFModificationTime(glyphName)
+        text = self._glyphSet.getGLIF(glyphName)
+        glyph._dataOnDisk = text
+        glyph._dataOnDiskTimeStamp = modTime
+
+    def testForExternalChanges(self):
+        """
+        Test for external changes. This should not be called externally.
+        """
+        glyphSet = self._glyphSet
+        if glyphSet is None:
+            return [], [], []
+        glyphSet.rebuildContents()
+        # glyphs added since we started up
+        addedGlyphs = []
+        for glyphName in set(self._glyphSet.keys()) - self._keys:
+            # not scheduled for deletion
+            if glyphName not in self._scheduledForDeletion:
+                addedGlyphs.append(glyphName)
+            # scheduled for deletion but not
+            # what was scheduled for deletion.
+            # consider this a new glyph.
+            elif self._scheduledForDeletion[glyphName]["dataOnDiskTimeStamp"] != glyphSet.getGLIFModificationTime(glyphName):
+                if self._scheduledForDeletion[glyphName]["dataOnDisk"] != glyphSet.getGLIFModificationTime(glyphName):
+                    addedGlyphs.append(glyphName)
+        # glyphs deleted since we started up
+        deletedGlyphs = list(self._keys - set(glyphSet.keys()))
+        # glyphs modified since loading
+        modifiedGlyphs = []
+        for glyphName, glyph in self._glyphs.items():
+            # deleted glyph. skip.
+            if glyphName not in glyphSet.contents:
+                continue
+            modTime = glyphSet.getGLIFModificationTime(glyphName)
+            # mod time mismatch
+            if modTime != glyph._dataOnDiskTimeStamp:
+                text = glyphSet.getGLIF(glyphName)
+                # data mismatch
+                if text != glyph._dataOnDisk:
+                    modifiedGlyphs.append(glyphName)
+        # add loaded glyphs to the keys
+        for glyphName in addedGlyphs:
+            # if the glyph was deleted, but now it is new,
+            # unschedule it for deletion.
+            if glyphName in self._scheduledForDeletion:
+                del self._scheduledForDeletion[glyphName]
+            self._keys.add(glyphName)
+        # done. whew.
+        return modifiedGlyphs, addedGlyphs, deletedGlyphs
+
+    def reloadGlyphs(self, glyphNames):
+        """
+        Reload the glyphs. This should not be called externally.
+        """
+        for glyphName in glyphNames:
+            if glyphName not in self._glyphs:
+                self._loadGlyph(glyphName)
+            else:
+                glyph = self._glyphs[glyphName]
+                glyph.destroyAllRepresentations(None)
+                glyph.clear()
+                pointPen = glyph.getPointPen()
+                self._glyphSet.readGlyph(glyphName=glyphName, glyphObject=glyph, pointPen=pointPen)
+                glyph.dirty = False
+                self._stampGlyphDataState(glyph)
+        data = dict(glyphNames=glyphNames)
+        # post a change notification for any glyphs that
+        # reference the reloaded glyphs via components.
+        componentReferences = self.componentReferences
+        referenceChanges = set()
+        for glyphName in glyphNames:
+            if glyphName not in componentReferences:
+                continue
+            for reference in componentReferences[glyphName]:
+                if reference in glyphNames:
+                    continue
+                if reference not in self._glyphs:
+                    continue
+                if reference in referenceChanges:
+                    continue
+                glyph = self._glyphs[reference]
+                glyph.destroyAllRepresentations(None)
+                glyph.postNotification(notification=glyph.changeNotificationName)
+                referenceChanges.add(reference)
 
     # ----------------------
     # Notification Callbacks
@@ -1058,6 +1133,103 @@ def _testGlyphDispatcher():
     True
     >>> guideline.dispatcher == newFont.dispatcher
     True
+    """
+
+def _testExternalChanges():
+    """
+    >>> from plistlib import readPlist, writePlist
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath, makeTestFontCopy, tearDownTestFontCopy
+    >>> path = getTestFontPath("TestExternalEditing.ufo")
+    >>> path = makeTestFontCopy(path)
+    >>> font = Font(path)
+
+    >>> font.layers[None].testForExternalChanges()
+    ([], [], [])
+
+    # make a simple change to a glyph
+    >>> g = font.layers[None]["A"]
+    >>> path = os.path.join(font.path, "glyphs", "A_.glif")
+    >>> f = open(path, "rb")
+    >>> t = f.read()
+    >>> f.close()
+    >>> t += " "
+    >>> f = open(path, "wb")
+    >>> f.write(t)
+    >>> f.close()
+    >>> os.utime(path, (g._dataOnDiskTimeStamp + 1, g._dataOnDiskTimeStamp + 1))
+    >>> font.layers[None].testForExternalChanges()
+    (['A'], [], [])
+
+    # save the glyph and test again
+    >>> font["A"].dirty = True
+    >>> font.save()
+    >>> font.layers[None].testForExternalChanges()
+    ([], [], [])
+
+    # add a glyph
+    >>> path = os.path.join(font.path, "glyphs", "A_.glif")
+    >>> f = open(path, "rb")
+    >>> t = f.read()
+    >>> f.close()
+    >>> t = t.replace('<glyph name="A" format="1">', '<glyph name="XXX" format="1">')
+    >>> path = os.path.join(font.path, "glyphs", "XXX.glif")
+    >>> f = open(path, "wb")
+    >>> f.write(t)
+    >>> f.close()
+    >>> path = os.path.join(font.path, "glyphs", "contents.plist")
+    >>> plist = readPlist(path)
+    >>> savePlist = dict(plist)
+    >>> plist["XXX"] = "XXX.glif"
+    >>> writePlist(plist, path)
+    >>> font.layers[None].testForExternalChanges()
+    ([], ['XXX'], [])
+    >>> path = font.path
+
+    # delete a glyph
+    >>> font = Font(path)
+    >>> g = font["XXX"]
+    >>> path = os.path.join(font.path, "glyphs", "contents.plist")
+    >>> writePlist(savePlist, path)
+    >>> path = os.path.join(font.path, "glyphs", "XXX.glif")
+    >>> os.remove(path)
+    >>> font.layers[None].testForExternalChanges()
+    ([], [], ['XXX'])
+
+    >>> tearDownTestFontCopy(font.path)
+    """
+
+def _testReloadGlyphs():
+    """
+    >>> from defcon import Font
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath("TestExternalEditing.ufo")
+    >>> font = Font(path)
+    >>> glyph = font.layers[None]["A"]
+
+    >>> path = os.path.join(font.path, "glyphs", "A_.glif")
+    >>> f = open(path, "rb")
+    >>> t = f.read()
+    >>> f.close()
+    >>> t = t.replace('<advance width="700"/>', '<advance width="701"/>')
+    >>> f = open(path, "wb")
+    >>> f.write(t)
+    >>> f.close()
+
+    >>> glyph.width
+    700
+    >>> len(glyph)
+    2
+    >>> font.layers[None].reloadGlyphs(["A"])
+    >>> glyph.width
+    701
+    >>> len(glyph)
+    2
+
+    >>> t = t.replace('<advance width="701"/>', '<advance width="700"/>')
+    >>> f = open(path, "wb")
+    >>> f.write(t)
+    >>> f.close()
     """
 
 if __name__ == "__main__":

@@ -129,8 +129,7 @@ class Font(BaseObject):
             for layerName in layerNames:
                 glyphSet = reader.getGlyphSet(layerName)
                 layer = self._layers.newLayer(layerName, glyphSet=glyphSet)
-                glyphSet.readLayerInfo(layer)
-                layer._dirty = False
+                layer.dirty = False
             defaultLayerName = reader.getDefaultLayerName()
             self._layers.layerOrder = layerNames
             self._layers.defaultLayer = self._layers[defaultLayerName]
@@ -606,25 +605,7 @@ class Font(BaseObject):
     def _stampLibDataState(self, reader=None):
         self._stampFontDataState(self._lib, "lib.plist", reader=reader)
 
-#    def _stampGlyphDataState(self, glyph):
-#        if self._glyphSet is None:
-#            return
-#        glyphSet = self._glyphSet
-#        glyphName = glyph.name
-#        if glyphName not in glyphSet.contents:
-#            return
-#        path = os.path.join(self.path, "glyphs", glyphSet.contents[glyphName])
-#        # get the text
-#        f = open(path, "rb")
-#        text = f.read()
-#        f.close()
-#        # get the file modification time
-#        modTime = os.stat(path).st_mtime
-#        # store the data
-#        glyph._dataOnDisk = text
-#        glyph._dataOnDiskTimeStamp = modTime
-
-#    # data comparison
+    # data comparison
 
     def testForExternalChanges(self):
         """
@@ -637,6 +618,18 @@ class Font(BaseObject):
                 "groups"   : bool, # True if changed, False if not changed
                 "features" : bool, # True if changed, False if not changed
                 "lib"      : bool, # True if changed, False if not changed
+                "layers"   : {
+                    "defaultLayer" : bool, # True if changed, False if not changed
+                    "order"        : bool, # True if changed, False if not changed
+                    "added"        : ["layer name 1", "layer name 2"],
+                    "deleted"      : ["layer name 1", "layer name 2"],
+                    "modified"     : {
+                        "info"     : bool, # True if changed, False if not changed
+                        "modified" : ["glyph name 1", "glyph name 2"],
+                        "added"    : ["glyph name 1", "glyph name 2"],
+                        "deleted"  : ["glyph name 1", "glyph name 2"]
+                    }
+                },
                 "images"   : {
                     "modified" : ["image name 1", "image name 2"],
                     "added"    : ["image name 1", "image name 2"],
@@ -647,10 +640,6 @@ class Font(BaseObject):
                     "added"    : ["file name 1", "file name 2"],
                     "deleted"  : ["file name 1", "file name 2"],
                 }
-
-                XXX "modifiedGlyphs" : ["a", "a.alt"],
-                XXX "addedGlyphs" : [],
-                XXX "deletedGlyphs" : []
             }
 
         It is important to keep in mind that the user could have created
@@ -668,19 +657,25 @@ class Font(BaseObject):
         groupsChanged = self._testGroupsForExternalModifications(reader)
         featuresChanged = self._testFeaturesForExternalModifications(reader)
         libChanged = self._testLibForExternalModifications(reader)
+        layerChanges = self.layers.testForExternalChanges(reader)
         modifiedImages = addedImages = deletedImages = []
         if self._images is not None:
             modifiedImages, addedImages, deletedImages = self._images.testForExternalChanges(reader)
         modifiedData = addedData = deletedData = []
         if self._data is not None:
             modifiedData, addedData, deletedData = self._data.testForExternalChanges(reader)
-        #modifiedGlyphs, addedGlyphs, deletedGlyphs = self._testGlyphsForExternalModifications()
+        # deprecated stuff
+        defaultLayerName = self.layers.defaultLayer.name
+        modifiedGlyphs = layerChanges["modified"].get(defaultLayerName, {}).get("modified")
+        addedGlyphs = layerChanges["modified"].get(defaultLayerName, {}).get("added")
+        deletedGlyphs = layerChanges["modified"].get(defaultLayerName, {}).get("deleted")
         return dict(
             info=infoChanged,
             kerning=kerningChanged,
             groups=groupsChanged,
             features=featuresChanged,
             lib=libChanged,
+            layers=layerChanges,
             images=dict(
                 modified=modifiedImages,
                 added=addedImages,
@@ -690,10 +685,11 @@ class Font(BaseObject):
                 modifiedData=modifiedData,
                 addedData=addedData,
                 deletedData=deletedData
-            )
-            #modifiedGlyphs=modifiedGlyphs,
-            #addedGlyphs=addedGlyphs,
-            #deletedGlyphs=deletedGlyphs
+            ),
+            # deprecated
+            modifiedGlyphs=modifiedGlyphs,
+            addedGlyphs=addedGlyphs,
+            deletedGlyphs=deletedGlyphs
         )
 
     def _testFontDataForExternalModifications(self, obj, fileName, reader=None):
@@ -834,7 +830,7 @@ class Font(BaseObject):
         will be posted.
         """
         self.images.reloadImages(fileNames)
-        self.postNotification(notification="Font.ReloadedImages", data=data)
+        self.postNotification(notification="Font.ReloadedImages")
 
     def reloadData(self, fileNames):
         """
@@ -844,46 +840,47 @@ class Font(BaseObject):
         will be posted.
         """
         self.images.reloadImages(fileNames)
-        self.postNotification(notification="Font.ReloadedData", data=data)
+        self.postNotification(notification="Font.ReloadedData")
 
-#    def reloadGlyphs(self, glyphNames):
-#        """
-#        Reload the glyphs listed in **glyphNames** from the
-#        appropriate files within the UFO. When all of the
-#        loading is complete, a *Font.ReloadedGlyphs* notification
-#        will be posted.
-#        """
-#        for glyphName in glyphNames:
-#            if glyphName not in self._glyphs:
-#                self._loadGlyph(glyphName)
-#            else:
-#                glyph = self._glyphs[glyphName]
-#                glyph.destroyAllRepresentations(None)
-#                glyph.clear()
-#                pointPen = glyph.getPointPen()
-#                self._glyphSet.readGlyph(glyphName=glyphName, glyphObject=glyph, pointPen=pointPen)
-#                glyph.dirty = False
-#                self._stampGlyphDataState(glyph)
-#        data = dict(glyphNames=glyphNames)
-#        self.postNotification(notification="Font.ReloadedGlyphs", data=data)
-#        # post a change notification for any glyphs that
-#        # reference the reloaded glyphs via components.
-#        componentReferences = self.componentReferences
-#        referenceChanges = set()
-#        for glyphName in glyphNames:
-#            if glyphName not in componentReferences:
-#                continue
-#            for reference in componentReferences[glyphName]:
-#                if reference in glyphNames:
-#                    continue
-#                if reference not in self._glyphs:
-#                    continue
-#                if reference in referenceChanges:
-#                    continue
-#                glyph = self._glyphs[reference]
-#                glyph.destroyAllRepresentations(None)
-#                glyph.postNotification(notification=glyph.changeNotificationName)
-#                referenceChanges.add(reference)
+    def reloadGlyphs(self, glyphNames):
+        """
+        Deprecated! Use reloadLayers!
+
+        Reload the glyphs listed in **glyphNames** from the
+        appropriate files within the UFO. When all of the
+        loading is complete, a *Font.ReloadedGlyphs* notification
+        will be posted.
+        """
+        defaultLayerName = self.layers.defaultLayer.name
+        layerData = dict(
+            layers={
+                defaultLayerName : dict(glyphNames=glyphNames)
+            }
+        )
+        self.reloadLayers(layerData)
+
+    def reloadLayers(self, layerData):
+        """
+        Reload the data in the layers specfied in **layerData**.
+        When all of the loading is complete, *Font.ReloadedLayers*
+        and *Font.ReloadedGlyphs* notifications will be posted.
+        The **layerData** must be a dictionary following this format::
+
+            {
+                "order"   : bool, # True if you want the order releaded
+                "default" : bool, # True if you want the default layer reset
+                "layers"  : {
+                    "layer name" : {
+                        "glyphNames" : ["glyph name 1", "glyph name 2"], # list of glyph names you want to reload
+                        "info"       : bool, # True if you want the layer info reloaded
+                    }
+                }
+            }
+        """
+        self.layers.reloadLayers(layerData)
+        self.postNotification(notification="Font.ReloadedLayers")
+        self.postNotification(notification="Font.ReloadedGlyphs")
+        
 
     # -----------------------------
     # UFO Format Version Conversion
@@ -1330,13 +1327,6 @@ def _testTestForExternalChanges():
     >>> d["lib"]
     False
 
-#    >>> d["modifiedGlyphs"]
-#    []
-#    >>> d["addedGlyphs"]
-#    []
-#    >>> d["deletedGlyphs"]
-#    []
-
     # make a simple change to the kerning data
     >>> path = os.path.join(font.path, "kerning.plist")
     >>> f = open(path, "rb")
@@ -1360,62 +1350,6 @@ def _testTestForExternalChanges():
     >>> d = font.testForExternalChanges()
     >>> d["kerning"]
     False
-
-#    # make a simple change to a glyph
-#    >>> path = os.path.join(font.path, "glyphs", "A_.glif")
-#    >>> f = open(path, "rb")
-#    >>> t = f.read()
-#    >>> f.close()
-#    >>> t += " "
-#    >>> f = open(path, "wb")
-#    >>> f.write(t)
-#    >>> f.close()
-#    >>> os.utime(path, (g._dataOnDiskTimeStamp + 1, g._dataOnDiskTimeStamp + 1))
-#    >>> d = font.testForExternalChanges()
-#    >>> d["modifiedGlyphs"]
-#    ['A']
-#
-#    # save the glyph and test again
-#    >>> font["A"].dirty = True
-#    >>> font.save()
-#    >>> d = font.testForExternalChanges()
-#    >>> d["modifiedGlyphs"]
-#    []
-#
-#    # add a glyph
-#    >>> path = os.path.join(font.path, "glyphs", "A_.glif")
-#    >>> f = open(path, "rb")
-#    >>> t = f.read()
-#    >>> f.close()
-#    >>> t = t.replace('<glyph name="A" format="1">', '<glyph name="XXX" format="1">')
-#    >>> path = os.path.join(font.path, "glyphs", "XXX.glif")
-#    >>> f = open(path, "wb")
-#    >>> f.write(t)
-#    >>> f.close()
-#    >>> path = os.path.join(font.path, "glyphs", "contents.plist")
-#    >>> plist = readPlist(path)
-#    >>> savePlist = dict(plist)
-#    >>> plist["XXX"] = "XXX.glif"
-#    >>> writePlist(plist, path)
-#    >>> d = font.testForExternalChanges()
-#    >>> d["modifiedGlyphs"]
-#    []
-#    >>> d["addedGlyphs"]
-#    [u'XXX']
-#
-#    # delete a glyph
-#    >>> path = getTestFontPath("TestExternalEditing.ufo")
-#    >>> font = Font(path)
-#    >>> g = font["XXX"]
-#    >>> path = os.path.join(font.path, "glyphs", "contents.plist")
-#    >>> writePlist(savePlist, path)
-#    >>> path = os.path.join(font.path, "glyphs", "XXX.glif")
-#    >>> os.remove(path)
-#    >>> d = font.testForExternalChanges()
-#    >>> d["modifiedGlyphs"]
-#    []
-#    >>> d["deletedGlyphs"]
-#    ['XXX']
     """
 
 def _testReloadInfo():
@@ -1530,37 +1464,37 @@ def _testReloadLib():
     >>> f.close()
     """
 
-#def _testReloadGlyphs():
-#    """
-#    >>> from defcon.test.testTools import getTestFontPath
-#    >>> path = getTestFontPath("TestExternalEditing.ufo")
-#    >>> font = Font(path)
-#    >>> glyph = font["A"]
-#
-#    >>> path = os.path.join(font.path, "glyphs", "A_.glif")
-#    >>> f = open(path, "rb")
-#    >>> t = f.read()
-#    >>> f.close()
-#    >>> t = t.replace('<advance width="700"/>', '<advance width="701"/>')
-#    >>> f = open(path, "wb")
-#    >>> f.write(t)
-#    >>> f.close()
-#
-#    >>> glyph.width
-#    700
-#    >>> len(glyph)
-#    2
-#    >>> font.reloadGlyphs(["A"])
-#    >>> glyph.width
-#    701
-#    >>> len(glyph)
-#    2
-#
-#    >>> t = t.replace('<advance width="701"/>', '<advance width="700"/>')
-#    >>> f = open(path, "wb")
-#    >>> f.write(t)
-#    >>> f.close()
-#    """
+def _testReloadGlyphs():
+    """
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> path = getTestFontPath("TestExternalEditing.ufo")
+    >>> font = Font(path)
+    >>> glyph = font["A"]
+
+    >>> path = os.path.join(font.path, "glyphs", "A_.glif")
+    >>> f = open(path, "rb")
+    >>> t = f.read()
+    >>> f.close()
+    >>> t = t.replace('<advance width="700"/>', '<advance width="701"/>')
+    >>> f = open(path, "wb")
+    >>> f.write(t)
+    >>> f.close()
+
+    >>> glyph.width
+    700
+    >>> len(glyph)
+    2
+    >>> font.reloadGlyphs(["A"])
+    >>> glyph.width
+    701
+    >>> len(glyph)
+    2
+
+    >>> t = t.replace('<advance width="701"/>', '<advance width="700"/>')
+    >>> f = open(path, "wb")
+    >>> f.write(t)
+    >>> f.close()
+    """
 
 if __name__ == "__main__":
     import doctest
