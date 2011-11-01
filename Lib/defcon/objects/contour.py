@@ -522,6 +522,15 @@ class Contour(BaseObject):
         identifier = makeRandomIdentifier(existing=self.identifiers)
         self.identifier = identifier
 
+    def generateIdentifierForPoint(self, point):
+        """
+        Create a new, unique identifier for and assign it to the contour.
+        This will post a *Contour.Changed* notification.
+        """
+        identifier = makeRandomIdentifier(existing=self.identifiers)
+        point.identifier = identifier
+        self.dirty = True
+
 # -----
 # Tests
 # -----
