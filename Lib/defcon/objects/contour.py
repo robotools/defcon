@@ -171,6 +171,39 @@ class Contour(BaseObject):
         if postNotification:
             self.dirty = True
 
+    def appendPoint(self, point):
+        """
+        Append **point** to the glyph. The point must be a defcon
+        :class:`Point` object or a subclass of that object. An error
+        will be raised if the point's identifier conflicts with any of
+        the identifiers within the glyph.
+
+        This will post a *Contour.Changed* notification.
+        """
+        assert point not in self._points
+        self.insertPoint(len(self._points), point)
+
+    def insertPoint(self, index, point):
+        """
+        Insert **point** into the contour at index. The point
+        must be a defcon :class:`Point` object or a subclass
+        of that object. An error will be raised if the points's
+        identifier conflicts with any of the identifiers within
+        the glyph.
+
+        This will post a *Contour.Changed* notification.
+        """
+        assert point not in self._points
+        if point.identifier is not None:
+            identifiers = self.identifiers
+            assert point.identifier not in identifiers
+            if point.identifier is not None:
+                identifiers.add(point.identifier)
+        self._points.insert(index, point)
+        self._destroyBoundsCache()
+        self._clockwiseCache = None
+        self.dirty = True
+
     def reverse(self):
         """
         Reverse the direction of the contour.
@@ -416,13 +449,7 @@ class Contour(BaseObject):
         This should not be used externally.
         """
         point = self._pointClass((x, y), segmentType=segmentType, smooth=smooth, name=name, identifier=identifier)
-        self._addPoint(point)
-
-    def _addPoint(self, point):
-        self._points.append(point)
-        self._destroyBoundsCache()
-        self._clockwiseCache = None
-        self.dirty = True
+        self.insertPoint(len(self._points), point)
 
     def draw(self, pen):
         """
