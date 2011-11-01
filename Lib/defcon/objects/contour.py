@@ -57,6 +57,11 @@ class Contour(BaseObject):
     # Attributes
     # ----------
 
+    def _get_pointClass(self):
+        return self._pointClass
+
+    pointClass = property(_get_pointClass, doc="The class used for point.")
+
     def _get_bounds(self):
         from robofab.pens.boundsPen import BoundsPen
         if self._boundsCache is None:
