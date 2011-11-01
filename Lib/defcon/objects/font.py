@@ -392,8 +392,8 @@ class Font(BaseObject):
         If you wish to specifiy the format version for saving, pass
         the desired number as the **formatVersion** argument.
 
-        Optionally, the uFO can be purged of unreferenced images
-        during thi operations. To do this, pass ``True`` as the
+        Optionally, the UFO can be purged of unreferenced images
+        during this operation. To do this, pass ``True`` as the
         value for the removeUnreferencedImages argument.
         """
         saveAs = False
