@@ -454,6 +454,9 @@ class Font(BaseObject):
         self._path = path
         self._ufoFormatVersion = formatVersion
         self.dirty = False
+        # update the modification time
+        if os.path.exists(self._path):
+            os.utime(self._path, None)
 
     def saveInfo(self, writer, saveAs=False, progressBar=None):
         """
