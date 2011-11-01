@@ -152,6 +152,11 @@ class Glyph(BaseObject):
 
     anchorClass = property(_get_anchorClass, doc="The class used for anchors.")
 
+    def _get_guidelineClass(self):
+        return self._guidelineClass
+
+    guidelineClass = property(_get_guidelineClass, doc="The class used for anchors.")
+
     def _get_identifiers(self):
         return self._identifiers
 
