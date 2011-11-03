@@ -28,14 +28,6 @@ class BaseObject(object):
         self._dispatcher = None
         self._dataOnDisk = None
         self._dataOnDiskTimeStamp = None
-        # handle the old _notificationName attribute
-        if hasattr(self, "_notificationName"):
-            from warnings import warn
-            warn(
-                "_notificationName has been deprecated. Use changeNotificationName instead.",
-                DeprecationWarning
-            )
-            self.changeNotificationName = self._notificationName
         self._notificationName = self.changeNotificationName
 
     # ------
