@@ -10,11 +10,17 @@ class LayerSet(BaseObject):
 
     **This object posts the following notifications:**
 
-    ===========       ====
-    Name              Note
-    ===========       ====
-    LayerSet.Changed  Posted when the *dirty* attribute is set.
-    ===========       ====
+    ============================
+    Name
+    ============================
+    LayerSet.Changed
+    LayerSet.LayersChanged
+    LayerSet.LayerChanged
+    LayerSet.DefaultLayerChanged
+    LayerSet.LayerOrderChanged
+    LayerSet.LayerAdded
+    LayerSet.LayerDeleted
+    ============================
 
     This object behaves like a dict. For example, to get a particular
     layer::
@@ -23,7 +29,7 @@ class LayerSet(BaseObject):
 
     If the layer name is None, the default layer will be retrieved.
 
-    Note: t's up to the caller to ensure that a default layer is present
+    Note: It's up to the caller to ensure that a default layer is present
     as required by the UFO specification.
     """
 
@@ -72,9 +78,9 @@ class LayerSet(BaseObject):
         if self._defaultLayer is not None:
             oldName = self._defaultLayer.name
         self._defaultLayer = layer
-        self.postNotification(notification="LayerSet.DefaultLayerChanged")
-        self.dirty = True
         self._layerActionHistory.append(dict(action="default", newDefault=layer.name, oldDefault=oldName))
+        self.postNotification(notification="LayerSet.DefaultLayerChanged", data=dict(oldValue=oldName, newValue=layer.name))
+        self.dirty = True
 
     defaultLayer = property(_get_defaultLayer, _set_defaultLayer, doc="The default :class:`Layer` object. Setting this will post *LayerSet.DefaultLayerChanged* and *LayerSet.Changed* notifications.")
 
@@ -82,12 +88,13 @@ class LayerSet(BaseObject):
         return list(self._layerOrder)
 
     def _set_layerOrder(self, order):
+        oldOrder = self._layerOrder
         if self._layerOrder == order:
             return
         assert len(order) == len(self._layerOrder)
         assert set(order) == set(self._layerOrder)
         self._layerOrder = list(order)
-        self.postNotification(notification="LayerSet.LayerOrderChanged")
+        self.postNotification(notification="LayerSet.LayerOrderChanged", data=dict(oldValue=oldOrder, newValue=order))
         self.dirty = True
 
     layerOrder = property(_get_layerOrder, _set_layerOrder, doc="The layer order from top to bottom. Setting this will post *LayerSet.LayerOrderChanged* and *LayerSet.Changed* notifications.")
@@ -125,6 +132,8 @@ class LayerSet(BaseObject):
         Create a new :class:`Layer` and add it to
         the top of the layer order. **glyphSet** should
         only be passed when reading from a UFO.
+
+        This posts *LayerSet.LayerAdded* and *LayerSet.Changed* notifications.
         """
         if name in self._layers:
             raise KeyError("A layer named \"%s\" already exists." % name)
@@ -140,6 +149,9 @@ class LayerSet(BaseObject):
         self._layers[name] = layer
         self._layerOrder.append(name)
         self._layerActionHistory.append(dict(action="new", name=name))
+        self.postNotification("LayerSet.LayerAdded", data=dict(name=name))
+        self.postNotification("LayerSet.LayersChanged")
+        self.dirty = True
         return layer
 
     def __iter__(self):
@@ -161,9 +173,10 @@ class LayerSet(BaseObject):
             raise KeyError("%s not in layers" % name)
         del self._layers[name]
         self._layerOrder.remove(name)
-        self.postNotification("LayerSet.DeletedLayer", data=name)
-        self.dirty = True
         self._layerActionHistory.append(dict(action="delete", name=name))
+        self.postNotification("LayerSet.LayerDeleted", data=dict(name=name))
+        self.postNotification("LayerSet.LayersChanged")
+        self.dirty = True
 
     def __len__(self):
         return len(self.layerOrder)
@@ -244,8 +257,8 @@ class LayerSet(BaseObject):
     # ----------------------
 
     def _layerDirtyStateChange(self, notification):
-        if notification.object.dirty:
-            self.dirty = True
+        self.postNotification("LayerSet.LayerChanged")
+        self.dirty = True
 
     def _layerNameChange(self, notification):
         data = notification.data

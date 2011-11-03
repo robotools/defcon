@@ -12,11 +12,14 @@ class Contour(BaseObject):
 
     **This object posts the following notifications:**
 
-    ===============  ====
-    Name             Note
-    ===============  ====
-    Contour.Changed  Posted when the *dirty* attribute is set.
-    ===============  ====
+    ===============================
+    Name
+    ===============================
+    Contour.Changed
+    Contour.WindingDirectionChanged
+    Contour.PointsChanged
+    Contour.IdentifierChanged
+    ===============================
 
     The Contour object has list like behavior. This behavior allows you to interact
     with point data directly. For example, to get a particular point::
@@ -95,7 +98,7 @@ class Contour(BaseObject):
             self.reverse()
             self._clockwiseCache = None
 
-    clockwise = property(_get_clockwise, _set_clockwise, doc="A boolean representing if the contour has a clockwise direction. Setting this posts a *Contour.Changed* notification.")
+    clockwise = property(_get_clockwise, _set_clockwise, doc="A boolean representing if the contour has a clockwise direction. Setting this posts *Contour.WindingDirectionChanged* and *Contour.Changed* notifications.")
 
     def _get_open(self):
         if not self._points:
@@ -158,7 +161,7 @@ class Contour(BaseObject):
         """
         Clear the contents of the contour.
 
-        This posts a *Contour.Changed* notification.
+        This posts *Contour.PointsChanged* and *Contour.Changed* notifications.
         """
         self._clear()
 
@@ -169,6 +172,7 @@ class Contour(BaseObject):
         self._clockwiseCache = None
         # post a dirty notification
         if postNotification:
+            self.postNotification("Contour.PointsChanged")
             self.dirty = True
 
     def appendPoint(self, point):
@@ -178,7 +182,7 @@ class Contour(BaseObject):
         will be raised if the point's identifier conflicts with any of
         the identifiers within the glyph.
 
-        This will post a *Contour.Changed* notification.
+        This will post *Contour.PointsChanged* and *Contour.Changed* notifications.
         """
         assert point not in self._points
         self.insertPoint(len(self._points), point)
@@ -191,7 +195,7 @@ class Contour(BaseObject):
         identifier conflicts with any of the identifiers within
         the glyph.
 
-        This will post a *Contour.Changed* notification.
+        This will post *Contour.PointsChanged* and *Contour.Changed* notifications.
         """
         assert point not in self._points
         if point.identifier is not None:
@@ -202,15 +206,18 @@ class Contour(BaseObject):
         self._points.insert(index, point)
         self._destroyBoundsCache()
         self._clockwiseCache = None
+        self.postNotification("Contour.PointsChanged")
         self.dirty = True
 
     def reverse(self):
         """
         Reverse the direction of the contour.
 
-        This posts a *Contour.Changed* notification.
+        This will post *Contour.WindingDirectionChanged*,
+        *Contour.PointsChanged* and *Contour.Changed* notifications.
         """
         from robofab.pens.reverseContourPointPen import ReverseContourPointPen
+        oldDirection = self.clockwise
         # put the current points in another contour
         otherContour = self.__class__(self._pointClass)
         # draw the points in this contour through
@@ -223,13 +230,15 @@ class Contour(BaseObject):
         self._clear(postNotification=False)
         self._points = list(otherContour._points)
         # post a notification
+        self.postNotification("Contour.WindingDirectionChanged", data=dict(oldValue=oldDirection, newValue=self.clockwise))
+        self.postNotification("Contour.PointsChanged")
         self.dirty = True
 
     def move(self, (x, y)):
         """
         Move all points in the contour by **(x, y)**.
 
-        This posts a *Contour.Changed* notification.
+        This will post *Contour.PointsChanged* and *Contour.Changed* notifications.
         """
         for point in self._points:
             point.move((x, y))
@@ -248,6 +257,7 @@ class Contour(BaseObject):
             xMax += x
             yMax += y
             self._controlPointBoundsCache = (xMin, yMin, xMax, yMax)
+        self.postNotification("Contour.PointsChanged")
         self.dirty = True
 
     def pointInside(self, (x, y), evenOdd=False):
@@ -271,7 +281,7 @@ class Contour(BaseObject):
         Set the point at **index** as the first point in the contour.
         This point must be an on-curve point.
 
-        This posts a *Contour.Changed* notification.
+        This will post *Contour.PointsChanged* and *Contour.Changed* notifications.
         """
         onCurvePoints = self.onCurvePoints
         if len(onCurvePoints) < 2:
@@ -282,6 +292,7 @@ class Contour(BaseObject):
         assert point.segmentType is not None, "index must represent an on curve point"
         before = self._points[:index]
         self._points = self._points[index:] + before
+        self.postNotification("Contour.PointsChanged")
         self.dirty = True
 
     def positionForProspectivePointInsertionAtSegmentAndT(self, segmentIndex, t):
@@ -509,7 +520,7 @@ class Contour(BaseObject):
         if value is not None:
             identifiers.add(value)
         # post notifications
-        self.postNotification("Contour.IdentifierChanged", data=dict(oldIdentifier=oldIdentifier, newIdentifier=value))
+        self.postNotification("Contour.IdentifierChanged", data=dict(oldValue=oldIdentifier, newValue=value))
         self.dirty = True
 
     identifier = property(_get_identifier, _set_identifier, doc="The identifier. Setting this will post *Contour.IdentifierChanged* and *Contour.Changed* notifications.")
@@ -525,7 +536,7 @@ class Contour(BaseObject):
     def generateIdentifierForPoint(self, point):
         """
         Create a new, unique identifier for and assign it to the contour.
-        This will post a *Contour.Changed* notification.
+        This will post *Contour.IdentifierChanged* and *Contour.Changed* notifications.
         """
         identifier = makeRandomIdentifier(existing=self.identifiers)
         point.identifier = identifier

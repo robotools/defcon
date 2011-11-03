@@ -18,14 +18,14 @@ class Image(BaseDictObject):
 
     **This object posts the following notifications:**
 
-    =====================       ====
-    Name                        Note
-    =====================       ====
-    Image.Changed               Posted when the *dirty* attribute is set.
-    Image.FileNameChanged       Posted when the *fileName* attribute is set.
-    Image.TransformationChanged Posted when the *transformation* attribute is set.
-    Image.ColorChanged          Posted when the *color* attribute is set.
-    =====================       ====
+    ===========================
+    Name
+    ===========================
+    Image.Changed
+    Image.FileNameChanged
+    Image.TransformationChanged
+    Image.ColorChanged
+    ===========================
 
     During initialization an image dictionary, following the format defined
     in the UFO spec, can be passed. If so, the new object will be populated
@@ -57,7 +57,7 @@ class Image(BaseDictObject):
         if fileName == oldFileName:
             return
         self["fileName"] = fileName
-        self.postNotification("Image.FileNameChanged", data=dict(oldFileName=oldFileName, newFileName=fileName))
+        self.postNotification("Image.FileNameChanged", data=dict(oldValue=oldFileName, newValue=fileName))
 
     fileName = property(_get_fileName, _set_fileName, doc="The file name the image. Setting this will posts *Image.Changed* and *Image.FileNameChanged* notifications.")
 
@@ -80,7 +80,7 @@ class Image(BaseDictObject):
         self["xOffset"] = xOffset
         self["yOffset"] = yOffset
         self.releaseHeldNotifications()
-        self.postNotification("Image.TransformationChanged", data=dict(oldTransformation=oldTransformation, newTransformation=transformation))
+        self.postNotification("Image.TransformationChanged", data=dict(oldValue=oldTransformation, newValue=transformation))
 
     transformation = property(_get_transformation, _set_transformation, doc="The transformation matrix for the image. Setting this will posts *Image.Changed* and *Image.TransformationChanged* notifications.")
 
@@ -96,7 +96,7 @@ class Image(BaseDictObject):
         if newColor == oldColor:
             return
         self["color"] = newColor
-        self.postNotification("Image.ColorChanged", data=dict(old=oldColor, newColor=newColor))
+        self.postNotification("Image.ColorChanged", data=dict(oldValue=oldColor, newValue=newColor))
 
     color = property(_get_color, _set_color, doc="The image's :class:`Color` object. When setting, the value can be a UFO color string, a sequence of (r, g, b, a) or a :class:`Color` object. Setting this posts *Image.ColorChanged* and *Image.Changed* notifications.")
 
@@ -107,7 +107,6 @@ def _testAttributes():
     >>> i.dirty
     False
 
-    >>> i = Image()
     >>> i.fileName = "foo"
     >>> i.fileName
     'foo'

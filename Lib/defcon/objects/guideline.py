@@ -10,16 +10,16 @@ class Guideline(BaseDictObject):
 
     **This object posts the following notifications:**
 
-    =====================       ====
-    Name                        Note
-    =====================       ====
-    Guideline.Changed           Posted when the *dirty* attribute is set.
-    Guideline.XChanged          Posted when the *x* attribute is set.
-    Guideline.YChanged          Posted when the *y* attribute is set.
-    Guideline.AngleChanged      Posted when the *angle* attribute is set.
-    Guideline.NameChanged       Posted when the *name* attribute is set.
-    Guideline.IdentifierChanged Posted when the *identifier* attribute is set.
-    =====================       ====
+    ===========================
+    Name
+    ===========================
+    Guideline.Changed
+    Guideline.XChanged
+    Guideline.YChanged
+    Guideline.AngleChanged
+    Guideline.NameChanged
+    Guideline.IdentifierChanged
+    ===========================
 
     During initialization a guideline dictionary, following the format defined
     in the UFO spec, can be passed. If so, the new object will be populated
@@ -51,7 +51,7 @@ class Guideline(BaseDictObject):
         if value == old:
             return
         self["x"] = value
-        self.postNotification("Guideline.XChanged", data=dict(oldX=old, newX=value))
+        self.postNotification("Guideline.XChanged", data=dict(oldValue=old, newValue=value))
 
     x = property(_get_x, _set_x, doc="The x coordinate. Setting this will post *Guideline.XChanged* and *Guideline.Changed* notifications.")
 
@@ -63,7 +63,7 @@ class Guideline(BaseDictObject):
         if value == old:
             return
         self["y"] = value
-        self.postNotification("Guideline.YChanged", data=dict(oldY=old, newY=value))
+        self.postNotification("Guideline.YChanged", data=dict(oldValue=old, newValue=value))
 
     y = property(_get_y, _set_y, doc="The y coordinate. Setting this will post *Guideline.YChanged* and *Guideline.Changed* notifications.")
 
@@ -75,7 +75,7 @@ class Guideline(BaseDictObject):
         if value == old:
             return
         self["angle"] = value
-        self.postNotification("Guideline.AngleChanged", data=dict(oldAngle=old, newAngle=value))
+        self.postNotification("Guideline.AngleChanged", data=dict(oldValue=old, newValue=value))
 
     angle = property(_get_angle, _set_angle, doc="The angle. Setting this will post *Guideline.AngleChanged* and *Guideline.Changed* notifications.")
 
@@ -87,7 +87,7 @@ class Guideline(BaseDictObject):
         if value == old:
             return
         self["name"] = value
-        self.postNotification("Guideline.NameChanged", data=dict(oldName=old, newName=value))
+        self.postNotification("Guideline.NameChanged", data=dict(oldValue=old, newValue=value))
 
     name = property(_get_name, _set_name, doc="The name. Setting this will post *Guideline.NameChanged* and *Guideline.Changed* notifications.")
 
@@ -103,7 +103,7 @@ class Guideline(BaseDictObject):
         if newColor == oldColor:
             return
         self["color"] = newColor
-        self.postNotification("Guideline.ColorChanged", data=dict(old=oldColor, newColor=newColor))
+        self.postNotification("Guideline.ColorChanged", data=dict(oldValue=oldColor, newValue=newColor))
 
     color = property(_get_color, _set_color, doc="The guideline's :class:`Color` object. When setting, the value can be a UFO color string, a sequence of (r, g, b, a) or a :class:`Color` object. Setting this posts *Guideline.ColorChanged* and *Guideline.Changed* notifications.")
 
@@ -140,7 +140,7 @@ class Guideline(BaseDictObject):
         if value is not None:
             identifiers.add(value)
         # post notifications
-        self.postNotification("Guideline.IdentifierChanged", data=dict(oldIdentifier=oldIdentifier, newIdentifier=value))
+        self.postNotification("Guideline.IdentifierChanged", data=dict(oldValue=oldIdentifier, newValue=value))
 
     identifier = property(_get_identifier, _set_identifier, doc="The identifier. Setting this will post *Guideline.IdentifierChanged* and *Guideline.Changed* notifications.")
 

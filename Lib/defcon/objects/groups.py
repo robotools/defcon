@@ -8,11 +8,15 @@ class Groups(BaseDictObject):
 
     **This object posts the following notifications:**
 
-    ==============  ====
-    Name            Note
-    ==============  ====
-    Groups.Changed  Posted when the *dirty* attribute is set.
-    ==============  ====
+    ===================
+    Name
+    ===================
+    Groups.Changed
+    Groups.GroupSet
+    Groups.GroupDeleted
+    Groups.Cleared
+    Groups.Updated
+    ===================
 
     This object behaves like a dict. The keys are group names and the
     values are lists of glyph names::
@@ -57,6 +61,10 @@ class Groups(BaseDictObject):
     """
 
     changeNotificationName = "Groups.Changed"
+    setItemNotificationName = "Groups.GroupSet"
+    deleteItemNotificationName = "Groups.GroupDeleted"
+    clearNotificationName = "Groups.Cleared"
+    updateNotificationName = "Groups.Updated"
 
 
 if __name__ == "__main__":

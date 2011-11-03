@@ -12,11 +12,11 @@ class DataSet(BaseObject):
 
     **This object posts the following notifications:**
 
-    ===========      ====
-    Name             Note
-    ===========      ====
-    DataSet.Changed  Posted when the *dirty* attribute is set.
-    ===========      ====
+    ===============
+    Name
+    ===============
+    DataSet.Changed
+    ===============
 
     """
 

@@ -8,11 +8,15 @@ class Lib(BaseDictObject):
 
     **This object posts the following notifications:**
 
-    ===========  ====
-    Name         Note
-    ===========  ====
-    Lib.Changed  Posted when the *dirty* attribute is set.
-    ===========  ====
+    ===============
+    Name
+    ===============
+    Lib.Changed
+    Lib.ItemSet
+    Lib.ItemDeleted
+    Lib.Cleared
+    Lib.Updated
+    ===============
 
     This object behaves like a dict. For example, to get a particular
     item from the lib::
@@ -36,6 +40,10 @@ class Lib(BaseDictObject):
     """
 
     changeNotificationName = "Lib.Changed"
+    setItemNotificationName = "Lib.ItemSet"
+    deleteItemNotificationName = "Lib.ItemDeleted"
+    clearNotificationName = "Lib.Cleared"
+    updateNotificationName = "Lib.Updated"
 
 
 if __name__ == "__main__":

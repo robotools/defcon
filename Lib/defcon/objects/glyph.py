@@ -26,13 +26,22 @@ class Glyph(BaseObject):
 
     **This object posts the following notifications:**
 
-    =====================  ====
-    Name                   Note
-    =====================  ====
-    Glyph.Changed          Posted when the *dirty* attribute is set.
-    Glyph.NameChanged      Posted after the *reloadGlyphs* method has been called.
-    Glyph.UnicodesChanged  Posted after the *reloadGlyphs* method has been called.
-    =====================  ====
+    =======================
+    Name
+    =======================
+    Glyph.Changed
+    Glyph.NameChanged
+    Glyph.UnicodesChanged
+    Glyph.WidthChanged
+    Glyph.HeightChanged
+    Glyph.NoteChanged
+    Glyph.LibChanged
+    Glyph.ImageChanged
+    Glyph.ContoursChanged
+    Glyph.ComponentsChanged
+    Glyph.AnchorsChanged
+    Glyph.GuidelinesChanged
+    =======================
 
     The Glyph object has list like behavior. This behavior allows you to interact
     with contour data directly. For example, to get a particular contour::
@@ -167,13 +176,12 @@ class Glyph(BaseObject):
         if oldName != value:
             self._name = value
             self.dirty = True
-            data = dict(oldName=oldName, newName=value)
-            self.postNotification(notification="Glyph.NameChanged", data=data)
+            self.postNotification(notification="Glyph.NameChanged", data=dict(oldValue=oldName, newValue=value))
 
     def _get_name(self):
         return self._name
 
-    name = property(_get_name, _set_name, doc="The name of the glyph. Setting this posts a *Glyph.NameChanged* notification.")
+    name = property(_get_name, _set_name, doc="The name of the glyph. Setting this posts *GLyph.NameChanged* and *Glyph.NameChanged* notifications.")
 
     def _get_unicodes(self):
         return list(self._unicodes)
@@ -183,8 +191,7 @@ class Glyph(BaseObject):
         if oldValue != value:
             self._unicodes = value
             self.dirty = True
-            data = dict(oldValues=oldValue, newValues=value)
-            self.postNotification(notification="Glyph.UnicodesChanged", data=data)
+            self.postNotification(notification="Glyph.UnicodesChanged", data=dict(oldValue=oldValue, newValue=value))
 
     unicodes = property(_get_unicodes, _set_unicodes, doc="The list of unicode values assigned to the glyph. Setting this posts *Glyph.UnicodesChanged* and *Glyph.Changed* notifications.")
 
@@ -237,12 +244,14 @@ class Glyph(BaseObject):
         if bounds is None:
             return
         xMin, yMin, xMax, yMax = bounds
+        oldValue = xMin
         diff = value - xMin
-        self.move((diff, 0))
-        self._width += diff
-        self.dirty = True
+        if value != oldValue:
+            self.move((diff, 0))
+            self.width += diff
+            self.dirty = True
 
-    leftMargin = property(_get_leftMargin, _set_leftMargin, doc="The left margin of the glyph. Setting this posts a *Glyph.Changed* notification.")
+    leftMargin = property(_get_leftMargin, _set_leftMargin, doc="The left margin of the glyph. Setting this post *Glyph.WidthChanged* and *Glyph.Changed* notifications among others.")
 
     def _get_rightMargin(self):
         bounds = self.bounds
@@ -256,28 +265,36 @@ class Glyph(BaseObject):
         if bounds is None:
             return
         xMin, yMin, xMax, yMax = bounds
-        self._width = xMax + value
-        self.dirty = True
+        oldValue = self._width - xMax
+        if oldValue != value:
+            self.width = xMax + value
+            self.dirty = True
 
-    rightMargin = property(_get_rightMargin, _set_rightMargin, doc="The right margin of the glyph. Setting this posts a *Glyph.Changed* notification.")
+    rightMargin = property(_get_rightMargin, _set_rightMargin, doc="The right margin of the glyph. Setting this posts *Glyph.WidthChanged* and *Glyph.Changed* notifications among others.")
 
     def _get_width(self):
         return self._width
 
     def _set_width(self, value):
-        self._width = value
-        self.dirty = True
+        oldValue = self._width
+        if oldValue != value:
+            self._width = value
+            self.postNotification(notification="Glyph.WidthChanged", data=dict(oldValue=oldValue, newValue=value))
+            self.dirty = True
 
-    width = property(_get_width, _set_width, doc="The width of the glyph. Setting this posts a *Glyph.Changed* notification.")
+    width = property(_get_width, _set_width, doc="The width of the glyph. Setting this posts *Glyph.WidthChanged* and *Glyph.Changed* notifications.")
 
     def _get_height(self):
         return self._height
 
     def _set_height(self, value):
-        self._height = value
-        self.dirty = True
+        oldValue = self._height
+        if oldValue != value:
+            self._height = value
+            self.postNotification(notification="Glyph.HeightChanged", data=dict(oldValue=oldValue, newValue=value))
+            self.dirty = True
 
-    height = property(_get_height, _set_height, doc="The height of the glyph. Setting this posts a *Glyph.Changed* notification.")
+    height = property(_get_height, _set_height, doc="The height of the glyph. Setting this posts *Glyph.HeightChanged* and *Glyph.Changed* notifications.")
 
     def _get_components(self):
         return list(self._components)
@@ -314,8 +331,11 @@ class Glyph(BaseObject):
     def _set_note(self, value):
         if value is not None:
             assert isinstance(value, basestring)
-        self._note = value
-        self.dirty = True
+        oldValue = self._note
+        if oldValue != value:
+            self._note = value
+            self.postNotification(notification="Glyph.NoteChanged", data=dict(oldValue=oldValue, newValue=value))
+            self.dirty = True
 
     note = property(_get_note, _set_note, doc="An arbitrary note for the glyph. Setting this will post a *Glyph.Changed* notification.")
 
@@ -337,6 +357,7 @@ class Glyph(BaseObject):
             if self._image is not None:
                 self._removeParentDataInImage()
                 self._image = None
+                self.postNotification(notification="Glyph.ImageChanged")
                 self.dirty = True
         else:
             if self._image is None:
@@ -345,9 +366,10 @@ class Glyph(BaseObject):
             if set(self.image.items()) != set(image.items()):
                 for key in self._image.keys():
                     self._image[key] = image.get(key)
+                self.postNotification(notification="Glyph.ImageChanged")
                 self.dirty = True
 
-    image = property(_get_image, _set_image, doc="The glyph's :class:`Image` object. Setting this will post a *Glyph.Changed* notification.")
+    image = property(_get_image, _set_image, doc="The glyph's :class:`Image` object. Setting this posts *Glyph.ImageChanged* and *Glyph.Changed* notifications.")
 
     # -----------
     # Pen Methods
@@ -401,7 +423,7 @@ class Glyph(BaseObject):
     def _setParentDataInContour(self, contour):
         contour.setParent(self)
         if self.dispatcher is not None and not contour.hasObserver(observer=self, notification="Contour.Changed"):
-            contour.addObserver(observer=self, methodName="_outlineContentChanged", notification="Contour.Changed")
+            contour.addObserver(observer=self, methodName="_contourChanged", notification="Contour.Changed")
 
     def _removeParentDataInContour(self, contour):
         if self.dispatcher is not None:
@@ -411,7 +433,7 @@ class Glyph(BaseObject):
     def _setParentDataInComponent(self, component):
         component.setParent(self)
         if self.dispatcher is not None and not component.hasObserver(observer=self, notification="Component.Changed"):
-            component.addObserver(observer=self, methodName="_outlineContentChanged", notification="Component.Changed")
+            component.addObserver(observer=self, methodName="_componentChanged", notification="Component.Changed")
 
     def _removeParentDataInComponent(self, component):
         if self.dispatcher is not None:
@@ -421,7 +443,7 @@ class Glyph(BaseObject):
     def _setParentDataInAnchor(self, anchor):
         anchor.setParent(self)
         if self.dispatcher is not None and not anchor.hasObserver(observer=self, notification="Anchor.Changed"):
-            anchor.addObserver(observer=self, methodName="_outlineContentChanged", notification="Anchor.Changed")
+            anchor.addObserver(observer=self, methodName="_anchorChanged", notification="Anchor.Changed")
 
     def _removeParentDataInAnchor(self, anchor):
         if self.dispatcher is not None:
@@ -576,6 +598,7 @@ class Glyph(BaseObject):
             self._setParentDataInContour(contour)
         self._contours.insert(index, contour)
         self._destroyBoundsCache()
+        self.postNotification(notification="Glyph.ContoursChanged")
         self.dirty = True
 
     def insertComponent(self, index, component):
@@ -598,6 +621,7 @@ class Glyph(BaseObject):
             self._setParentDataInComponent(component)
         self._components.insert(index, component)
         self._destroyBoundsCache()
+        self.postNotification(notification="Glyph.ComponentsChanged")
         self.dirty = True
 
     def insertAnchor(self, index, anchor):
@@ -621,6 +645,7 @@ class Glyph(BaseObject):
         if anchor.getParent() != self:
             self._setParentDataInAnchor(anchor)
         self._anchors.insert(index, anchor)
+        self.postNotification(notification="Glyph.AnchorsChanged")
         self.dirty = True
 
     def insertGuideline(self, index, guideline):
@@ -644,6 +669,7 @@ class Glyph(BaseObject):
         if guideline.getParent() != self:
             self._setParentDataInGuideline(guideline)
         self._guidelines.insert(index, guideline)
+        self.postNotification(notification="Glyph.GuidelinesChanged")
         self.dirty = True
 
     def removeContour(self, contour):
@@ -661,6 +687,7 @@ class Glyph(BaseObject):
         self._contours.remove(contour)
         self._removeParentDataInContour(contour)
         self._destroyBoundsCache()
+        self.postNotification(notification="Glyph.ContoursChanged")
         self.dirty = True
 
     def removeComponent(self, component):
@@ -674,6 +701,7 @@ class Glyph(BaseObject):
         self._components.remove(component)
         self._removeParentDataInComponent(component)
         self._destroyBoundsCache()
+        self.postNotification(notification="Glyph.ComponentsChanged")
         self.dirty = True
 
     def removeAnchor(self, anchor):
@@ -685,6 +713,7 @@ class Glyph(BaseObject):
         # XXX handle identifiers
         self._anchors.remove(anchor)
         self._removeParentDataInAnchor(anchor)
+        self.postNotification(notification="Glyph.AnchorsChanged")
         self.dirty = True
 
     def removeGuideline(self, guideline):
@@ -697,6 +726,7 @@ class Glyph(BaseObject):
             self._identifiers.remove(guideline.identifier)
         self._guidelines.remove(guideline)
         self._removeParentDataInGuideline(guideline)
+        self.postNotification(notification="Glyph.GuidelinesChanged")
         self.dirty = True
 
     def contourIndex(self, contour):
@@ -891,16 +921,30 @@ class Glyph(BaseObject):
     # ----------------------
 
     def _imageChanged(self, notification):
+        self.postNotification(notification="Glyph.ImageChanged")
         self.dirty = True
 
-    def _outlineContentChanged(self, notification):
+    def _contourChanged(self, notification):
         self._destroyBoundsCache()
+        self.postNotification(notification="Glyph.ContoursChanged")
+        self.dirty = True
+
+    def _componentChanged(self, notification):
+        self._destroyBoundsCache()
+        self.postNotification(notification="Glyph.ComponentsChanged")
+        self.dirty = True
+
+    def _anchorChanged(self, notification):
+        self._destroyBoundsCache()
+        self.postNotification(notification="Glyph.AnchorsChanged")
         self.dirty = True
 
     def _guidelineChanged(self, notification):
+        self.postNotification(notification="Glyph.GuidelinesChanged")
         self.dirty = True
 
     def _libContentChanged(self, notification):
+        self.postNotification(notification="Glyph.LibChanged")
         self.dirty = True
 
 

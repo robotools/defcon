@@ -14,11 +14,13 @@ class Info(BaseObject):
 
     **This object posts the following notifications:**
 
-    ============  ====
-    Name          Note
-    ============  ====
-    Info.Changed  Posted when the *dirty* attribute is set.
-    ============  ====
+    ======================
+    Name
+    ======================
+    Info.Changed
+    Info.ValueChanged
+    Info.GuidelinesChanged
+    ======================
 
     **Note:** The documentation strings here were automatically generated
     from the `UFO specification <http://unifiedfontobject.org/filestructure/fontinfo.html>`_.
@@ -149,6 +151,9 @@ class Info(BaseObject):
         return self._ascender
 
     def _set_ascender(self, value):
+        oldValue = self._ascender
+        if oldValue == value:
+            return
         if value is None:
             self._ascender = None
         else:
@@ -157,6 +162,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute ascender." % repr(value))
             else:
                 self._ascender = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="ascender", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     ascender = property(_get_ascender, _set_ascender, doc="Ascender value. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -165,6 +171,9 @@ class Info(BaseObject):
         return self._capHeight
 
     def _set_capHeight(self, value):
+        oldValue = self._capHeight
+        if oldValue == value:
+            return
         if value is None:
             self._capHeight = None
         else:
@@ -173,6 +182,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute capHeight." % repr(value))
             else:
                 self._capHeight = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="capHeight", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     capHeight = property(_get_capHeight, _set_capHeight, doc="Cap height value. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -181,6 +191,9 @@ class Info(BaseObject):
         return self._copyright
 
     def _set_copyright(self, value):
+        oldValue = self._copyright
+        if oldValue == value:
+            return
         if value is None:
             self._copyright = None
         else:
@@ -189,6 +202,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute copyright." % repr(value))
             else:
                 self._copyright = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="copyright", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     copyright = property(_get_copyright, _set_copyright, doc="Copyright statement. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -197,6 +211,9 @@ class Info(BaseObject):
         return self._descender
 
     def _set_descender(self, value):
+        oldValue = self._descender
+        if oldValue == value:
+            return
         if value is None:
             self._descender = None
         else:
@@ -205,6 +222,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute descender." % repr(value))
             else:
                 self._descender = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="descender", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     descender = property(_get_descender, _set_descender, doc="Descender value. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -213,6 +231,9 @@ class Info(BaseObject):
         return self._familyName
 
     def _set_familyName(self, value):
+        oldValue = self._familyName
+        if oldValue == value:
+            return
         if value is None:
             self._familyName = None
         else:
@@ -221,6 +242,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute familyName." % repr(value))
             else:
                 self._familyName = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="familyName", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     familyName = property(_get_familyName, _set_familyName, doc="Family name. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -229,6 +251,9 @@ class Info(BaseObject):
         return self._italicAngle
 
     def _set_italicAngle(self, value):
+        oldValue = self._italicAngle
+        if oldValue == value:
+            return
         if value is None:
             self._italicAngle = None
         else:
@@ -237,6 +262,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute italicAngle." % repr(value))
             else:
                 self._italicAngle = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="italicAngle", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     italicAngle = property(_get_italicAngle, _set_italicAngle, doc="Italic angle. This must be an angle in counter-clockwise degrees from the vertical. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -245,6 +271,9 @@ class Info(BaseObject):
         return self._macintoshFONDFamilyID
 
     def _set_macintoshFONDFamilyID(self, value):
+        oldValue = self._macintoshFONDFamilyID
+        if oldValue == value:
+            return
         if value is None:
             self._macintoshFONDFamilyID = None
         else:
@@ -253,6 +282,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute macintoshFONDFamilyID." % repr(value))
             else:
                 self._macintoshFONDFamilyID = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="macintoshFONDFamilyID", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     macintoshFONDFamilyID = property(_get_macintoshFONDFamilyID, _set_macintoshFONDFamilyID, doc="Family ID number. Corresponds to the ffFamID in the FOND resource. This should be a integer. Setting this will post an *Info.Changed* notification.")
@@ -261,6 +291,9 @@ class Info(BaseObject):
         return self._macintoshFONDName
 
     def _set_macintoshFONDName(self, value):
+        oldValue = self._macintoshFONDName
+        if oldValue == value:
+            return
         if value is None:
             self._macintoshFONDName = None
         else:
@@ -269,6 +302,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute macintoshFONDName." % repr(value))
             else:
                 self._macintoshFONDName = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="macintoshFONDName", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     macintoshFONDName = property(_get_macintoshFONDName, _set_macintoshFONDName, doc="Font name for the FOND resource. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -277,6 +311,9 @@ class Info(BaseObject):
         return self._note
 
     def _set_note(self, value):
+        oldValue = self._note
+        if oldValue == value:
+            return
         if value is None:
             self._note = None
         else:
@@ -285,6 +322,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute note." % repr(value))
             else:
                 self._note = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="note", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     note = property(_get_note, _set_note, doc="Arbitrary note about the font. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -293,6 +331,9 @@ class Info(BaseObject):
         return self._openTypeGaspRangeRecords
 
     def _set_openTypeGaspRangeRecords(self, value):
+        oldValue = self._openTypeGaspRangeRecords
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeGaspRangeRecords = None
         else:
@@ -301,6 +342,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeGaspRangeRecords." % repr(value))
             else:
                 self._openTypeGaspRangeRecords = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeGaspRangeRecords", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeGaspRangeRecords = property(_get_openTypeGaspRangeRecords, _set_openTypeGaspRangeRecords, doc="A list of gasp Range Records. These must be sorted in ascending order based on the <code>rangeMaxPPEM</code> value of the record. This should be a list. Setting this will post an *Info.Changed* notification.")
@@ -309,6 +351,9 @@ class Info(BaseObject):
         return self._openTypeHeadCreated
 
     def _set_openTypeHeadCreated(self, value):
+        oldValue = self._openTypeHeadCreated
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeHeadCreated = None
         else:
@@ -317,6 +362,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeHeadCreated." % repr(value))
             else:
                 self._openTypeHeadCreated = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeHeadCreated", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeHeadCreated = property(_get_openTypeHeadCreated, _set_openTypeHeadCreated, doc="Creation date. Expressed as a string of the format \"YYYY/MM/DD HH:MM:SS\". \"YYYY/MM/DD\" is year/month/day. The month must be in the range 1-12 and the day must be in the range 1-end of month. \"HH:MM:SS\" is hour:minute:second. The hour must be in the range 0:23. The minute and second must each be in the range 0-59. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -325,6 +371,9 @@ class Info(BaseObject):
         return self._openTypeHeadFlags
 
     def _set_openTypeHeadFlags(self, value):
+        oldValue = self._openTypeHeadFlags
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeHeadFlags = None
         else:
@@ -333,6 +382,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeHeadFlags." % repr(value))
             else:
                 self._openTypeHeadFlags = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeHeadFlags", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeHeadFlags = property(_get_openTypeHeadFlags, _set_openTypeHeadFlags, doc="A list of bit numbers indicating the flags. The bit numbers are listed in the OpenType head specification. Corresponds to the OpenType head table <code>flags</code> field. This should be a number list. Setting this will post an *Info.Changed* notification.")
@@ -341,6 +391,9 @@ class Info(BaseObject):
         return self._openTypeHeadLowestRecPPEM
 
     def _set_openTypeHeadLowestRecPPEM(self, value):
+        oldValue = self._openTypeHeadLowestRecPPEM
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeHeadLowestRecPPEM = None
         else:
@@ -349,6 +402,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeHeadLowestRecPPEM." % repr(value))
             else:
                 self._openTypeHeadLowestRecPPEM = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeHeadLowestRecPPEM", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeHeadLowestRecPPEM = property(_get_openTypeHeadLowestRecPPEM, _set_openTypeHeadLowestRecPPEM, doc="Smallest readable size in pixels. Corresponds to the OpenType head table <code>lowestRecPPEM</code> field. This should be a non-negative integer or float. Setting this will post an *Info.Changed* notification.")
@@ -357,6 +411,9 @@ class Info(BaseObject):
         return self._openTypeHheaAscender
 
     def _set_openTypeHheaAscender(self, value):
+        oldValue = self._openTypeHheaAscender
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeHheaAscender = None
         else:
@@ -365,6 +422,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeHheaAscender." % repr(value))
             else:
                 self._openTypeHheaAscender = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeHheaAscender", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeHheaAscender = property(_get_openTypeHheaAscender, _set_openTypeHheaAscender, doc="Ascender value. Corresponds to the OpenType hhea table <code>Ascender</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -373,6 +431,9 @@ class Info(BaseObject):
         return self._openTypeHheaCaretOffset
 
     def _set_openTypeHheaCaretOffset(self, value):
+        oldValue = self._openTypeHheaCaretOffset
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeHheaCaretOffset = None
         else:
@@ -381,6 +442,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeHheaCaretOffset." % repr(value))
             else:
                 self._openTypeHheaCaretOffset = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeHheaCaretOffset", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeHheaCaretOffset = property(_get_openTypeHheaCaretOffset, _set_openTypeHheaCaretOffset, doc="Caret offset value. Corresponds to the OpenType hhea table <code>caretOffset</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -389,6 +451,9 @@ class Info(BaseObject):
         return self._openTypeHheaCaretSlopeRise
 
     def _set_openTypeHheaCaretSlopeRise(self, value):
+        oldValue = self._openTypeHheaCaretSlopeRise
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeHheaCaretSlopeRise = None
         else:
@@ -397,6 +462,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeHheaCaretSlopeRise." % repr(value))
             else:
                 self._openTypeHheaCaretSlopeRise = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeHheaCaretSlopeRise", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeHheaCaretSlopeRise = property(_get_openTypeHheaCaretSlopeRise, _set_openTypeHheaCaretSlopeRise, doc="Caret slope rise value. Corresponds to the OpenType hhea table <code>caretSlopeRise</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
@@ -405,6 +471,9 @@ class Info(BaseObject):
         return self._openTypeHheaCaretSlopeRun
 
     def _set_openTypeHheaCaretSlopeRun(self, value):
+        oldValue = self._openTypeHheaCaretSlopeRun
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeHheaCaretSlopeRun = None
         else:
@@ -413,6 +482,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeHheaCaretSlopeRun." % repr(value))
             else:
                 self._openTypeHheaCaretSlopeRun = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeHheaCaretSlopeRun", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeHheaCaretSlopeRun = property(_get_openTypeHheaCaretSlopeRun, _set_openTypeHheaCaretSlopeRun, doc="Caret slope run value. Corresponds to the OpenType hhea table <code>caretSlopeRun</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
@@ -421,6 +491,9 @@ class Info(BaseObject):
         return self._openTypeHheaDescender
 
     def _set_openTypeHheaDescender(self, value):
+        oldValue = self._openTypeHheaDescender
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeHheaDescender = None
         else:
@@ -429,6 +502,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeHheaDescender." % repr(value))
             else:
                 self._openTypeHheaDescender = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeHheaDescender", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeHheaDescender = property(_get_openTypeHheaDescender, _set_openTypeHheaDescender, doc="Descender value. Corresponds to the OpenType hhea table <code>Descender</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -437,6 +511,9 @@ class Info(BaseObject):
         return self._openTypeHheaLineGap
 
     def _set_openTypeHheaLineGap(self, value):
+        oldValue = self._openTypeHheaLineGap
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeHheaLineGap = None
         else:
@@ -445,6 +522,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeHheaLineGap." % repr(value))
             else:
                 self._openTypeHheaLineGap = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeHheaLineGap", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeHheaLineGap = property(_get_openTypeHheaLineGap, _set_openTypeHheaLineGap, doc="Line gap value. Corresponds to the OpenType hhea table <code>LineGap</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -453,6 +531,9 @@ class Info(BaseObject):
         return self._openTypeNameCompatibleFullName
 
     def _set_openTypeNameCompatibleFullName(self, value):
+        oldValue = self._openTypeNameCompatibleFullName
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeNameCompatibleFullName = None
         else:
@@ -461,6 +542,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeNameCompatibleFullName." % repr(value))
             else:
                 self._openTypeNameCompatibleFullName = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeNameCompatibleFullName", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeNameCompatibleFullName = property(_get_openTypeNameCompatibleFullName, _set_openTypeNameCompatibleFullName, doc="Compatible full name. Corresponds to the OpenType name table name ID 18. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -469,6 +551,9 @@ class Info(BaseObject):
         return self._openTypeNameDescription
 
     def _set_openTypeNameDescription(self, value):
+        oldValue = self._openTypeNameDescription
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeNameDescription = None
         else:
@@ -477,6 +562,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeNameDescription." % repr(value))
             else:
                 self._openTypeNameDescription = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeNameDescription", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeNameDescription = property(_get_openTypeNameDescription, _set_openTypeNameDescription, doc="Description of the font. Corresponds to the OpenType name table name ID 10. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -485,6 +571,9 @@ class Info(BaseObject):
         return self._openTypeNameDesigner
 
     def _set_openTypeNameDesigner(self, value):
+        oldValue = self._openTypeNameDesigner
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeNameDesigner = None
         else:
@@ -493,6 +582,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeNameDesigner." % repr(value))
             else:
                 self._openTypeNameDesigner = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeNameDesigner", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeNameDesigner = property(_get_openTypeNameDesigner, _set_openTypeNameDesigner, doc="Designer name. Corresponds to the OpenType name table name ID 9. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -501,6 +591,9 @@ class Info(BaseObject):
         return self._openTypeNameDesignerURL
 
     def _set_openTypeNameDesignerURL(self, value):
+        oldValue = self._openTypeNameDesignerURL
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeNameDesignerURL = None
         else:
@@ -509,6 +602,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeNameDesignerURL." % repr(value))
             else:
                 self._openTypeNameDesignerURL = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeNameDesignerURL", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeNameDesignerURL = property(_get_openTypeNameDesignerURL, _set_openTypeNameDesignerURL, doc="URL for the designer. Corresponds to the OpenType name table name ID 12. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -517,6 +611,9 @@ class Info(BaseObject):
         return self._openTypeNameLicense
 
     def _set_openTypeNameLicense(self, value):
+        oldValue = self._openTypeNameLicense
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeNameLicense = None
         else:
@@ -525,6 +622,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeNameLicense." % repr(value))
             else:
                 self._openTypeNameLicense = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeNameLicense", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeNameLicense = property(_get_openTypeNameLicense, _set_openTypeNameLicense, doc="License text. Corresponds to the OpenType name table name ID 13. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -533,6 +631,9 @@ class Info(BaseObject):
         return self._openTypeNameLicenseURL
 
     def _set_openTypeNameLicenseURL(self, value):
+        oldValue = self._openTypeNameLicenseURL
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeNameLicenseURL = None
         else:
@@ -541,6 +642,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeNameLicenseURL." % repr(value))
             else:
                 self._openTypeNameLicenseURL = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeNameLicenseURL", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeNameLicenseURL = property(_get_openTypeNameLicenseURL, _set_openTypeNameLicenseURL, doc="URL for the license. Corresponds to the OpenType name table name ID 14. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -549,6 +651,9 @@ class Info(BaseObject):
         return self._openTypeNameManufacturer
 
     def _set_openTypeNameManufacturer(self, value):
+        oldValue = self._openTypeNameManufacturer
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeNameManufacturer = None
         else:
@@ -557,6 +662,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeNameManufacturer." % repr(value))
             else:
                 self._openTypeNameManufacturer = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeNameManufacturer", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeNameManufacturer = property(_get_openTypeNameManufacturer, _set_openTypeNameManufacturer, doc="Manufacturer name. Corresponds to the OpenType name table name ID 8. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -565,6 +671,9 @@ class Info(BaseObject):
         return self._openTypeNameManufacturerURL
 
     def _set_openTypeNameManufacturerURL(self, value):
+        oldValue = self._openTypeNameManufacturerURL
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeNameManufacturerURL = None
         else:
@@ -573,6 +682,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeNameManufacturerURL." % repr(value))
             else:
                 self._openTypeNameManufacturerURL = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeNameManufacturerURL", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeNameManufacturerURL = property(_get_openTypeNameManufacturerURL, _set_openTypeNameManufacturerURL, doc="Manufacturer URL. Corresponds to the OpenType name table name ID 11. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -581,6 +691,9 @@ class Info(BaseObject):
         return self._openTypeNamePreferredFamilyName
 
     def _set_openTypeNamePreferredFamilyName(self, value):
+        oldValue = self._openTypeNamePreferredFamilyName
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeNamePreferredFamilyName = None
         else:
@@ -589,6 +702,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeNamePreferredFamilyName." % repr(value))
             else:
                 self._openTypeNamePreferredFamilyName = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeNamePreferredFamilyName", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeNamePreferredFamilyName = property(_get_openTypeNamePreferredFamilyName, _set_openTypeNamePreferredFamilyName, doc="Preferred family name. Corresponds to the OpenType name table name ID 16. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -597,6 +711,9 @@ class Info(BaseObject):
         return self._openTypeNamePreferredSubfamilyName
 
     def _set_openTypeNamePreferredSubfamilyName(self, value):
+        oldValue = self._openTypeNamePreferredSubfamilyName
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeNamePreferredSubfamilyName = None
         else:
@@ -605,6 +722,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeNamePreferredSubfamilyName." % repr(value))
             else:
                 self._openTypeNamePreferredSubfamilyName = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeNamePreferredSubfamilyName", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeNamePreferredSubfamilyName = property(_get_openTypeNamePreferredSubfamilyName, _set_openTypeNamePreferredSubfamilyName, doc="Preferred subfamily name. Corresponds to the OpenType name table name ID 17. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -613,6 +731,9 @@ class Info(BaseObject):
         return self._openTypeNameRecords
 
     def _set_openTypeNameRecords(self, value):
+        oldValue = self._openTypeNameRecords
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeNameRecords = None
         else:
@@ -621,6 +742,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeNameRecords." % repr(value))
             else:
                 self._openTypeNameRecords = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeNameRecords", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeNameRecords = property(_get_openTypeNameRecords, _set_openTypeNameRecords, doc="A list of name records. This name record storage area is intended for records that require platform, encoding and or language localization. This should be a list. Setting this will post an *Info.Changed* notification.")
@@ -629,6 +751,9 @@ class Info(BaseObject):
         return self._openTypeNameSampleText
 
     def _set_openTypeNameSampleText(self, value):
+        oldValue = self._openTypeNameSampleText
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeNameSampleText = None
         else:
@@ -637,6 +762,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeNameSampleText." % repr(value))
             else:
                 self._openTypeNameSampleText = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeNameSampleText", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeNameSampleText = property(_get_openTypeNameSampleText, _set_openTypeNameSampleText, doc="Sample text. Corresponds to the OpenType name table name ID 19. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -645,6 +771,9 @@ class Info(BaseObject):
         return self._openTypeNameUniqueID
 
     def _set_openTypeNameUniqueID(self, value):
+        oldValue = self._openTypeNameUniqueID
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeNameUniqueID = None
         else:
@@ -653,6 +782,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeNameUniqueID." % repr(value))
             else:
                 self._openTypeNameUniqueID = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeNameUniqueID", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeNameUniqueID = property(_get_openTypeNameUniqueID, _set_openTypeNameUniqueID, doc="Unique ID string. Corresponds to the OpenType name table name ID 3. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -661,6 +791,9 @@ class Info(BaseObject):
         return self._openTypeNameVersion
 
     def _set_openTypeNameVersion(self, value):
+        oldValue = self._openTypeNameVersion
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeNameVersion = None
         else:
@@ -669,6 +802,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeNameVersion." % repr(value))
             else:
                 self._openTypeNameVersion = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeNameVersion", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeNameVersion = property(_get_openTypeNameVersion, _set_openTypeNameVersion, doc="Version string. Corresponds to the OpenType name table name ID 5. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -677,6 +811,9 @@ class Info(BaseObject):
         return self._openTypeNameWWSFamilyName
 
     def _set_openTypeNameWWSFamilyName(self, value):
+        oldValue = self._openTypeNameWWSFamilyName
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeNameWWSFamilyName = None
         else:
@@ -685,6 +822,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeNameWWSFamilyName." % repr(value))
             else:
                 self._openTypeNameWWSFamilyName = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeNameWWSFamilyName", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeNameWWSFamilyName = property(_get_openTypeNameWWSFamilyName, _set_openTypeNameWWSFamilyName, doc="WWS family name. Corresponds to the OpenType name table name ID 21. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -693,6 +831,9 @@ class Info(BaseObject):
         return self._openTypeNameWWSSubfamilyName
 
     def _set_openTypeNameWWSSubfamilyName(self, value):
+        oldValue = self._openTypeNameWWSSubfamilyName
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeNameWWSSubfamilyName = None
         else:
@@ -701,6 +842,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeNameWWSSubfamilyName." % repr(value))
             else:
                 self._openTypeNameWWSSubfamilyName = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeNameWWSSubfamilyName", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeNameWWSSubfamilyName = property(_get_openTypeNameWWSSubfamilyName, _set_openTypeNameWWSSubfamilyName, doc="WWS Subfamily name. Corresponds to the OpenType name table name ID 22. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -709,6 +851,9 @@ class Info(BaseObject):
         return self._openTypeOS2CodePageRanges
 
     def _set_openTypeOS2CodePageRanges(self, value):
+        oldValue = self._openTypeOS2CodePageRanges
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2CodePageRanges = None
         else:
@@ -717,6 +862,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2CodePageRanges." % repr(value))
             else:
                 self._openTypeOS2CodePageRanges = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2CodePageRanges", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2CodePageRanges = property(_get_openTypeOS2CodePageRanges, _set_openTypeOS2CodePageRanges, doc="A list of bit numbers that are supported code page ranges in the font. The bit numbers are listed in the OpenType OS/2 specification. Corresponds to the OpenType OS/2 table <code>ulCodePageRange1</code> and <code>ulCodePageRange2</code> fields. This should be a number list. Setting this will post an *Info.Changed* notification.")
@@ -725,6 +871,9 @@ class Info(BaseObject):
         return self._openTypeOS2FamilyClass
 
     def _set_openTypeOS2FamilyClass(self, value):
+        oldValue = self._openTypeOS2FamilyClass
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2FamilyClass = None
         else:
@@ -733,6 +882,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2FamilyClass." % repr(value))
             else:
                 self._openTypeOS2FamilyClass = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2FamilyClass", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2FamilyClass = property(_get_openTypeOS2FamilyClass, _set_openTypeOS2FamilyClass, doc="Two integers representing the IBM font class and font subclass of the font. The first number, representing the class ID, must be in the range 0-14. The second number, representing the subclass, must be in the range 0-15. The numbers are listed in the OpenType OS/2 specification. Corresponds to the OpenType OS/2 table <code>sFamilyClass</code> field. This should be a number list. Setting this will post an *Info.Changed* notification.")
@@ -741,6 +891,9 @@ class Info(BaseObject):
         return self._openTypeOS2Panose
 
     def _set_openTypeOS2Panose(self, value):
+        oldValue = self._openTypeOS2Panose
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2Panose = None
         else:
@@ -749,6 +902,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2Panose." % repr(value))
             else:
                 self._openTypeOS2Panose = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2Panose", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2Panose = property(_get_openTypeOS2Panose, _set_openTypeOS2Panose, doc="The list must contain 10 non-negative integers that represent the setting for each category in the Panose specification. The integers correspond with the option numbers in each of the Panose categories. This corresponds to the OpenType OS/2 table <code>Panose</code> field. This should be a number list. Setting this will post an *Info.Changed* notification.")
@@ -757,6 +911,9 @@ class Info(BaseObject):
         return self._openTypeOS2Selection
 
     def _set_openTypeOS2Selection(self, value):
+        oldValue = self._openTypeOS2Selection
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2Selection = None
         else:
@@ -765,6 +922,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2Selection." % repr(value))
             else:
                 self._openTypeOS2Selection = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2Selection", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2Selection = property(_get_openTypeOS2Selection, _set_openTypeOS2Selection, doc="A list of bit numbers indicating the bits that should be set in fsSelection. The bit numbers are listed in the OpenType OS/2 specification. Corresponds to the OpenType OS/2 table <code>selection</code> field. Note: Bits 0 (italic), 5 (bold) and 6 (regular) must not be set here. These bits should be taken from the generic styleMapStyle attribute. This should be a number list. Setting this will post an *Info.Changed* notification.")
@@ -773,6 +931,9 @@ class Info(BaseObject):
         return self._openTypeOS2StrikeoutPosition
 
     def _set_openTypeOS2StrikeoutPosition(self, value):
+        oldValue = self._openTypeOS2StrikeoutPosition
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2StrikeoutPosition = None
         else:
@@ -781,6 +942,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2StrikeoutPosition." % repr(value))
             else:
                 self._openTypeOS2StrikeoutPosition = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2StrikeoutPosition", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2StrikeoutPosition = property(_get_openTypeOS2StrikeoutPosition, _set_openTypeOS2StrikeoutPosition, doc="Strikeout position. Corresponds to the OpenType OS/2 table <code>yStrikeoutPosition</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -789,6 +951,9 @@ class Info(BaseObject):
         return self._openTypeOS2StrikeoutSize
 
     def _set_openTypeOS2StrikeoutSize(self, value):
+        oldValue = self._openTypeOS2StrikeoutSize
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2StrikeoutSize = None
         else:
@@ -797,6 +962,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2StrikeoutSize." % repr(value))
             else:
                 self._openTypeOS2StrikeoutSize = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2StrikeoutSize", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2StrikeoutSize = property(_get_openTypeOS2StrikeoutSize, _set_openTypeOS2StrikeoutSize, doc="Strikeout size. Corresponds to the OpenType OS/2 table <code>yStrikeoutSize</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -805,6 +971,9 @@ class Info(BaseObject):
         return self._openTypeOS2SubscriptXOffset
 
     def _set_openTypeOS2SubscriptXOffset(self, value):
+        oldValue = self._openTypeOS2SubscriptXOffset
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2SubscriptXOffset = None
         else:
@@ -813,6 +982,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2SubscriptXOffset." % repr(value))
             else:
                 self._openTypeOS2SubscriptXOffset = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2SubscriptXOffset", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2SubscriptXOffset = property(_get_openTypeOS2SubscriptXOffset, _set_openTypeOS2SubscriptXOffset, doc="Subscript x offset. Corresponds to the OpenType OS/2 table <code>ySubscriptXOffset</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -821,6 +991,9 @@ class Info(BaseObject):
         return self._openTypeOS2SubscriptXSize
 
     def _set_openTypeOS2SubscriptXSize(self, value):
+        oldValue = self._openTypeOS2SubscriptXSize
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2SubscriptXSize = None
         else:
@@ -829,6 +1002,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2SubscriptXSize." % repr(value))
             else:
                 self._openTypeOS2SubscriptXSize = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2SubscriptXSize", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2SubscriptXSize = property(_get_openTypeOS2SubscriptXSize, _set_openTypeOS2SubscriptXSize, doc="Subscript horizontal font size. Corresponds to the OpenType OS/2 table <code>ySubscriptXSize</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -837,6 +1011,9 @@ class Info(BaseObject):
         return self._openTypeOS2SubscriptYOffset
 
     def _set_openTypeOS2SubscriptYOffset(self, value):
+        oldValue = self._openTypeOS2SubscriptYOffset
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2SubscriptYOffset = None
         else:
@@ -845,6 +1022,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2SubscriptYOffset." % repr(value))
             else:
                 self._openTypeOS2SubscriptYOffset = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2SubscriptYOffset", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2SubscriptYOffset = property(_get_openTypeOS2SubscriptYOffset, _set_openTypeOS2SubscriptYOffset, doc="Subscript y offset. Corresponds to the OpenType OS/2 table <code>ySubscriptYOffset</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -853,6 +1031,9 @@ class Info(BaseObject):
         return self._openTypeOS2SubscriptYSize
 
     def _set_openTypeOS2SubscriptYSize(self, value):
+        oldValue = self._openTypeOS2SubscriptYSize
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2SubscriptYSize = None
         else:
@@ -861,6 +1042,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2SubscriptYSize." % repr(value))
             else:
                 self._openTypeOS2SubscriptYSize = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2SubscriptYSize", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2SubscriptYSize = property(_get_openTypeOS2SubscriptYSize, _set_openTypeOS2SubscriptYSize, doc="Subscript vertical font size. Corresponds to the OpenType OS/2 table <code>ySubscriptYSize</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -869,6 +1051,9 @@ class Info(BaseObject):
         return self._openTypeOS2SuperscriptXOffset
 
     def _set_openTypeOS2SuperscriptXOffset(self, value):
+        oldValue = self._openTypeOS2SuperscriptXOffset
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2SuperscriptXOffset = None
         else:
@@ -877,6 +1062,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2SuperscriptXOffset." % repr(value))
             else:
                 self._openTypeOS2SuperscriptXOffset = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2SuperscriptXOffset", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2SuperscriptXOffset = property(_get_openTypeOS2SuperscriptXOffset, _set_openTypeOS2SuperscriptXOffset, doc="Superscript x offset. Corresponds to the OpenType OS/2 table <code>ySuperscriptXOffset</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -885,6 +1071,9 @@ class Info(BaseObject):
         return self._openTypeOS2SuperscriptXSize
 
     def _set_openTypeOS2SuperscriptXSize(self, value):
+        oldValue = self._openTypeOS2SuperscriptXSize
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2SuperscriptXSize = None
         else:
@@ -893,6 +1082,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2SuperscriptXSize." % repr(value))
             else:
                 self._openTypeOS2SuperscriptXSize = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2SuperscriptXSize", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2SuperscriptXSize = property(_get_openTypeOS2SuperscriptXSize, _set_openTypeOS2SuperscriptXSize, doc="Superscript horizontal font size. Corresponds to the OpenType OS/2 table <code>ySuperscriptXSize</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -901,6 +1091,9 @@ class Info(BaseObject):
         return self._openTypeOS2SuperscriptYOffset
 
     def _set_openTypeOS2SuperscriptYOffset(self, value):
+        oldValue = self._openTypeOS2SuperscriptYOffset
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2SuperscriptYOffset = None
         else:
@@ -909,6 +1102,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2SuperscriptYOffset." % repr(value))
             else:
                 self._openTypeOS2SuperscriptYOffset = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2SuperscriptYOffset", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2SuperscriptYOffset = property(_get_openTypeOS2SuperscriptYOffset, _set_openTypeOS2SuperscriptYOffset, doc="Superscript y offset. Corresponds to the OpenType OS/2 table <code>ySuperscriptYOffset</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -917,6 +1111,9 @@ class Info(BaseObject):
         return self._openTypeOS2SuperscriptYSize
 
     def _set_openTypeOS2SuperscriptYSize(self, value):
+        oldValue = self._openTypeOS2SuperscriptYSize
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2SuperscriptYSize = None
         else:
@@ -925,6 +1122,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2SuperscriptYSize." % repr(value))
             else:
                 self._openTypeOS2SuperscriptYSize = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2SuperscriptYSize", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2SuperscriptYSize = property(_get_openTypeOS2SuperscriptYSize, _set_openTypeOS2SuperscriptYSize, doc="Superscript vertical font size. Corresponds to the OpenType OS/2 table <code>ySuperscriptYSize</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -933,6 +1131,9 @@ class Info(BaseObject):
         return self._openTypeOS2Type
 
     def _set_openTypeOS2Type(self, value):
+        oldValue = self._openTypeOS2Type
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2Type = None
         else:
@@ -941,6 +1142,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2Type." % repr(value))
             else:
                 self._openTypeOS2Type = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2Type", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2Type = property(_get_openTypeOS2Type, _set_openTypeOS2Type, doc="A list of bit numbers indicating the embedding type. The bit numbers are listed in the OpenType OS/2 specification. Corresponds to the OpenType OS/2 table <code>fsType</code> field. This should be a number list. Setting this will post an *Info.Changed* notification.")
@@ -949,6 +1151,9 @@ class Info(BaseObject):
         return self._openTypeOS2TypoAscender
 
     def _set_openTypeOS2TypoAscender(self, value):
+        oldValue = self._openTypeOS2TypoAscender
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2TypoAscender = None
         else:
@@ -957,6 +1162,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2TypoAscender." % repr(value))
             else:
                 self._openTypeOS2TypoAscender = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2TypoAscender", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2TypoAscender = property(_get_openTypeOS2TypoAscender, _set_openTypeOS2TypoAscender, doc="Ascender value. Corresponds to the OpenType OS/2 table <code>sTypoAscender</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -965,6 +1171,9 @@ class Info(BaseObject):
         return self._openTypeOS2TypoDescender
 
     def _set_openTypeOS2TypoDescender(self, value):
+        oldValue = self._openTypeOS2TypoDescender
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2TypoDescender = None
         else:
@@ -973,6 +1182,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2TypoDescender." % repr(value))
             else:
                 self._openTypeOS2TypoDescender = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2TypoDescender", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2TypoDescender = property(_get_openTypeOS2TypoDescender, _set_openTypeOS2TypoDescender, doc="Descender value. Corresponds to the OpenType OS/2 table <code>sTypoDescender</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -981,6 +1191,9 @@ class Info(BaseObject):
         return self._openTypeOS2TypoLineGap
 
     def _set_openTypeOS2TypoLineGap(self, value):
+        oldValue = self._openTypeOS2TypoLineGap
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2TypoLineGap = None
         else:
@@ -989,6 +1202,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2TypoLineGap." % repr(value))
             else:
                 self._openTypeOS2TypoLineGap = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2TypoLineGap", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2TypoLineGap = property(_get_openTypeOS2TypoLineGap, _set_openTypeOS2TypoLineGap, doc="Line gap value. Corresponds to the OpenType OS/2 table <code>sTypoLineGap</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -997,6 +1211,9 @@ class Info(BaseObject):
         return self._openTypeOS2UnicodeRanges
 
     def _set_openTypeOS2UnicodeRanges(self, value):
+        oldValue = self._openTypeOS2UnicodeRanges
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2UnicodeRanges = None
         else:
@@ -1005,6 +1222,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2UnicodeRanges." % repr(value))
             else:
                 self._openTypeOS2UnicodeRanges = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2UnicodeRanges", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2UnicodeRanges = property(_get_openTypeOS2UnicodeRanges, _set_openTypeOS2UnicodeRanges, doc="A list of bit numbers that are supported Unicode ranges in the font. The bit numbers are listed in the OpenType OS/2 specification. Corresponds to the OpenType OS/2 table <code>ulUnicodeRange1</code>, <code>ulUnicodeRange2</code>, <code>ulUnicodeRange3</code> and <code>ulUnicodeRange4</code> fields. This should be a number list. Setting this will post an *Info.Changed* notification.")
@@ -1013,6 +1231,9 @@ class Info(BaseObject):
         return self._openTypeOS2VendorID
 
     def _set_openTypeOS2VendorID(self, value):
+        oldValue = self._openTypeOS2VendorID
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2VendorID = None
         else:
@@ -1021,6 +1242,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2VendorID." % repr(value))
             else:
                 self._openTypeOS2VendorID = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2VendorID", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2VendorID = property(_get_openTypeOS2VendorID, _set_openTypeOS2VendorID, doc="Four character identifier for the creator of the font. Corresponds to the OpenType OS/2 table <code>achVendID</code> field. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -1029,6 +1251,9 @@ class Info(BaseObject):
         return self._openTypeOS2WeightClass
 
     def _set_openTypeOS2WeightClass(self, value):
+        oldValue = self._openTypeOS2WeightClass
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2WeightClass = None
         else:
@@ -1037,6 +1262,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2WeightClass." % repr(value))
             else:
                 self._openTypeOS2WeightClass = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2WeightClass", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2WeightClass = property(_get_openTypeOS2WeightClass, _set_openTypeOS2WeightClass, doc="Weight class value. Must be a non-negative integer. Corresponds to the OpenType OS/2 table <code>usWeightClass</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
@@ -1045,6 +1271,9 @@ class Info(BaseObject):
         return self._openTypeOS2WidthClass
 
     def _set_openTypeOS2WidthClass(self, value):
+        oldValue = self._openTypeOS2WidthClass
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2WidthClass = None
         else:
@@ -1053,6 +1282,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2WidthClass." % repr(value))
             else:
                 self._openTypeOS2WidthClass = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2WidthClass", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2WidthClass = property(_get_openTypeOS2WidthClass, _set_openTypeOS2WidthClass, doc="Width class value. Must be in the range 1-9. Corresponds to the OpenType OS/2 table <code>usWidthClass</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
@@ -1061,6 +1291,9 @@ class Info(BaseObject):
         return self._openTypeOS2WinAscent
 
     def _set_openTypeOS2WinAscent(self, value):
+        oldValue = self._openTypeOS2WinAscent
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2WinAscent = None
         else:
@@ -1069,6 +1302,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2WinAscent." % repr(value))
             else:
                 self._openTypeOS2WinAscent = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2WinAscent", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2WinAscent = property(_get_openTypeOS2WinAscent, _set_openTypeOS2WinAscent, doc="Ascender value. Corresponds to the OpenType OS/2 table <code>usWinAscent</code> field. This should be a non-negative integer or float. Setting this will post an *Info.Changed* notification.")
@@ -1077,6 +1311,9 @@ class Info(BaseObject):
         return self._openTypeOS2WinDescent
 
     def _set_openTypeOS2WinDescent(self, value):
+        oldValue = self._openTypeOS2WinDescent
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeOS2WinDescent = None
         else:
@@ -1085,6 +1322,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeOS2WinDescent." % repr(value))
             else:
                 self._openTypeOS2WinDescent = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2WinDescent", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeOS2WinDescent = property(_get_openTypeOS2WinDescent, _set_openTypeOS2WinDescent, doc="Descender value. Corresponds to the OpenType OS/2 table <code>usWinDescent</code> field. This should be a non-negative integer or float. Setting this will post an *Info.Changed* notification.")
@@ -1093,6 +1331,9 @@ class Info(BaseObject):
         return self._openTypeVheaCaretOffset
 
     def _set_openTypeVheaCaretOffset(self, value):
+        oldValue = self._openTypeVheaCaretOffset
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeVheaCaretOffset = None
         else:
@@ -1101,6 +1342,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeVheaCaretOffset." % repr(value))
             else:
                 self._openTypeVheaCaretOffset = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeVheaCaretOffset", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeVheaCaretOffset = property(_get_openTypeVheaCaretOffset, _set_openTypeVheaCaretOffset, doc="Caret offset value. Corresponds to the OpenType vhea table <code>caretOffset</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -1109,6 +1351,9 @@ class Info(BaseObject):
         return self._openTypeVheaCaretSlopeRise
 
     def _set_openTypeVheaCaretSlopeRise(self, value):
+        oldValue = self._openTypeVheaCaretSlopeRise
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeVheaCaretSlopeRise = None
         else:
@@ -1117,6 +1362,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeVheaCaretSlopeRise." % repr(value))
             else:
                 self._openTypeVheaCaretSlopeRise = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeVheaCaretSlopeRise", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeVheaCaretSlopeRise = property(_get_openTypeVheaCaretSlopeRise, _set_openTypeVheaCaretSlopeRise, doc="Caret slope rise value. Corresponds to the OpenType vhea table <code>caretSlopeRise</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
@@ -1125,6 +1371,9 @@ class Info(BaseObject):
         return self._openTypeVheaCaretSlopeRun
 
     def _set_openTypeVheaCaretSlopeRun(self, value):
+        oldValue = self._openTypeVheaCaretSlopeRun
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeVheaCaretSlopeRun = None
         else:
@@ -1133,6 +1382,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeVheaCaretSlopeRun." % repr(value))
             else:
                 self._openTypeVheaCaretSlopeRun = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeVheaCaretSlopeRun", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeVheaCaretSlopeRun = property(_get_openTypeVheaCaretSlopeRun, _set_openTypeVheaCaretSlopeRun, doc="Caret slope run value. Corresponds to the OpenType vhea table <code>caretSlopeRun</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
@@ -1141,6 +1391,9 @@ class Info(BaseObject):
         return self._openTypeVheaVertTypoAscender
 
     def _set_openTypeVheaVertTypoAscender(self, value):
+        oldValue = self._openTypeVheaVertTypoAscender
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeVheaVertTypoAscender = None
         else:
@@ -1149,6 +1402,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeVheaVertTypoAscender." % repr(value))
             else:
                 self._openTypeVheaVertTypoAscender = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeVheaVertTypoAscender", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeVheaVertTypoAscender = property(_get_openTypeVheaVertTypoAscender, _set_openTypeVheaVertTypoAscender, doc="Ascender value. Corresponds to the OpenType vhea table <code>vertTypoAscender</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -1157,6 +1411,9 @@ class Info(BaseObject):
         return self._openTypeVheaVertTypoDescender
 
     def _set_openTypeVheaVertTypoDescender(self, value):
+        oldValue = self._openTypeVheaVertTypoDescender
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeVheaVertTypoDescender = None
         else:
@@ -1165,6 +1422,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeVheaVertTypoDescender." % repr(value))
             else:
                 self._openTypeVheaVertTypoDescender = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeVheaVertTypoDescender", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeVheaVertTypoDescender = property(_get_openTypeVheaVertTypoDescender, _set_openTypeVheaVertTypoDescender, doc="Descender value. Corresponds to the OpenType vhea table <code>vertTypoDescender</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -1173,6 +1431,9 @@ class Info(BaseObject):
         return self._openTypeVheaVertTypoLineGap
 
     def _set_openTypeVheaVertTypoLineGap(self, value):
+        oldValue = self._openTypeVheaVertTypoLineGap
+        if oldValue == value:
+            return
         if value is None:
             self._openTypeVheaVertTypoLineGap = None
         else:
@@ -1181,6 +1442,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute openTypeVheaVertTypoLineGap." % repr(value))
             else:
                 self._openTypeVheaVertTypoLineGap = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeVheaVertTypoLineGap", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     openTypeVheaVertTypoLineGap = property(_get_openTypeVheaVertTypoLineGap, _set_openTypeVheaVertTypoLineGap, doc="Line gap value. Corresponds to the OpenType vhea table <code>vertTypoLineGap</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -1189,6 +1451,9 @@ class Info(BaseObject):
         return self._postscriptBlueFuzz
 
     def _set_postscriptBlueFuzz(self, value):
+        oldValue = self._postscriptBlueFuzz
+        if oldValue == value:
+            return
         if value is None:
             self._postscriptBlueFuzz = None
         else:
@@ -1197,6 +1462,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute postscriptBlueFuzz." % repr(value))
             else:
                 self._postscriptBlueFuzz = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptBlueFuzz", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     postscriptBlueFuzz = property(_get_postscriptBlueFuzz, _set_postscriptBlueFuzz, doc="BlueFuzz value. This corresponds to the Type 1/CFF <code>BlueFuzz</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -1205,6 +1471,9 @@ class Info(BaseObject):
         return self._postscriptBlueScale
 
     def _set_postscriptBlueScale(self, value):
+        oldValue = self._postscriptBlueScale
+        if oldValue == value:
+            return
         if value is None:
             self._postscriptBlueScale = None
         else:
@@ -1213,6 +1482,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute postscriptBlueScale." % repr(value))
             else:
                 self._postscriptBlueScale = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptBlueScale", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     postscriptBlueScale = property(_get_postscriptBlueScale, _set_postscriptBlueScale, doc="BlueScale value. This corresponds to the Type 1/CFF <code>BlueScale</code> field. This should be a float. Setting this will post an *Info.Changed* notification.")
@@ -1221,6 +1491,9 @@ class Info(BaseObject):
         return self._postscriptBlueShift
 
     def _set_postscriptBlueShift(self, value):
+        oldValue = self._postscriptBlueShift
+        if oldValue == value:
+            return
         if value is None:
             self._postscriptBlueShift = None
         else:
@@ -1229,6 +1502,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute postscriptBlueShift." % repr(value))
             else:
                 self._postscriptBlueShift = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptBlueShift", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     postscriptBlueShift = property(_get_postscriptBlueShift, _set_postscriptBlueShift, doc="BlueShift value. This corresponds to the Type 1/CFF <code>BlueShift</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -1237,6 +1511,9 @@ class Info(BaseObject):
         return self._postscriptBlueValues
 
     def _set_postscriptBlueValues(self, value):
+        oldValue = self._postscriptBlueValues
+        if oldValue == value:
+            return
         if value is None:
             self._postscriptBlueValues = None
         else:
@@ -1245,6 +1522,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute postscriptBlueValues." % repr(value))
             else:
                 self._postscriptBlueValues = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptBlueValues", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     postscriptBlueValues = property(_get_postscriptBlueValues, _set_postscriptBlueValues, doc="A list of up to 14 integers or floats specifying the values that should be in the Type 1/CFF BlueValues field. This list must contain an even number of integers following the rules defined in the Type 1/CFF specification. This should be a number list. Setting this will post an *Info.Changed* notification.")
@@ -1253,6 +1531,9 @@ class Info(BaseObject):
         return self._postscriptDefaultCharacter
 
     def _set_postscriptDefaultCharacter(self, value):
+        oldValue = self._postscriptDefaultCharacter
+        if oldValue == value:
+            return
         if value is None:
             self._postscriptDefaultCharacter = None
         else:
@@ -1261,6 +1542,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute postscriptDefaultCharacter." % repr(value))
             else:
                 self._postscriptDefaultCharacter = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptDefaultCharacter", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     postscriptDefaultCharacter = property(_get_postscriptDefaultCharacter, _set_postscriptDefaultCharacter, doc="The name of the glyph that should be used as the default character in PFM files. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -1269,6 +1551,9 @@ class Info(BaseObject):
         return self._postscriptDefaultWidthX
 
     def _set_postscriptDefaultWidthX(self, value):
+        oldValue = self._postscriptDefaultWidthX
+        if oldValue == value:
+            return
         if value is None:
             self._postscriptDefaultWidthX = None
         else:
@@ -1277,6 +1562,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute postscriptDefaultWidthX." % repr(value))
             else:
                 self._postscriptDefaultWidthX = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptDefaultWidthX", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     postscriptDefaultWidthX = property(_get_postscriptDefaultWidthX, _set_postscriptDefaultWidthX, doc="Default width for glyphs. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -1285,6 +1571,9 @@ class Info(BaseObject):
         return self._postscriptFamilyBlues
 
     def _set_postscriptFamilyBlues(self, value):
+        oldValue = self._postscriptFamilyBlues
+        if oldValue == value:
+            return
         if value is None:
             self._postscriptFamilyBlues = None
         else:
@@ -1293,6 +1582,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute postscriptFamilyBlues." % repr(value))
             else:
                 self._postscriptFamilyBlues = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptFamilyBlues", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     postscriptFamilyBlues = property(_get_postscriptFamilyBlues, _set_postscriptFamilyBlues, doc="A list of up to 14 integers or floats specifying the values that should be in the Type 1/CFF FamilyBlues field. This list must contain an even number of integers following the rules defined in the Type 1/CFF specification. This should be a number list. Setting this will post an *Info.Changed* notification.")
@@ -1301,6 +1591,9 @@ class Info(BaseObject):
         return self._postscriptFamilyOtherBlues
 
     def _set_postscriptFamilyOtherBlues(self, value):
+        oldValue = self._postscriptFamilyOtherBlues
+        if oldValue == value:
+            return
         if value is None:
             self._postscriptFamilyOtherBlues = None
         else:
@@ -1309,6 +1602,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute postscriptFamilyOtherBlues." % repr(value))
             else:
                 self._postscriptFamilyOtherBlues = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptFamilyOtherBlues", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     postscriptFamilyOtherBlues = property(_get_postscriptFamilyOtherBlues, _set_postscriptFamilyOtherBlues, doc="A list of up to 10 integers or floats specifying the values that should be in the Type 1/CFF FamilyOtherBlues field. This list must contain an even number of integers following the rules defined in the Type 1/CFF specification. This should be a number list. Setting this will post an *Info.Changed* notification.")
@@ -1317,6 +1611,9 @@ class Info(BaseObject):
         return self._postscriptFontName
 
     def _set_postscriptFontName(self, value):
+        oldValue = self._postscriptFontName
+        if oldValue == value:
+            return
         if value is None:
             self._postscriptFontName = None
         else:
@@ -1325,6 +1622,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute postscriptFontName." % repr(value))
             else:
                 self._postscriptFontName = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptFontName", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     postscriptFontName = property(_get_postscriptFontName, _set_postscriptFontName, doc="Name to be used for the <code>FontName</code> field in Type 1/CFF table. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -1333,6 +1631,9 @@ class Info(BaseObject):
         return self._postscriptForceBold
 
     def _set_postscriptForceBold(self, value):
+        oldValue = self._postscriptForceBold
+        if oldValue == value:
+            return
         if value is None:
             self._postscriptForceBold = None
         else:
@@ -1341,6 +1642,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute postscriptForceBold." % repr(value))
             else:
                 self._postscriptForceBold = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptForceBold", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     postscriptForceBold = property(_get_postscriptForceBold, _set_postscriptForceBold, doc="Indicates how the Type 1/CFF <code>ForceBold</code> field should be set. This should be a boolean. Setting this will post an *Info.Changed* notification.")
@@ -1349,6 +1651,9 @@ class Info(BaseObject):
         return self._postscriptFullName
 
     def _set_postscriptFullName(self, value):
+        oldValue = self._postscriptFullName
+        if oldValue == value:
+            return
         if value is None:
             self._postscriptFullName = None
         else:
@@ -1357,6 +1662,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute postscriptFullName." % repr(value))
             else:
                 self._postscriptFullName = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptFullName", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     postscriptFullName = property(_get_postscriptFullName, _set_postscriptFullName, doc="Name to be used for the <code>FullName</code> field in Type 1/CFF table. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -1365,6 +1671,9 @@ class Info(BaseObject):
         return self._postscriptIsFixedPitch
 
     def _set_postscriptIsFixedPitch(self, value):
+        oldValue = self._postscriptIsFixedPitch
+        if oldValue == value:
+            return
         if value is None:
             self._postscriptIsFixedPitch = None
         else:
@@ -1373,6 +1682,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute postscriptIsFixedPitch." % repr(value))
             else:
                 self._postscriptIsFixedPitch = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptIsFixedPitch", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     postscriptIsFixedPitch = property(_get_postscriptIsFixedPitch, _set_postscriptIsFixedPitch, doc="Indicates if the font is monospaced. A compiler could calculate this automatically, but the designer may wish to override this setting. This corresponds to the Type 1/CFF <code>isFixedPitched</code> field This should be a boolean. Setting this will post an *Info.Changed* notification.")
@@ -1381,6 +1691,9 @@ class Info(BaseObject):
         return self._postscriptNominalWidthX
 
     def _set_postscriptNominalWidthX(self, value):
+        oldValue = self._postscriptNominalWidthX
+        if oldValue == value:
+            return
         if value is None:
             self._postscriptNominalWidthX = None
         else:
@@ -1389,6 +1702,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute postscriptNominalWidthX." % repr(value))
             else:
                 self._postscriptNominalWidthX = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptNominalWidthX", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     postscriptNominalWidthX = property(_get_postscriptNominalWidthX, _set_postscriptNominalWidthX, doc="Nominal width for glyphs. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -1397,6 +1711,9 @@ class Info(BaseObject):
         return self._postscriptOtherBlues
 
     def _set_postscriptOtherBlues(self, value):
+        oldValue = self._postscriptOtherBlues
+        if oldValue == value:
+            return
         if value is None:
             self._postscriptOtherBlues = None
         else:
@@ -1405,6 +1722,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute postscriptOtherBlues." % repr(value))
             else:
                 self._postscriptOtherBlues = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptOtherBlues", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     postscriptOtherBlues = property(_get_postscriptOtherBlues, _set_postscriptOtherBlues, doc="A list of up to 10 integers or floats specifying the values that should be in the Type 1/CFF OtherBlues field. This list must contain an even number of integers following the rules defined in the Type 1/CFF specification. This should be a number list. Setting this will post an *Info.Changed* notification.")
@@ -1413,6 +1731,9 @@ class Info(BaseObject):
         return self._postscriptSlantAngle
 
     def _set_postscriptSlantAngle(self, value):
+        oldValue = self._postscriptSlantAngle
+        if oldValue == value:
+            return
         if value is None:
             self._postscriptSlantAngle = None
         else:
@@ -1421,6 +1742,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute postscriptSlantAngle." % repr(value))
             else:
                 self._postscriptSlantAngle = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptSlantAngle", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     postscriptSlantAngle = property(_get_postscriptSlantAngle, _set_postscriptSlantAngle, doc="Artificial slant angle. This must be an angle in counter-clockwise degrees from the vertical. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -1429,6 +1751,9 @@ class Info(BaseObject):
         return self._postscriptStemSnapH
 
     def _set_postscriptStemSnapH(self, value):
+        oldValue = self._postscriptStemSnapH
+        if oldValue == value:
+            return
         if value is None:
             self._postscriptStemSnapH = None
         else:
@@ -1437,6 +1762,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute postscriptStemSnapH." % repr(value))
             else:
                 self._postscriptStemSnapH = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptStemSnapH", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     postscriptStemSnapH = property(_get_postscriptStemSnapH, _set_postscriptStemSnapH, doc="List of horizontal stems sorted in the order specified in the Type 1/CFF specification. Up to 12 integers or floats are possible. This corresponds to the Type 1/CFF <code>StemSnapH</code> field. This should be a number list. Setting this will post an *Info.Changed* notification.")
@@ -1445,6 +1771,9 @@ class Info(BaseObject):
         return self._postscriptStemSnapV
 
     def _set_postscriptStemSnapV(self, value):
+        oldValue = self._postscriptStemSnapV
+        if oldValue == value:
+            return
         if value is None:
             self._postscriptStemSnapV = None
         else:
@@ -1453,6 +1782,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute postscriptStemSnapV." % repr(value))
             else:
                 self._postscriptStemSnapV = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptStemSnapV", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     postscriptStemSnapV = property(_get_postscriptStemSnapV, _set_postscriptStemSnapV, doc="List of vertical stems sorted in the order specified in the Type 1/CFF specification. Up to 12 integers or floats are possible. This corresponds to the Type 1/CFF <code>StemSnapV</code> field. This should be a number list. Setting this will post an *Info.Changed* notification.")
@@ -1461,6 +1791,9 @@ class Info(BaseObject):
         return self._postscriptUnderlinePosition
 
     def _set_postscriptUnderlinePosition(self, value):
+        oldValue = self._postscriptUnderlinePosition
+        if oldValue == value:
+            return
         if value is None:
             self._postscriptUnderlinePosition = None
         else:
@@ -1469,6 +1802,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute postscriptUnderlinePosition." % repr(value))
             else:
                 self._postscriptUnderlinePosition = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptUnderlinePosition", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     postscriptUnderlinePosition = property(_get_postscriptUnderlinePosition, _set_postscriptUnderlinePosition, doc="Underline position value. Corresponds to the Type 1/CFF/post table <code>UnderlinePosition</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -1477,6 +1811,9 @@ class Info(BaseObject):
         return self._postscriptUnderlineThickness
 
     def _set_postscriptUnderlineThickness(self, value):
+        oldValue = self._postscriptUnderlineThickness
+        if oldValue == value:
+            return
         if value is None:
             self._postscriptUnderlineThickness = None
         else:
@@ -1485,6 +1822,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute postscriptUnderlineThickness." % repr(value))
             else:
                 self._postscriptUnderlineThickness = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptUnderlineThickness", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     postscriptUnderlineThickness = property(_get_postscriptUnderlineThickness, _set_postscriptUnderlineThickness, doc="Underline thickness value. Corresponds to the Type 1/CFF/post table <code>UnderlineThickness</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -1493,6 +1831,9 @@ class Info(BaseObject):
         return self._postscriptUniqueID
 
     def _set_postscriptUniqueID(self, value):
+        oldValue = self._postscriptUniqueID
+        if oldValue == value:
+            return
         if value is None:
             self._postscriptUniqueID = None
         else:
@@ -1501,6 +1842,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute postscriptUniqueID." % repr(value))
             else:
                 self._postscriptUniqueID = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptUniqueID", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     postscriptUniqueID = property(_get_postscriptUniqueID, _set_postscriptUniqueID, doc="A unique ID number as defined in the Type 1/CFF specification. This should be a integer. Setting this will post an *Info.Changed* notification.")
@@ -1509,6 +1851,9 @@ class Info(BaseObject):
         return self._postscriptWeightName
 
     def _set_postscriptWeightName(self, value):
+        oldValue = self._postscriptWeightName
+        if oldValue == value:
+            return
         if value is None:
             self._postscriptWeightName = None
         else:
@@ -1517,6 +1862,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute postscriptWeightName." % repr(value))
             else:
                 self._postscriptWeightName = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptWeightName", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     postscriptWeightName = property(_get_postscriptWeightName, _set_postscriptWeightName, doc="A string indicating the overall weight of the font. This corresponds to the Type 1/CFF Weight field. It should be in sync with the <code>openTypeOS2WeightClass</code> value. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -1525,6 +1871,9 @@ class Info(BaseObject):
         return self._postscriptWindowsCharacterSet
 
     def _set_postscriptWindowsCharacterSet(self, value):
+        oldValue = self._postscriptWindowsCharacterSet
+        if oldValue == value:
+            return
         if value is None:
             self._postscriptWindowsCharacterSet = None
         else:
@@ -1533,6 +1882,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute postscriptWindowsCharacterSet." % repr(value))
             else:
                 self._postscriptWindowsCharacterSet = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptWindowsCharacterSet", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     postscriptWindowsCharacterSet = property(_get_postscriptWindowsCharacterSet, _set_postscriptWindowsCharacterSet, doc="The Windows character set. The values are defined below. This should be a integer. Setting this will post an *Info.Changed* notification.")
@@ -1541,6 +1891,9 @@ class Info(BaseObject):
         return self._styleMapFamilyName
 
     def _set_styleMapFamilyName(self, value):
+        oldValue = self._styleMapFamilyName
+        if oldValue == value:
+            return
         if value is None:
             self._styleMapFamilyName = None
         else:
@@ -1549,6 +1902,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute styleMapFamilyName." % repr(value))
             else:
                 self._styleMapFamilyName = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="styleMapFamilyName", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     styleMapFamilyName = property(_get_styleMapFamilyName, _set_styleMapFamilyName, doc="Family name used for bold, italic and bold italic style mapping. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -1557,6 +1911,9 @@ class Info(BaseObject):
         return self._styleMapStyleName
 
     def _set_styleMapStyleName(self, value):
+        oldValue = self._styleMapStyleName
+        if oldValue == value:
+            return
         if value is None:
             self._styleMapStyleName = None
         else:
@@ -1565,6 +1922,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute styleMapStyleName." % repr(value))
             else:
                 self._styleMapStyleName = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="styleMapStyleName", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     styleMapStyleName = property(_get_styleMapStyleName, _set_styleMapStyleName, doc="Style map style. The possible values are regular, italic, bold and bold italic. These are case sensitive. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -1573,6 +1931,9 @@ class Info(BaseObject):
         return self._styleName
 
     def _set_styleName(self, value):
+        oldValue = self._styleName
+        if oldValue == value:
+            return
         if value is None:
             self._styleName = None
         else:
@@ -1581,6 +1942,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute styleName." % repr(value))
             else:
                 self._styleName = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="styleName", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     styleName = property(_get_styleName, _set_styleName, doc="Style name. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -1589,6 +1951,9 @@ class Info(BaseObject):
         return self._trademark
 
     def _set_trademark(self, value):
+        oldValue = self._trademark
+        if oldValue == value:
+            return
         if value is None:
             self._trademark = None
         else:
@@ -1597,6 +1962,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute trademark." % repr(value))
             else:
                 self._trademark = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="trademark", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     trademark = property(_get_trademark, _set_trademark, doc="Trademark statement. This should be a string. Setting this will post an *Info.Changed* notification.")
@@ -1605,6 +1971,9 @@ class Info(BaseObject):
         return self._unitsPerEm
 
     def _set_unitsPerEm(self, value):
+        oldValue = self._unitsPerEm
+        if oldValue == value:
+            return
         if value is None:
             self._unitsPerEm = None
         else:
@@ -1613,6 +1982,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute unitsPerEm." % repr(value))
             else:
                 self._unitsPerEm = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="unitsPerEm", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     unitsPerEm = property(_get_unitsPerEm, _set_unitsPerEm, doc="Units per em. This should be a non-negative integer or float. Setting this will post an *Info.Changed* notification.")
@@ -1621,6 +1991,9 @@ class Info(BaseObject):
         return self._versionMajor
 
     def _set_versionMajor(self, value):
+        oldValue = self._versionMajor
+        if oldValue == value:
+            return
         if value is None:
             self._versionMajor = None
         else:
@@ -1629,6 +2002,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute versionMajor." % repr(value))
             else:
                 self._versionMajor = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="versionMajor", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     versionMajor = property(_get_versionMajor, _set_versionMajor, doc="Major version. This should be a integer. Setting this will post an *Info.Changed* notification.")
@@ -1637,6 +2011,9 @@ class Info(BaseObject):
         return self._versionMinor
 
     def _set_versionMinor(self, value):
+        oldValue = self._versionMinor
+        if oldValue == value:
+            return
         if value is None:
             self._versionMinor = None
         else:
@@ -1645,6 +2022,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute versionMinor." % repr(value))
             else:
                 self._versionMinor = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="versionMinor", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     versionMinor = property(_get_versionMinor, _set_versionMinor, doc="Minor version. This should be a non-negative integer. Setting this will post an *Info.Changed* notification.")
@@ -1653,6 +2031,9 @@ class Info(BaseObject):
         return self._woffMajorVersion
 
     def _set_woffMajorVersion(self, value):
+        oldValue = self._woffMajorVersion
+        if oldValue == value:
+            return
         if value is None:
             self._woffMajorVersion = None
         else:
@@ -1661,6 +2042,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute woffMajorVersion." % repr(value))
             else:
                 self._woffMajorVersion = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="woffMajorVersion", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     woffMajorVersion = property(_get_woffMajorVersion, _set_woffMajorVersion, doc="Major version of the font. This should be a non-negative integer. Setting this will post an *Info.Changed* notification.")
@@ -1669,6 +2051,9 @@ class Info(BaseObject):
         return self._woffMetadataCopyright
 
     def _set_woffMetadataCopyright(self, value):
+        oldValue = self._woffMetadataCopyright
+        if oldValue == value:
+            return
         if value is None:
             self._woffMetadataCopyright = None
         else:
@@ -1677,6 +2062,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute woffMetadataCopyright." % repr(value))
             else:
                 self._woffMetadataCopyright = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="woffMetadataCopyright", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     woffMetadataCopyright = property(_get_woffMetadataCopyright, _set_woffMetadataCopyright, doc="Font copyright. Corresponds to the WOFF <code>copyright</code> element. The dictionary must follow the WOFF Metadata Copyright Record structure. This should be a dictionary. Setting this will post an *Info.Changed* notification.")
@@ -1685,6 +2071,9 @@ class Info(BaseObject):
         return self._woffMetadataCredits
 
     def _set_woffMetadataCredits(self, value):
+        oldValue = self._woffMetadataCredits
+        if oldValue == value:
+            return
         if value is None:
             self._woffMetadataCredits = None
         else:
@@ -1693,6 +2082,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute woffMetadataCredits." % repr(value))
             else:
                 self._woffMetadataCredits = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="woffMetadataCredits", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     woffMetadataCredits = property(_get_woffMetadataCredits, _set_woffMetadataCredits, doc="Font credits. Corresponds to the WOFF <code>credits</code> element. The dictionary must follow the WOFF Metadata Credits Record structure. This should be a dictionary. Setting this will post an *Info.Changed* notification.")
@@ -1701,6 +2091,9 @@ class Info(BaseObject):
         return self._woffMetadataDescription
 
     def _set_woffMetadataDescription(self, value):
+        oldValue = self._woffMetadataDescription
+        if oldValue == value:
+            return
         if value is None:
             self._woffMetadataDescription = None
         else:
@@ -1709,6 +2102,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute woffMetadataDescription." % repr(value))
             else:
                 self._woffMetadataDescription = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="woffMetadataDescription", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     woffMetadataDescription = property(_get_woffMetadataDescription, _set_woffMetadataDescription, doc="Font description. Corresponds to the WOFF <code>description</code> element. The dictionary must follow the WOFF Metadata Description Record structure. This should be a dictionary. Setting this will post an *Info.Changed* notification.")
@@ -1717,6 +2111,9 @@ class Info(BaseObject):
         return self._woffMetadataExtensions
 
     def _set_woffMetadataExtensions(self, value):
+        oldValue = self._woffMetadataExtensions
+        if oldValue == value:
+            return
         if value is None:
             self._woffMetadataExtensions = None
         else:
@@ -1725,6 +2122,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute woffMetadataExtensions." % repr(value))
             else:
                 self._woffMetadataExtensions = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="woffMetadataExtensions", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     woffMetadataExtensions = property(_get_woffMetadataExtensions, _set_woffMetadataExtensions, doc="List of metadata extension records. The dictionaries must follow the WOFF Metadata Extension Record structure. There must be at least one extension record in the list. This should be a list. Setting this will post an *Info.Changed* notification.")
@@ -1733,6 +2131,9 @@ class Info(BaseObject):
         return self._woffMetadataLicense
 
     def _set_woffMetadataLicense(self, value):
+        oldValue = self._woffMetadataLicense
+        if oldValue == value:
+            return
         if value is None:
             self._woffMetadataLicense = None
         else:
@@ -1741,6 +2142,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute woffMetadataLicense." % repr(value))
             else:
                 self._woffMetadataLicense = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="woffMetadataLicense", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     woffMetadataLicense = property(_get_woffMetadataLicense, _set_woffMetadataLicense, doc="Font description. Corresponds to the WOFF <code>license</code> element. The dictionary must follow the WOFF Metadata License Record structure. This should be a dictionary. Setting this will post an *Info.Changed* notification.")
@@ -1749,6 +2151,9 @@ class Info(BaseObject):
         return self._woffMetadataLicensee
 
     def _set_woffMetadataLicensee(self, value):
+        oldValue = self._woffMetadataLicensee
+        if oldValue == value:
+            return
         if value is None:
             self._woffMetadataLicensee = None
         else:
@@ -1757,6 +2162,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute woffMetadataLicensee." % repr(value))
             else:
                 self._woffMetadataLicensee = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="woffMetadataLicensee", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     woffMetadataLicensee = property(_get_woffMetadataLicensee, _set_woffMetadataLicensee, doc="Font licensee. Corresponds to the WOFF <code>licensee</code> element. The dictionary must follow the WOFF Metadata Licensee Record structure. This should be a dictionary. Setting this will post an *Info.Changed* notification.")
@@ -1765,6 +2171,9 @@ class Info(BaseObject):
         return self._woffMetadataTrademark
 
     def _set_woffMetadataTrademark(self, value):
+        oldValue = self._woffMetadataTrademark
+        if oldValue == value:
+            return
         if value is None:
             self._woffMetadataTrademark = None
         else:
@@ -1773,6 +2182,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute woffMetadataTrademark." % repr(value))
             else:
                 self._woffMetadataTrademark = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="woffMetadataTrademark", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     woffMetadataTrademark = property(_get_woffMetadataTrademark, _set_woffMetadataTrademark, doc="Font trademark. Corresponds to the WOFF <code>trademark</code> element. The dictionary must follow the WOFF Metadata Trademark Record structure. This should be a dictionary. Setting this will post an *Info.Changed* notification.")
@@ -1781,6 +2191,9 @@ class Info(BaseObject):
         return self._woffMetadataUniqueID
 
     def _set_woffMetadataUniqueID(self, value):
+        oldValue = self._woffMetadataUniqueID
+        if oldValue == value:
+            return
         if value is None:
             self._woffMetadataUniqueID = None
         else:
@@ -1789,6 +2202,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute woffMetadataUniqueID." % repr(value))
             else:
                 self._woffMetadataUniqueID = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="woffMetadataUniqueID", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     woffMetadataUniqueID = property(_get_woffMetadataUniqueID, _set_woffMetadataUniqueID, doc="Identification string. Corresponds to the WOFF <code>uniqueid</code>. The dictionary must follow the WOFF Metadata Unique ID Record structure. This should be a dictionary. Setting this will post an *Info.Changed* notification.")
@@ -1797,6 +2211,9 @@ class Info(BaseObject):
         return self._woffMetadataVendor
 
     def _set_woffMetadataVendor(self, value):
+        oldValue = self._woffMetadataVendor
+        if oldValue == value:
+            return
         if value is None:
             self._woffMetadataVendor = None
         else:
@@ -1805,6 +2222,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute woffMetadataVendor." % repr(value))
             else:
                 self._woffMetadataVendor = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="woffMetadataVendor", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     woffMetadataVendor = property(_get_woffMetadataVendor, _set_woffMetadataVendor, doc="Font vendor. Corresponds to the WOFF <code>vendor</code> element. The dictionary must follow the the WOFF Metadata Vendor Record structure. This should be a dictionary. Setting this will post an *Info.Changed* notification.")
@@ -1813,6 +2231,9 @@ class Info(BaseObject):
         return self._woffMinorVersion
 
     def _set_woffMinorVersion(self, value):
+        oldValue = self._woffMinorVersion
+        if oldValue == value:
+            return
         if value is None:
             self._woffMinorVersion = None
         else:
@@ -1821,6 +2242,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute woffMinorVersion." % repr(value))
             else:
                 self._woffMinorVersion = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="woffMinorVersion", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     woffMinorVersion = property(_get_woffMinorVersion, _set_woffMinorVersion, doc="Minor version of the font. This should be a non-negative integer. Setting this will post an *Info.Changed* notification.")
@@ -1829,6 +2251,9 @@ class Info(BaseObject):
         return self._xHeight
 
     def _set_xHeight(self, value):
+        oldValue = self._xHeight
+        if oldValue == value:
+            return
         if value is None:
             self._xHeight = None
         else:
@@ -1837,6 +2262,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute xHeight." % repr(value))
             else:
                 self._xHeight = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="xHeight", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     xHeight = property(_get_xHeight, _set_xHeight, doc="x-height value. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
@@ -1845,6 +2271,9 @@ class Info(BaseObject):
         return self._year
 
     def _set_year(self, value):
+        oldValue = self._year
+        if oldValue == value:
+            return
         if value is None:
             self._year = None
         else:
@@ -1853,6 +2282,7 @@ class Info(BaseObject):
                 raise ValueError("Invalid value (%s) for attribute year." % repr(value))
             else:
                 self._year = value
+        self.postNotification("Info.ValueChanged", data=dict(attribute="year", oldValue=oldValue, newValue=value))
         self.dirty = True
 
     year = property(_get_year, _set_year, doc="The year the font was created. This attribute is deprecated as of version 2. It's presence should not be relied upon by authoring tools. However, it may occur in a font's info so authoring tools should preserve it if present. This should be a integer. Setting this will post an *Info.Changed* notification.")
@@ -1899,7 +2329,7 @@ class Info(BaseObject):
         will be raised if the guideline's identifier conflicts with any of
         the identifiers within the info.
 
-        This will post a *Glyph.Changed* notification.
+        This will post *Info.GuidelinesChanged* and *Info.Changed* notifications.
         """
         assert guideline not in self._guidelines
         self.insertGuideline(len(self._guidelines), guideline)
@@ -1912,7 +2342,7 @@ class Info(BaseObject):
         identifier conflicts with any of the identifiers within
         the info.
 
-        This will post a *Glyph.Changed* notification.
+        This will post *Info.GuidelinesChanged* and *Info.Changed* notifications.
         """
         assert guideline not in self._guidelines
         if not isinstance(guideline, self._guidelineClass):
@@ -1925,6 +2355,7 @@ class Info(BaseObject):
         if guideline.getParent() != self:
             self._setParentDataInGuideline(guideline)
         self._guidelines.insert(index, guideline)
+        self.postNotification("Info.GuidelinesChanged")
         self.dirty = True
 
     def removeGuideline(self, guideline):
@@ -1937,6 +2368,7 @@ class Info(BaseObject):
             self._identifiers.remove(guideline.identifier)
         self._guidelines.remove(guideline)
         self._removeParentDataInGuideline(guideline)
+        self.postNotification("Info.GuidelinesChanged")
         self.dirty = True
 
     def guidelineIndex(self, guideline):
@@ -1961,4 +2393,5 @@ class Info(BaseObject):
     # ----------------------
 
     def _guidelineChanged(self, notification):
+        self.postNotification("Info.GuidelinesChanged")
         self.dirty = True

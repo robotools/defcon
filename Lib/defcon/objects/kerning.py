@@ -8,11 +8,15 @@ class Kerning(BaseDictObject):
 
     **This object posts the following notifications:**
 
-    ===============  ====
-    Name             Note
-    ===============  ====
-    Kerning.Changed  Posted when the *dirty* attribute is set.
-    ===============  ====
+    ===================
+    Name
+    ===================
+    Kerning.Changed
+    Kerning.PairSet
+    Kerning.PairDeleted
+    Kerning.Cleared
+    Kerning.Updated
+    ====================
 
     This object behaves like a dict. For example, to get a list of all kerning pairs::
 
@@ -37,6 +41,10 @@ class Kerning(BaseDictObject):
     """
 
     changeNotificationName = "Kerning.Changed"
+    setItemNotificationName = "Kerning.PairSet"
+    deleteItemNotificationName = "Kerning.PairDeleted"
+    clearNotificationName = "Kerning.Cleared"
+    updateNotificationName = "Kerning.Updated"
 
     def get(self, pair, default=0):
         return super(Kerning, self).get(pair, default)

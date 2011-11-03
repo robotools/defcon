@@ -10,12 +10,14 @@ class Component(BaseObject):
 
     **This object posts the following notifications:**
 
-    ==========================  ====
-    Name                        Note
-    ==========================  ====
-    Component.Changed           Posted when the *dirty* attribute is set.
-    Component.BaseGlyphChanged  Posted when the *baseGlyph* attribute is set.
-    ==========================  ====
+    ===============================
+    Name
+    ===============================
+    Component.Changed
+    Component.BaseGlyphChanged
+    Component.TransformationChanged
+    Component.IdentifierChanged
+    ===============================
     """
 
     changeNotificationName = "Component.Changed"
@@ -61,9 +63,11 @@ class Component(BaseObject):
 
     def _set_baseGlyph(self, value):
         oldValue = self._baseGlyph
+        if value == oldValue:
+            return
         self._baseGlyph = value
+        self.postNotification(notification="Component.BaseGlyphChanged", data=dict(oldValue=oldValue, newValue=value))
         self.dirty = True
-        self.postNotification(notification="Component.BaseGlyphChanged", data=(oldValue, value))
 
     def _get_baseGlyph(self):
         return self._baseGlyph
@@ -71,13 +75,17 @@ class Component(BaseObject):
     baseGlyph = property(_get_baseGlyph, _set_baseGlyph, doc="The glyph that the components references. Setting this will post *Component.BaseGlyphChanged* and *Component.Changed* notifications.")
 
     def _set_transformation(self, value):
+        oldValue = self._transformation
+        if value == oldValue:
+            return
         self._transformation = value
+        self.postNotification(notification="Component.TransformationChanged", data=dict(oldValue=oldValue, newValue=value))
         self.dirty = True
 
     def _get_transformation(self):
         return self._transformation
 
-    transformation = property(_get_transformation, _set_transformation, doc="The transformation matrix for the component. Setting this will posts a *Component.Changed* notification.")
+    transformation = property(_get_transformation, _set_transformation, doc="The transformation matrix for the component. Setting this will post *Component.TransformationChanged* and *Component.Changed* notifications.")
 
     # -----------
     # Pen Methods
@@ -109,7 +117,7 @@ class Component(BaseObject):
         """
         Move the component by **(x, y)**.
 
-        This posts a *Component.Changed* notification.
+        This posts *Component.TransformationChanged* and *Component.Changed* notifications.
         """
         xScale, xyScale, yxScale, yScale, xOffset, yOffset = self._transformation
         xOffset += x
@@ -165,7 +173,7 @@ class Component(BaseObject):
         if value is not None:
             identifiers.add(value)
         # post notifications
-        self.postNotification("Component.IdentifierChanged", data=dict(oldIdentifier=oldIdentifier, newIdentifier=value))
+        self.postNotification("Component.IdentifierChanged", data=dict(oldValue=oldIdentifier, newValue=value))
         self.dirty = True
 
     identifier = property(_get_identifier, _set_identifier, doc="The identifier. Setting this will post *Component.IdentifierChanged* and *Component.Changed* notifications.")
@@ -177,6 +185,7 @@ class Component(BaseObject):
         """
         identifier = makeRandomIdentifier(existing=self.identifiers)
         self.identifier = identifier
+
 
 def _testIdentifier():
     """
@@ -208,7 +217,6 @@ def _testIdentifier():
     >>> list(sorted(glyph.identifiers))
     ['component 1']
     """
-
 
 if __name__ == "__main__":
     import doctest

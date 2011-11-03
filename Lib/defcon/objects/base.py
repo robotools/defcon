@@ -9,11 +9,11 @@ class BaseObject(object):
 
     **This object posts the following notifications:**
 
-    ====================  ====
-    Name                  Note
-    ====================  ====
-    BaseObject.Changed    Posted when the *dirty* attribute is set.
-    ====================  ====
+    ====================
+    Name
+    ====================
+    BaseObject.Changed
+    ====================
 
     Keep in mind that subclasses will not post these same notifications.
     """
@@ -223,6 +223,11 @@ class BaseDictObject(dict, BaseObject):
     to be set to True.
     """
 
+    setItemNotificationName = None
+    deleteItemNotificationName = None
+    clearNotificationName = None
+    updateNotificationName = None
+
     def __init__(self):
         super(BaseDictObject, self).__init__()
         self._init()
@@ -242,13 +247,21 @@ class BaseDictObject(dict, BaseObject):
         return id(self)
 
     def __setitem__(self, key, value):
-        if key in self and self[key] == value:
+        oldValue = self.get(key)
+        if value is not None and oldValue == value:
+            # don't do this if the value is None since some
+            # subclasses establish their keys at startup with
+            # self[key] = None
             return
         super(BaseDictObject, self).__setitem__(key, value)
+        if self.setItemNotificationName is not None:
+            self.postNotification(self.setItemNotificationName, data=dict(key=key, oldValue=oldValue, newValue=value))
         self.dirty = True
 
     def __delitem__(self, key):
         super(BaseDictObject, self).__delitem__(key)
+        if self.deleteItemNotificationName is not None:
+            self.postNotification(self.deleteItemNotificationName, data=dict(key=key))
         self.dirty = True
 
     def __deepcopy__(self, memo={}):
@@ -264,10 +277,14 @@ class BaseDictObject(dict, BaseObject):
         if not len(self):
             return
         super(BaseDictObject, self).clear()
+        if self.clearNotificationName is not None:
+            self.postNotification(self.clearNotificationName)
         self.dirty = True
 
     def update(self, other):
         super(BaseDictObject, self).update(other)
+        if self.updateNotificationName is not None:
+            self.postNotification(self.updateNotificationName)
         self.dirty = True
 
 

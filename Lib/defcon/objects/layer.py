@@ -10,6 +10,44 @@ from defcon.objects.color import Color
 
 class Layer(BaseObject):
 
+    """
+    This object represents a layer in a :class:`LayerSet`.
+
+    **This object posts the following notifications:**
+
+    ===================
+    Name
+    ===================
+    Layer.Changed
+    Layer.GlyphsChanged
+    Layer.GlyphChanged
+    Layer.GlyphAdded
+    Layer.GlyphDeleted
+    Layer.NameChanged
+    Layer.ColorChanged
+    ===================
+
+    The Layer object has some dict like behavior. For example, to get a glyph::
+
+        glyph = layer["aGlyphName"]
+
+    To iterate over all glyphs::
+
+        for glyph in layer:
+
+    To get the number of glyphs::
+
+        glyphCount = len(layer)
+
+    To find out if a font contains a particular glyph::
+
+        exists = "aGlyphName" in layer
+
+    To remove a glyph::
+
+        del layer["aGlyphName"]
+    """
+
     changeNotificationName = "Layer.Changed"
 
     def __init__(self, glyphSet=None, libClass=None, unicodeDataClass=None,
@@ -95,7 +133,7 @@ class Layer(BaseObject):
             font = layerSet.getParent()
         if font is not None:
             glyph.setParent(font)
-        glyph.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Glyph.Changed")
+        glyph.addObserver(observer=self, methodName="_glyphDirtyStateChange", notification="Glyph.Changed")
         glyph.addObserver(observer=self, methodName="_glyphNameChange", notification="Glyph.NameChanged")
         glyph.addObserver(observer=self, methodName="_glyphUnicodesChange", notification="Glyph.UnicodesChanged")
 
@@ -110,6 +148,8 @@ class Layer(BaseObject):
         Create a new glyph with **name**. If a glyph with that
         name already exists, the existing glyph will be replaced
         with the new glyph.
+
+        This posts *Layer.GlyphAdded* and *Layer.Changed* notifications.
         """
         if name in self:
             self._unicodeData.removeGlyphData(name, self[name].unicodes)
@@ -117,13 +157,11 @@ class Layer(BaseObject):
         glyph.name = name
         self._glyphs[name] = glyph
         self._setParentDataInGlyph(glyph)
-        self.dirty = True
-        # a glyph by the same name could be
-        # scheduled for deletion
         if name in self._scheduledForDeletion:
             del self._scheduledForDeletion[name]
-        # keep the keys up to date
         self._keys.add(name)
+        self.postNotification("Layer.GlyphAdded", data=(dict(name=name)))
+        self.dirty = True
 
     def insertGlyph(self, glyph, name=None):
         """
@@ -132,6 +170,8 @@ class Layer(BaseObject):
         If a glyph with the glyph name, or the name provided
         as **name**, already exists, the existing glyph will
         be replaced with the new glyph.
+
+        This posts *Layer.GlyphAdded* and *Layer.Changed* notifications.
         """
         # DO NOT ACTUALLY INSERT THE GLYPH!
         # it is crucially important that the data be reconstructed
@@ -141,11 +181,15 @@ class Layer(BaseObject):
         source = glyph
         if name is None:
             name = source.name
+        self.holdNotifications()
         self.newGlyph(name)
         dest = self[name]
+        dest.disableNotifications()
         dest.copyDataFromGlyph(glyph)
+        dest.enableNotifications()
         if dest.unicodes:
             self._unicodeData.addGlyphData(name, dest.unicodes)
+        self.releaseHeldNotifications()
         return dest
 
     def __iter__(self):
@@ -175,6 +219,7 @@ class Layer(BaseObject):
             self._keys.remove(name)
         if self._glyphSet is not None and name in self._glyphSet:
             self._scheduledForDeletion[name] = dict(dataOnDiskTimeStamp=dataOnDiskTimeStamp, dataOnDisk=dataOnDisk)
+        self.postNotification("Layer.GlyphDeleted", data=dict(mname=name))
         self.dirty = True
 
     def __len__(self):
@@ -380,7 +425,7 @@ class Layer(BaseObject):
         if self._lib is None:
             self._lib = self._libClass()
             self._lib.setParent(self)
-            self._lib.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Lib.Changed")
+            self._lib.addObserver(observer=self, methodName="_libDirtyStateChange", notification="Lib.Changed")
         return self._lib
 
     def _set_lib(self, value):
@@ -522,14 +567,18 @@ class Layer(BaseObject):
     # Notification Callbacks
     # ----------------------
 
-    def _objectDirtyStateChange(self, notification):
-        if notification.object.dirty:
-            self.dirty = True
+    def _glyphDirtyStateChange(self, notification):
+        self.postNotification("Layer.GlyphChanged")
+        self.dirty = True
+
+    def _libDirtyStateChange(self, notification):
+        self.postNotification("Layer.LibChanged")
+        self.dirty = True
 
     def _glyphNameChange(self, notification):
         data = notification.data
-        oldName = data["oldName"]
-        newName = data["newName"]
+        oldName = data["oldValue"]
+        newName = data["newValue"]
         glyph = self._glyphs[oldName]
         del self[oldName]
         self._glyphs[newName] = glyph
@@ -540,8 +589,8 @@ class Layer(BaseObject):
     def _glyphUnicodesChange(self, notification):
         glyphName = notification.object.name
         data = notification.data
-        oldValues = data["oldValues"]
-        newValues = data["newValues"]
+        oldValues = data["oldValue"]
+        newValues = data["newValue"]
         self._unicodeData.removeGlyphData(glyphName, oldValues)
         self._unicodeData.addGlyphData(glyphName, newValues)
 

@@ -8,11 +8,12 @@ class Features(BaseObject):
 
     **This object posts the following notifications:**
 
-    ================  ====
-    Name              Note
-    ================  ====
-    Features.Changed  Posted when the *dirty* attribute is set.
-    ================  ====
+    ================
+    Name
+    ================
+    Features.Changed
+    Features.TextChanged
+    ================
     """
 
     changeNotificationName = "Features.Changed"
@@ -23,13 +24,15 @@ class Features(BaseObject):
         self._text = None
 
     def _set_text(self, value):
-        if self._text == value:
+        oldValue = self._text
+        if oldValue == value:
             return
         self._text = value
+        self.postNotification("Features.TextChanged", data=dict(oldValue=oldValue, newValue=value))
         self.dirty = True
 
     def _get_text(self):
         return self._text
 
-    text = property(_get_text, _set_text, doc="The raw feature text. Setting this posts a *Features.Changed* notification.")
+    text = property(_get_text, _set_text, doc="The raw feature text. Setting this post *Features.TextChanged* and *Features.Changed* notifications.")
 

@@ -10,15 +10,16 @@ class Anchor(BaseDictObject):
 
     **This object posts the following notifications:**
 
-    =====================    ====
-    Name                     Note
-    =====================    ====
-    Anchor.Changed           Posted when the *dirty* attribute is set.
-    Anchor.XChanged          Posted when the *x* attribute is set.
-    Anchor.YChanged          Posted when the *y* attribute is set.
-    Anchor.NameChanged       Posted when the *name* attribute is set.
-    Anchor.IdentifierChanged Posted when the *identifier* attribute is set.
-    =====================    ====
+    ========================
+    Name
+    ========================
+    Anchor.Changed
+    Anchor.XChanged
+    Anchor.YChanged
+    Anchor.NameChanged
+    Anchor.ColorChanged
+    Anchor.IdentifierChanged
+    ========================
 
     During initialization an anchor dictionary can be passed. If so,
     the new object will be populated with the data from the dictionary.
@@ -44,7 +45,7 @@ class Anchor(BaseDictObject):
         if value == old:
             return
         self["x"] = value
-        self.postNotification("Anchor.XChanged", data=dict(oldX=old, newX=value))
+        self.postNotification("Anchor.XChanged", data=dict(oldValue=old, newValue=value))
 
     x = property(_get_x, _set_x, doc="The x coordinate. Setting this will post *Anchor.XChanged* and *Anchor.Changed* notifications.")
 
@@ -56,7 +57,7 @@ class Anchor(BaseDictObject):
         if value == old:
             return
         self["y"] = value
-        self.postNotification("Anchor.YChanged", data=dict(oldY=old, newY=value))
+        self.postNotification("Anchor.YChanged", data=dict(oldValue=old, newValue=value))
 
     y = property(_get_y, _set_y, doc="The y coordinate. Setting this will post *Anchor.YChanged* and *Anchor.Changed* notifications.")
 
@@ -68,7 +69,7 @@ class Anchor(BaseDictObject):
         if value == old:
             return
         self["name"] = value
-        self.postNotification("Anchor.NameChanged", data=dict(oldName=old, newName=value))
+        self.postNotification("Anchor.NameChanged", data=dict(oldValue=old, newValue=value))
 
     name = property(_get_name, _set_name, doc="The name. Setting this will post *Anchor.NameChanged* and *Anchor.Changed* notifications.")
 
@@ -84,7 +85,7 @@ class Anchor(BaseDictObject):
         if newColor == oldColor:
             return
         self["color"] = newColor
-        self.postNotification("Anchor.ColorChanged", data=dict(old=oldColor, newColor=newColor))
+        self.postNotification("Anchor.ColorChanged", data=dict(oldValue=oldColor, newValue=newColor))
 
     color = property(_get_color, _set_color, doc="The anchors's :class:`Color` object. When setting, the value can be a UFO color string, a sequence of (r, g, b, a) or a :class:`Color` object. Setting this posts *Anchor.ColorChanged* and *Anchor.Changed* notifications.")
 
@@ -96,9 +97,7 @@ class Anchor(BaseDictObject):
         """
         Move the anchor by **(x, y)**.
 
-        This will post an *Anchor.Changed* notification.
-        Create a new, unique identifier for and assign it to the guideline.
-        This will post *Anchor.IdentifierChanged* and *Anchor.Changed* notifications.
+        This will post *Anchor.XChange*, *Anchor.YChanged* and *Anchor.Changed* notifications if anything changed.
         """
         self.x += x
         self.y += y
@@ -132,7 +131,7 @@ class Anchor(BaseDictObject):
         if value is not None:
             identifiers.add(value)
         # post notifications
-        self.postNotification("Anchor.IdentifierChanged", data=dict(oldIdentifier=oldIdentifier, newIdentifier=value))
+        self.postNotification("Anchor.IdentifierChanged", data=dict(oldValue=oldIdentifier, newValue=value))
 
     identifier = property(_get_identifier, _set_identifier, doc="The identifier. Setting this will post *Anchor.IdentifierChanged* and *Anchor.Changed* notifications.")
 

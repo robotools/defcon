@@ -33,12 +33,12 @@ class Font(BaseObject):
 
     **This object posts the following notifications:**
 
-    ===================  ====
-    Name                 Note
-    ===================  ====
-    Font.Changed         Posted when the *dirty* attribute is set.
-    Font.ReloadedGlyphs  Posted after the *reloadGlyphs* method has been called.
-    ===================  ====
+    ===================
+    Name
+    ===================
+    Font.Changed
+    Font.ReloadedGlyphs
+    ===================
 
     The Font object has some dict like behavior. For example, to get a glyph::
 

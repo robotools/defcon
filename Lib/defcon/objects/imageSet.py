@@ -14,11 +14,13 @@ class ImageSet(BaseObject):
 
     **This object posts the following notifications:**
 
-    ===========       ====
-    Name              Note
-    ===========       ====
-    ImageSet.Changed  Posted when the *dirty* attribute is set.
-    ===========       ====
+    =========================
+    Name
+    =========================
+    ImageSet.FileNamesChanged
+    ImageSet.ImageChanged
+    ImageSet.ImageDeleted
+    =========================
 
     This object behaves like a dict. For example, to get the
     raw image data for a particular image::
@@ -55,8 +57,10 @@ class ImageSet(BaseObject):
 
     def _set_fileNames(self, fileNames):
         assert not self._data
+        oldValue = self._data.keys()
         for fileName in fileNames:
             self._data[fileName] = _imageDict(onDisk=True)
+        self.postNotification("ImageSet.FileNamesChanged", data=dict(oldValue=oldValue, newValue=fileNames))
 
     fileNames = property(_get_fileNames, _set_fileNames, doc="A list of all image file names. This should not be set externally.")
 
@@ -103,11 +107,13 @@ class ImageSet(BaseObject):
             onDiskModTime = self._data[fileName]["onDiskModTime"]
             del self._data[fileName] # now remove it
         self._data[fileName] = _imageDict(data=data, dirty=True, digest=_makeDigest(data), onDisk=onDisk, onDiskModTime=onDiskModTime)
+        self.postNotification("ImageSet.ImageChanged", data=dict(name=fileName))
         self.dirty = True
 
     def __delitem__(self, fileName):
         n = self[fileName] # force it to load so that the stamping is correct
         self._scheduledForDeletion[fileName] = dict(self._data.pop(fileName))
+        self.postNotification("ImageSet.ImageDeleted", data=dict(name=fileName))
         self.dirty = True
 
     # ---------------
