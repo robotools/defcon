@@ -82,11 +82,13 @@ doc = """
 
     **This object posts the following notifications:**
 
-    ============  ====
-    Name          Note
-    ============  ====
-    Info.Changed  Posted when the *dirty* attribute is set.
-    ============  ====
+    ======================
+    Name
+    ======================
+    Info.Changed
+    Info.ValueChanged
+    Info.GuidelinesChanged
+    ======================
 
     **Note:** The documentation strings here were automatically generated
     from the `UFO specification <http://unifiedfontobject.org/filestructure/fontinfo.html>`_.
@@ -136,6 +138,9 @@ for attr in sorted(ufoLib.fontInfoAttributesVersion3):
         print "        return self._%s" % attr
     print
     print "    def _set_%s(self, value):" % attr
+    print "        oldValue = self._%s" % attr
+    print "        if oldValue == value:"
+    print "            return"
     print "        if value is None:"
     print "            self._%s = None" % attr
     print "        else:"
@@ -144,6 +149,7 @@ for attr in sorted(ufoLib.fontInfoAttributesVersion3):
     print ("                raise ValueError(\"Invalid value (___) for attribute %s.\" %% repr(value))" % (attr)).replace("___", "%s")
     print "            else:"
     print "                self._%s = value" % attr
+    print "        self.postNotification(\"Info.ValueChanged\", data=dict(attribute=\"%s\", oldValue=oldValue, newValue=value))" % attr
     print "        self.dirty = True"
     print
     print "    %s = property(_get_%s, _set_%s, doc=\"%s\")" % (attr, attr, attr, attributeDocumentation[attr])
@@ -192,7 +198,7 @@ handBuilt = """
         will be raised if the guideline's identifier conflicts with any of
         the identifiers within the info.
 
-        This will post a *Glyph.Changed* notification.
+        This will post *Info.GuidelinesChanged* and *Info.Changed* notifications.
         \"\"\"
         assert guideline not in self._guidelines
         self.insertGuideline(len(self._guidelines), guideline)
@@ -205,7 +211,7 @@ handBuilt = """
         identifier conflicts with any of the identifiers within
         the info.
 
-        This will post a *Glyph.Changed* notification.
+        This will post *Info.GuidelinesChanged* and *Info.Changed* notifications.
         \"\"\"
         assert guideline not in self._guidelines
         if not isinstance(guideline, self._guidelineClass):
@@ -218,6 +224,7 @@ handBuilt = """
         if guideline.getParent() != self:
             self._setParentDataInGuideline(guideline)
         self._guidelines.insert(index, guideline)
+        self.postNotification("Info.GuidelinesChanged")
         self.dirty = True
 
     def removeGuideline(self, guideline):
@@ -230,6 +237,7 @@ handBuilt = """
             self._identifiers.remove(guideline.identifier)
         self._guidelines.remove(guideline)
         self._removeParentDataInGuideline(guideline)
+        self.postNotification("Info.GuidelinesChanged")
         self.dirty = True
 
     def guidelineIndex(self, guideline):
@@ -254,6 +262,7 @@ handBuilt = """
     # ----------------------
 
     def _guidelineChanged(self, notification):
+        self.postNotification("Info.GuidelinesChanged")
         self.dirty = True
 """.strip()
 
