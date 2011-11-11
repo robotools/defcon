@@ -1,5 +1,7 @@
+from fontTools.misc.transform import Transform
 from defcon.objects.base import BaseObject
 
+_defaultTransformation = (1, 0, 0, 1, 0, 0)
 
 class Component(BaseObject):
 
@@ -22,37 +24,40 @@ class Component(BaseObject):
         super(Component, self).__init__()
         self._dirty = False
         self._baseGlyph = None
-        self._transformation = (1, 0, 0, 1, 0, 0)
+        self._transformation = tuple(_defaultTransformation)
 
     # ----------
     # Attributes
     # ----------
 
-    def _get_bounds(self):
-        from robofab.pens.boundsPen import BoundsPen
+    def _getBounds(self, boundsAttr):
         glyph = self.getParent()
         if glyph is None:
             return None
         font = glyph.getParent()
         if font is None:
             return None
-        pen = BoundsPen(font)
-        self.draw(pen)
-        return pen.bounds
+        if self.baseGlyph not in font:
+            return None
+        glyph = font[self.baseGlyph]
+        bounds = getattr(glyph, boundsAttr)
+        if bounds is None:
+            return None
+        if self.transformation == _defaultTransformation:
+            return bounds
+        xMin, yMin, xMax, yMax = bounds
+        t = Transform(*self.transformation)
+        points = [(xMin, yMin), (xMax, yMax)]
+        (xMin, yMin), (xMax, yMax) = t.transformPoints(points)
+        return xMin, yMin, xMax, yMax
+
+    def _get_bounds(self):
+        return self._getBounds("bounds")
 
     bounds = property(_get_bounds, doc="The bounds of the components's outline expressed as a tuple of form (xMin, yMin, xMax, yMax).")
 
     def _get_controlPointBounds(self):
-        from fontTools.pens.boundsPen import ControlBoundsPen
-        glyph = self.getParent()
-        if glyph is None:
-            return None
-        font = glyph.getParent()
-        if font is None:
-            return None
-        pen = ControlBoundsPen(font)
-        self.draw(pen)
-        return pen.bounds
+        return self._getBounds("controlPointBounds")
 
     controlPointBounds = property(_get_controlPointBounds, doc="The control bounds of all points in the components. This only measures the point positions, it does not measure curves. So, curves without points at the extrema will not be properly measured.")
 
