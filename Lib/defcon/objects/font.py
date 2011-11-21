@@ -33,12 +33,13 @@ class Font(BaseObject):
 
     **This object posts the following notifications:**
 
-    ===================
+    ======================
     Name
-    ===================
+    ======================
     Font.Changed
     Font.ReloadedGlyphs
-    ===================
+    Font.GlyphOrderChanged
+    ======================
 
     The Font object has some dict like behavior. For example, to get a glyph::
 
@@ -113,6 +114,8 @@ class Font(BaseObject):
         )
         self._layers.setParent(self)
         self._layers.addObserver(self, "_objectDirtyStateChange", "LayerSet.Changed")
+        self._layers.addObserver(self, "_layerAddedNotificationCallback", "LayerSet.LayerAdded")
+        self._layers.addObserver(self, "_layerWillBeDeletedNotificationCallback", "LayerSet.LayerWillBeDeleted")
 
         self._images = imageSetClass()
         self._images.setParent(self)
@@ -376,6 +379,45 @@ class Font(BaseObject):
 
     data = property(_get_data, doc="The font's :class:`DataSet` object.")
 
+    # glyph order
+
+    def _get_glyphOrder(self):
+        return list(self.lib.get("public.glyphOrder", []))
+
+    def _set_glyphOrder(self, value):
+        oldValue = self.lib.get("public.glyphOrder")
+        if oldValue == value:
+            return
+        if value is None or len(value) == 0:
+            value = None
+            if "public.glyphOrder" in self.lib:
+                del self.lib["public.glyphOrder"]
+        else:
+            self.lib["public.glyphOrder"] = value
+        self.postNotification("Font.GlyphOrderChanged", data=dict(oldValue=oldValue, newValue=value))
+
+    glyphOrder = property(_get_glyphOrder, _set_glyphOrder, doc="The font's glyph order. When setting the value must be a list of glyph names. There is no requirement, nor guarantee, that the list will contain only names of glyphs in the font. Setting this posts *Font.GlyphOrderChanged* and *Font.Changed* notifications.")
+
+    def updateGlyphOrder(self, addedGlyph=None, removedGlyph=None):
+        """
+        This method tries to keep the glyph order in sync.
+        This should not be called externally. It may be overriden
+        by subclasses as needed.
+        """
+        order = self.glyphOrder
+        if addedGlyph is not None:
+            if addedGlyph not in order:
+                order.append(addedGlyph)
+        elif removedGlyph is not None:
+            if removedGlyph in order:
+                count = order.count(removedGlyph)
+                if count == 1:
+                    order.remove(removedGlyph)
+                else:
+                    for i in range(count):
+                        order.remove(removedGlyph)
+        self.glyphOrder = order
+
     # -------
     # Methods
     # -------
@@ -564,6 +606,30 @@ class Font(BaseObject):
     def _objectDirtyStateChange(self, notification):
         if notification.object.dirty:
             self.dirty = True
+
+    def _layerAddedNotificationCallback(self, notification):
+        name = notification.data["name"]
+        layer = self.layers[name]
+        layer.addObserver(self, "_glyphAddedNotificationCallback", "Layer.GlyphAdded")
+        layer.addObserver(self, "_glyphDeletedNotificationCallback", "Layer.GlyphDeleted")
+
+    def _layerWillBeDeletedNotificationCallback(self, notification):
+        layer.removeObserver(self, "Layer.GlyphAdded")
+        layer.removeObserver(self, "Layer.GlyphDeleted")
+
+    def _glyphAddedNotificationCallback(self, notification):
+        name = notification.data["name"]
+        self.updateGlyphOrder(addedGlyph=name)
+
+    def _glyphDeletedNotificationCallback(self, notification):
+        name = notification.data["name"]
+        stillExists = False
+        for layer in self.layers:
+            if name in layer:
+                stillExists = True
+                break
+        if not stillExists:
+            self.updateGlyphOrder(removedGlyph=name)
 
     # ---------------------
     # External Edit Support
@@ -1498,6 +1564,27 @@ def _testReloadGlyphs():
     >>> f = open(path, "wb")
     >>> f.write(t)
     >>> f.close()
+    """
+
+def _testGlyphOrder():
+    """
+    >>> from defcon.test.testTools import getTestFontPath
+    >>> font = Font(getTestFontPath())
+    >>> font.glyphOrder
+    []
+    >>> font.glyphOrder = list(sorted(font.keys()))
+    >>> font.glyphOrder
+    ['A', 'B', 'C']
+    >>> layer = font.layers["public.default"]
+    >>> layer.newGlyph("X")
+    >>> font.glyphOrder
+    ['A', 'B', 'C', 'X']
+    >>> del layer["A"]
+    >>> font.glyphOrder
+    ['A', 'B', 'C', 'X']
+    >>> del layer["X"]
+    >>> font.glyphOrder
+    ['A', 'B', 'C']
     """
 
 if __name__ == "__main__":
