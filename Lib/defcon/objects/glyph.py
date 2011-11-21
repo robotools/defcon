@@ -28,9 +28,9 @@ class Glyph(BaseObject):
 
     **This object posts the following notifications:**
 
-    =======================
+    ============================
     Name
-    =======================
+    ============================
     Glyph.Changed
     Glyph.NameChanged
     Glyph.UnicodesChanged
@@ -39,12 +39,17 @@ class Glyph(BaseObject):
     Glyph.NoteChanged
     Glyph.LibChanged
     Glyph.ImageChanged
+    Glyph.ImageWillBeDeleted
+    Glyph.ContourWillBeDeleted
     Glyph.ContoursChanged
+    Glyph.ComponentWillBeDeleted
     Glyph.ComponentsChanged
+    Glyph.AnchorWillBeDeleted
     Glyph.AnchorsChanged
+    Glyph.GuidelineWillBeDeleted
     Glyph.GuidelinesChanged
     Glyph.MarkColorChanged
-    =======================
+    ============================
 
     The Glyph object has list like behavior. This behavior allows you to interact
     with contour data directly. For example, to get a particular contour::
@@ -64,6 +69,7 @@ class Glyph(BaseObject):
     """
 
     changeNotificationName = "Glyph.Changed"
+    representationFactories = {}
 
     def __init__(self, contourClass=None, pointClass=None, componentClass=None, anchorClass=None, guidelineClass=None, libClass=None):
         super(Glyph, self).__init__()
@@ -357,6 +363,7 @@ class Glyph(BaseObject):
     def _set_image(self, image):
         if image is None:
             if self._image is not None:
+                self.postNotification(notification="Glyph.ImageWillBeDeleted")
                 self._removeParentDataInImage()
                 self._image = None
                 self.postNotification(notification="Glyph.ImageChanged")
@@ -707,6 +714,7 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
+        self.postNotification(notification="Glyph.ContourWillBeDeleted", data=dict(object=contour))
         identifiers = self._identifiers
         if contour.identifier is not None:
             identifiers.remove(contour.identifier)
@@ -725,6 +733,7 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
+        self.postNotification(notification="Glyph.ComponentWillBeDeleted", data=dict(object=component))
         if component.identifier is not None:
             self._identifiers.remove(component.identifier)
         self._components.remove(component)
@@ -739,6 +748,7 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
+        self.postNotification(notification="Glyph.AnchorWillBeDeleted", data=dict(object=anchor))
         # XXX handle identifiers
         self._anchors.remove(anchor)
         self._removeParentDataInAnchor(anchor)
@@ -751,6 +761,7 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
+        self.postNotification(notification="Glyph.GuidelineWillBeDeleted", data=dict(object=guideline))
         if guideline.identifier is not None:
             self._identifiers.remove(guideline.identifier)
         self._guidelines.remove(guideline)

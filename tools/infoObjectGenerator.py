@@ -82,13 +82,14 @@ doc = """
 
     **This object posts the following notifications:**
 
-    ======================
+    ===========================
     Name
-    ======================
+    ===========================
     Info.Changed
     Info.ValueChanged
     Info.GuidelinesChanged
-    ======================
+    Info.GuidelineWillBeDeleted
+    ===========================
 
     **Note:** The documentation strings here were automatically generated
     from the `UFO specification <http://unifiedfontobject.org/filestructure/fontinfo.html>`_.
@@ -234,6 +235,7 @@ handBuilt = """
 
         This will post a *Glyph.Changed* notification.
         \"\"\"
+        self.postNotification(notification="Info.GuidelineWillBeDeleted", data=dict(object=guideline))
         if guideline.identifier is not None:
             self._identifiers.remove(guideline.identifier)
         self._guidelines.remove(guideline)

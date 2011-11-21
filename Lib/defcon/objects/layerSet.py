@@ -20,6 +20,7 @@ class LayerSet(BaseObject):
     LayerSet.LayerOrderChanged
     LayerSet.LayerAdded
     LayerSet.LayerDeleted
+    LayerSet.LayerWillBeDeleted
     ============================
 
     This object behaves like a dict. For example, to get a particular
@@ -172,6 +173,7 @@ class LayerSet(BaseObject):
             name = self._defaultLayerName
         if name not in self:
             raise KeyError("%s not in layers" % name)
+        self.postNotification("LayerSet.LayerWillBeDeleted", data=dict(name=name))
         del self._layers[name]
         self._layerOrder.remove(name)
         self._layerActionHistory.append(dict(action="delete", name=name))

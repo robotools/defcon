@@ -15,17 +15,18 @@ class Layer(BaseObject):
 
     **This object posts the following notifications:**
 
-    ===================
+    ========================
     Name
-    ===================
+    ========================
     Layer.Changed
     Layer.GlyphsChanged
     Layer.GlyphChanged
     Layer.GlyphAdded
     Layer.GlyphDeleted
+    Layer.GlyphWillBeDeleted
     Layer.NameChanged
     Layer.ColorChanged
-    ===================
+    ========================
 
     The Layer object has some dict like behavior. For example, to get a glyph::
 
@@ -208,6 +209,7 @@ class Layer(BaseObject):
     def __delitem__(self, name):
         if name not in self:
             raise KeyError, "%s not in layer" % name
+        self.postNotification("Layer.GlyphWillBeDeleted", data=dict(mname=name))
         self._unicodeData.removeGlyphData(name, self[name].unicodes)
         dataOnDiskTimeStamp = None
         dataOnDisk = None

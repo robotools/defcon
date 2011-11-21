@@ -14,13 +14,14 @@ class ImageSet(BaseObject):
 
     **This object posts the following notifications:**
 
-    =========================
+    ===========================
     Name
-    =========================
+    ===========================
     ImageSet.FileNamesChanged
     ImageSet.ImageChanged
+    ImageSet.ImageWillBeDeleted
     ImageSet.ImageDeleted
-    =========================
+    ===========================
 
     This object behaves like a dict. For example, to get the
     raw image data for a particular image::
@@ -114,6 +115,7 @@ class ImageSet(BaseObject):
 
     def __delitem__(self, fileName):
         n = self[fileName] # force it to load so that the stamping is correct
+        self.postNotification("ImageSet.ImageWillBeDeleted", data=dict(name=fileName))
         self._scheduledForDeletion[fileName] = dict(self._data.pop(fileName))
         self.postNotification("ImageSet.ImageDeleted", data=dict(name=fileName))
         self.dirty = True
