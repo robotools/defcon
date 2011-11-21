@@ -209,7 +209,7 @@ class Layer(BaseObject):
     def __delitem__(self, name):
         if name not in self:
             raise KeyError, "%s not in layer" % name
-        self.postNotification("Layer.GlyphWillBeDeleted", data=dict(mname=name))
+        self.postNotification("Layer.GlyphWillBeDeleted", data=dict(name=name))
         self._unicodeData.removeGlyphData(name, self[name].unicodes)
         dataOnDiskTimeStamp = None
         dataOnDisk = None
@@ -222,7 +222,7 @@ class Layer(BaseObject):
             self._keys.remove(name)
         if self._glyphSet is not None and name in self._glyphSet:
             self._scheduledForDeletion[name] = dict(dataOnDiskTimeStamp=dataOnDiskTimeStamp, dataOnDisk=dataOnDisk)
-        self.postNotification("Layer.GlyphDeleted", data=dict(mname=name))
+        self.postNotification("Layer.GlyphDeleted", data=dict(name=name))
         self.dirty = True
 
     def __len__(self):
