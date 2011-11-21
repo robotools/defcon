@@ -45,6 +45,7 @@ class Kerning(BaseDictObject):
     deleteItemNotificationName = "Kerning.PairDeleted"
     clearNotificationName = "Kerning.Cleared"
     updateNotificationName = "Kerning.Updated"
+    representationFactories = {}
 
     def get(self, pair, default=0):
         return super(Kerning, self).get(pair, default)

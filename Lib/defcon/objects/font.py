@@ -62,6 +62,7 @@ class Font(BaseObject):
     """
 
     changeNotificationName = "Font.Changed"
+    representationFactories = {}
 
     def __init__(self, path=None,
                     kerningClass=None, infoClass=None, groupsClass=None, featuresClass=None, libClass=None, unicodeDataClass=None,

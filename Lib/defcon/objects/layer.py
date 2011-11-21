@@ -49,6 +49,7 @@ class Layer(BaseObject):
     """
 
     changeNotificationName = "Layer.Changed"
+    representationFactories = {}
 
     def __init__(self, glyphSet=None, libClass=None, unicodeDataClass=None,
                 guidelineClass=None, glyphClass=None,

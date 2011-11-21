@@ -26,6 +26,7 @@ class Anchor(BaseDictObject):
     """
 
     changeNotificationName = "Anchor.Changed"
+    representationFactories = {}
 
     def __init__(self, anchorDict=None):
         super(Anchor, self).__init__()

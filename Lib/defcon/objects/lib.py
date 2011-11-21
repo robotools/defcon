@@ -44,6 +44,7 @@ class Lib(BaseDictObject):
     deleteItemNotificationName = "Lib.ItemDeleted"
     clearNotificationName = "Lib.Cleared"
     updateNotificationName = "Lib.Updated"
+    representationFactories = {}
 
 
 if __name__ == "__main__":

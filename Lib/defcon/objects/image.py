@@ -33,6 +33,7 @@ class Image(BaseDictObject):
     """
 
     changeNotificationName = "Image.Changed"
+    representationFactories = {}
 
     def __init__(self, imageDict=None):
         super(Image, self).__init__()

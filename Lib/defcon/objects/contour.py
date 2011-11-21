@@ -39,6 +39,7 @@ class Contour(BaseObject):
     """
 
     changeNotificationName = "Contour.Changed"
+    representationFactories = {}
 
     def __init__(self, pointClass=None):
         super(Contour, self).__init__()

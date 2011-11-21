@@ -21,6 +21,7 @@ class Component(BaseObject):
     """
 
     changeNotificationName = "Component.Changed"
+    representationFactories = {}
 
     def __init__(self):
         super(Component, self).__init__()

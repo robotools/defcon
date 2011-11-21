@@ -20,6 +20,8 @@ class DataSet(BaseObject):
 
     """
 
+    representationFactories = {}
+
     def __init__(self, fileNames=None):
         super(DataSet, self).__init__()
         self._data = {}

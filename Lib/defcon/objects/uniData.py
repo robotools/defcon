@@ -41,6 +41,7 @@ class UnicodeData(BaseDictObject):
     """
 
     changeNotificationName = "UnicodeData.Changed"
+    representationFactories = {}
 
     def __init__(self):
         super(UnicodeData, self).__init__()

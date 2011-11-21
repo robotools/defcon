@@ -27,6 +27,7 @@ class Guideline(BaseDictObject):
     """
 
     changeNotificationName = "Guideline.Changed"
+    representationFactories = {}
 
     def __init__(self, guidelineDict=None):
         super(Guideline, self).__init__()

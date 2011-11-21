@@ -97,6 +97,7 @@ doc = """
 print doc
 
 print "    changeNotificationName = \"Info.Changed\""
+print "    representationFactories = {}"
 print
 
 print "    def __init__(self, guidelineClass=None):"

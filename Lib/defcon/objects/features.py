@@ -17,6 +17,7 @@ class Features(BaseObject):
     """
 
     changeNotificationName = "Features.Changed"
+    representationFactories = {}
 
     def __init__(self):
         super(Features, self).__init__()

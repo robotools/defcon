@@ -34,6 +34,7 @@ class LayerSet(BaseObject):
     """
 
     changeNotificationName = "LayerSet.Changed"
+    representationFactories = {}
 
     def __init__(self, layerClass=None, libClass=None, unicodeDataClass=None, 
             guidelineClass=None, glyphClass=None,

@@ -65,6 +65,7 @@ class Groups(BaseDictObject):
     deleteItemNotificationName = "Groups.GroupDeleted"
     clearNotificationName = "Groups.Cleared"
     updateNotificationName = "Groups.Updated"
+    representationFactories = {}
 
 
 if __name__ == "__main__":

@@ -16,9 +16,23 @@ class BaseObject(object):
     ====================
 
     Keep in mind that subclasses will not post these same notifications.
+
+    Subclasses must override the following attributes:
+
+    +-------------------------+--------------------------------------------------+
+    | Name                    | Notes                                            |
+    +=========================+==================================================+
+    | changeNotificationName  | This must be a string unique to the class        |
+    |                         | indicating the name of the notification          |
+    |                         | to be posted when th dirty attribute is set.     |
+    +-------------------------+--------------------------------------------------+
+    | representationFactories | This must be a dictionary that is shared across  |
+    |                         | *all* instances of the class.                    |
+    +-------------------------+--------------------------------------------------+
     """
 
     changeNotificationName = "BaseObject.Changed"
+    representationFactories = None
 
     def __init__(self):
         self._init()
@@ -28,7 +42,7 @@ class BaseObject(object):
         self._dispatcher = None
         self._dataOnDisk = None
         self._dataOnDiskTimeStamp = None
-        self._notificationName = self.changeNotificationName
+        self._representations = {}
 
     # ------
     # Parent
@@ -200,6 +214,83 @@ class BaseObject(object):
         if dispatcher is not None:
             dispatcher.postNotification(notification=notification, observable=self, data=data)
 
+    # ---------------
+    # Representations
+    # ---------------
+
+    def getRepresentation(self, name, **kwargs):
+        """
+        Get a representation. **name** must be a registered
+        representation name. **\*\*kwargs** will be passed
+        to the appropriate representation factory.
+        """
+        if name not in self._representations:
+            self._representations[name] = {}
+        representations = self._representations[name]
+        subKey = self._makeRepresentationSubKey(**kwargs)
+        if subKey not in representations:
+            factory = self.representationFactories[name]
+            representation = factory(self, **kwargs)
+            representations[subKey] = representation
+        return representations[subKey]
+
+    def destroyRepresentation(self, name, **kwargs):
+        """
+        Destroy the stored representation for **name**
+        and **\*\*kwargs**. If no **kwargs** are given,
+        any representation with **name** will be destroyed
+        regardless of the **kwargs** passed when the
+        representation was created.
+        """
+        if name not in self._representations:
+            return
+        if not kwargs:
+            del self._representations[name]
+        else:
+            representations = self._representations[name]
+            subKey = self._makeRepresentationSubKey(**kwargs)
+            if subKey in representations:
+                del self._representations[name][subKey]
+
+    def destroyAllRepresentations(self, notification=None):
+        """
+        Destroy all representations.
+        """
+        self._representations.clear()
+
+    def representationKeys(self):
+        """
+        Get a list of all representation keys that are
+        currently cached.
+        """
+        representations = []
+        for name, subDict in self._representations.items():
+            for subKey in subDict.keys():
+                kwargs = {}
+                if subKey is not None:
+                    for k, v in subKey:
+                        kwargs[k] = v
+                representations.append((name, kwargs))
+        return representations
+
+    def hasCachedRepresentation(self, name, **kwargs):
+        """
+        Returns a boolean indicating if a representation for
+        **name** and **\*\*kwargs** is cached in the object.
+        """
+        if name not in self._representations:
+            return False
+        subKey = self._makeRepresentationSubKey(**kwargs)
+        return subKey in self._representations[name]
+
+    def _makeRepresentationSubKey(self, **kwargs):
+        if kwargs:
+            key = sorted(kwargs.items())
+            key = tuple(key)
+        else:
+            key = None
+        return key
+
     # -----
     # Dirty
     # -----
@@ -288,52 +379,94 @@ class BaseDictObject(dict, BaseObject):
         self.dirty = True
 
 
-def _testDirty():
-    """
-    # set
-    >>> from defcon.test.testTools import NotificationTestObject
-    >>> notificationObject = NotificationTestObject()
-    >>> obj = BaseObject()
-    >>> obj.dispatcher = NotificationCenter()
-    >>> obj.addObserver(notificationObject, "testCallback", "BaseObject.Changed")
-    >>> obj.dirty = True
-    BaseObject.Changed None
-    >>> obj.dirty
-    True
-    >>> obj.dirty = False
-    BaseObject.Changed None
+def _representationTestFactory(obj, **kwargs):
+    return repr(tuple(sorted(kwargs.items())))
 
-    # get
+def _testRepresentations():
+    """
     >>> obj = BaseObject()
-    >>> obj._dispatcher = NotificationCenter()
-    >>> obj.dirty = True
-    >>> obj.dirty
+    >>> obj.representationFactories = dict(test=_representationTestFactory)
+
+    >>> obj.getRepresentation("test")
+    '()'
+    >>> obj.getRepresentation("test", attr1="foo", attr2="bar", attr3=1)
+    "(('attr1', 'foo'), ('attr2', 'bar'), ('attr3', 1))"
+    >>> obj.representationKeys()
+    [('test', {}), ('test', {'attr2': 'bar', 'attr3': 1, 'attr1': 'foo'})]
+    >>> obj.hasCachedRepresentation("test")
     True
-    >>> obj.dirty = False
-    >>> obj.dirty
+    >>> obj.hasCachedRepresentation("test", attr1="foo", attr2="bar", attr3=1)
+    True
+    >>> obj.hasCachedRepresentation("test", attr1="not foo", attr2="bar", attr3=1)
     False
 
-    # set
-    >>> obj = BaseDictObject()
-    >>> obj._dispatcher = NotificationCenter()
-    >>> obj.addObserver(notificationObject, "testCallback", "BaseObject.Changed")
-    >>> obj.dirty = True
-    BaseObject.Changed None
-    >>> obj.dirty
-    True
-    >>> obj.dirty = False
-    BaseObject.Changed None
+    >>> obj.destroyAllRepresentations()
+    >>> obj.representationKeys()
+    []
 
-    # get
-    >>> obj = BaseDictObject()
-    >>> obj._dispatcher = NotificationCenter()
-    >>> obj.dirty = True
-    >>> obj.dirty
-    True
-    >>> obj.dirty = False
-    >>> obj.dirty
-    False
+    >>> obj.representationFactories["foo"] = _representationTestFactory
+    >>> obj.getRepresentation("test")
+    '()'
+    >>> obj.getRepresentation("test", attr1="foo", attr2="bar", attr3=1)
+    "(('attr1', 'foo'), ('attr2', 'bar'), ('attr3', 1))"
+    >>> obj.getRepresentation("test", attr21="foo", attr22="bar", attr23=1)
+    "(('attr21', 'foo'), ('attr22', 'bar'), ('attr23', 1))"
+    >>> obj.getRepresentation("foo")
+    '()'
+    >>> obj.destroyRepresentation("test", attr21="foo", attr22="bar", attr23=1)
+    >>> obj.representationKeys()
+    [('test', {}), ('test', {'attr2': 'bar', 'attr3': 1, 'attr1': 'foo'}), ('foo', {})]
+    >>> obj.destroyRepresentation("test")
+    >>> obj.representationKeys()
+    [('foo', {})]
     """
+
+#def _testDirty():
+#    """
+#    # set
+#    >>> from defcon.test.testTools import NotificationTestObject
+#    >>> notificationObject = NotificationTestObject()
+#    >>> obj = BaseObject()
+#    >>> obj.dispatcher = NotificationCenter()
+#    >>> obj.addObserver(notificationObject, "testCallback", "BaseObject.Changed")
+#    >>> obj.dirty = True
+#    BaseObject.Changed None
+#    >>> obj.dirty
+#    True
+#    >>> obj.dirty = False
+#    BaseObject.Changed None
+#
+#    # get
+#    >>> obj = BaseObject()
+#    >>> obj._dispatcher = NotificationCenter()
+#    >>> obj.dirty = True
+#    >>> obj.dirty
+#    True
+#    >>> obj.dirty = False
+#    >>> obj.dirty
+#    False
+#
+#    # set
+#    >>> obj = BaseDictObject()
+#    >>> obj._dispatcher = NotificationCenter()
+#    >>> obj.addObserver(notificationObject, "testCallback", "BaseObject.Changed")
+#    >>> obj.dirty = True
+#    BaseObject.Changed None
+#    >>> obj.dirty
+#    True
+#    >>> obj.dirty = False
+#    BaseObject.Changed None
+#
+#    # get
+#    >>> obj = BaseDictObject()
+#    >>> obj._dispatcher = NotificationCenter()
+#    >>> obj.dirty = True
+#    >>> obj.dirty
+#    True
+#    >>> obj.dirty = False
+#    >>> obj.dirty
+#    False
+#    """
 
 def _testContains():
     """

@@ -47,6 +47,8 @@ class ImageSet(BaseObject):
         del images["image file name"]
     """
 
+    representationFactories = {}
+
     def __init__(self, fileNames=None):
         super(ImageSet, self).__init__()
         self._data = {}

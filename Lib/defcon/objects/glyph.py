@@ -9,13 +9,15 @@ from defcon.objects.guideline import Guideline
 from defcon.objects.image import Image
 from defcon.tools.notifications import NotificationCenter
 
-_representationFactories = {}
-
 def addRepresentationFactory(name, factory):
-    _representationFactories[name] = factory
+    from warnings import warn
+    warn("addRepresentationFactory is deprecated. Use the functions in defcon.__init__.", DeprecationWarning)
+    Glyph.representationFactories[name] = factory
 
 def removeRepresentationFactory(name):
-    del _representationFactories[name]
+    from warnings import warn
+    warn("removeRepresentationFactory is deprecated. Use the functions in defcon.__init__.", DeprecationWarning)
+    del Glyph.representationFactories[name]
 
 
 class Glyph(BaseObject):
@@ -81,7 +83,6 @@ class Glyph(BaseObject):
         self._lib = None
         self._boundsCache = None
         self._controlPointBoundsCache = None
-        self._representations = {}
 
         if contourClass is None:
             contourClass = Contour
@@ -849,72 +850,6 @@ class Glyph(BaseObject):
         pen = PointInsidePen(glyphSet=None, testPoint=(x, y), evenOdd=evenOdd)
         self.draw(pen)
         return pen.getResult()
-
-    # ---------------
-    # Representations
-    # ---------------
-
-    def representationKeys(self):
-        """
-        Get a list of all representation keys
-        that have been called within this object.
-        """
-        representations = []
-        for key in self._representations.keys():
-            if isinstance(key, basestring):
-                name = key
-                kwargs = {}
-            else:
-                name = key[0]
-                kwargs = {}
-                for k, v in key[1:]:
-                    kwargs[k] = v
-            representations.append((name, kwargs))
-        return representations
-
-    def destroyRepresentation(self, name, **kwargs):
-        """
-        Destroy the stored representation for **name**
-        and **\*\*kwargs**.
-        """
-        key = self._makeRepresentationKey(name, **kwargs)
-        if key in self._representations:
-            del self._representations[key]
-
-    def destroyAllRepresentations(self, notification=None):
-        """
-        Destroy all representations.
-        """
-        self._representations = {}
-
-    def getRepresentation(self, name, **kwargs):
-        """
-        Get a representation. **name** must be a registered
-        representation name. **\*\*kwargs** will be passed
-        to the appropriate representation factory.
-        """
-        key = self._makeRepresentationKey(name, **kwargs)
-        if key not in self._representations:
-            factory = _representationFactories[name]
-            representation = factory(self, self.getParent(), **kwargs)
-            self._representations[key] = representation
-        return self._representations[key]
-
-    def hasCachedRepresentation(self, name, **kwargs):
-        """
-        Returns a boolean indicating if a representation for
-        **name** and **\*\*kwargs** is cahced in the glyph.
-        """
-        key = self._makeRepresentationKey(name, **kwargs)
-        return key in self._representations
-
-    def _makeRepresentationKey(self, name, **kwargs):
-        if kwargs:
-            key = [name] + sorted(kwargs.items())
-            key = tuple(key)
-        else:
-            key = name
-        return key
 
     # ----------------------
     # Notification Callbacks

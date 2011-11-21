@@ -23,3 +23,18 @@ from defcon.objects.lib import Lib
 from defcon.objects.uniData import UnicodeData
 from defcon.objects.color import Color
 from defcon.objects.guideline import Guideline
+
+def registerRepresentationFactory(cls, name, factory):
+    """
+    Register **factory** as a representation factory
+    for all instances of **cls** (a :class:`defcon.objects.base.BaseObject`)
+    subclass under **name**.
+    """
+    cls.representationFactories[name] = factory
+
+def unregisterRepresentationFactory(cls, name):
+    """
+    Unegister the representation factory stored under
+    **name** in all instances of **cls**.
+    """
+    del cls.representationFactories[name]

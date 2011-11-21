@@ -27,6 +27,7 @@ class Info(BaseObject):
     """
 
     changeNotificationName = "Info.Changed"
+    representationFactories = {}
 
     def __init__(self, guidelineClass=None):
         super(Info, self).__init__()
