@@ -398,7 +398,7 @@ class Glyph(BaseObject):
             self.lib["public.markColor"] = value
         self.postNotification(notification="Glyph.MarkColorChanged", data=dict(oldValue=oldValue, newValue=value))
 
-    markColor = property(_get_markColor, _set_markColor, doc="The glyph's mark color. The value should be a :class:`Color` object but any value that can be converted to that type of object can be accepted when setting. Setting this posts *Glyph.MarkColorChanged* and *Glyph.Changed* notifications.")
+    markColor = property(_get_markColor, _set_markColor, doc="The glyph's mark color. When setting, the value can be a UFO color string, a sequence of (r, g, b, a) or a :class:`Color` object. Setting this posts *Glyph.MarkColorChanged* and *Glyph.Changed* notifications.")
 
     # -----------
     # Pen Methods
