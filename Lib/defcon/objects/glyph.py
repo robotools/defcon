@@ -749,7 +749,8 @@ class Glyph(BaseObject):
         This will post a *Glyph.Changed* notification.
         """
         self.postNotification(notification="Glyph.AnchorWillBeDeleted", data=dict(object=anchor))
-        # XXX handle identifiers
+        if anchor.identifier is not None:
+            self._identifiers.remove(anchor.identifier)
         self._anchors.remove(anchor)
         self._removeParentDataInAnchor(anchor)
         self.postNotification(notification="Glyph.AnchorsChanged")
