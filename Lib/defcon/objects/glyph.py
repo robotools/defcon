@@ -7,7 +7,7 @@ from defcon.objects.anchor import Anchor
 from defcon.objects.lib import Lib
 from defcon.objects.guideline import Guideline
 from defcon.objects.image import Image
-from defcon.tools.notifications import NotificationCenter
+from defcon.objects.color import Color
 
 def addRepresentationFactory(name, factory):
     from warnings import warn
@@ -43,6 +43,7 @@ class Glyph(BaseObject):
     Glyph.ComponentsChanged
     Glyph.AnchorsChanged
     Glyph.GuidelinesChanged
+    Glyph.MarkColorChanged
     =======================
 
     The Glyph object has list like behavior. This behavior allows you to interact
@@ -371,6 +372,33 @@ class Glyph(BaseObject):
                 self.dirty = True
 
     image = property(_get_image, _set_image, doc="The glyph's :class:`Image` object. Setting this posts *Glyph.ImageChanged* and *Glyph.Changed* notifications.")
+
+    def _get_markColor(self):
+        value = self.lib.get("public.markColor")
+        if value is not None:
+            value = Color(value)
+        return value
+
+    def _set_markColor(self, value):
+        # convert to a color object
+        if value is not None:
+            value = Color(value)
+        # don't write if there is no change
+        oldValue = self.lib.get("public.markColor")
+        if oldValue is not None:
+            oldValue = Color(oldValue)
+        if value == oldValue:
+            return
+        # remove
+        if value is None:
+            if "public.markColor" in self.lib:
+                del self.lib["public.markColor"]
+        # store
+        else:
+            self.lib["public.markColor"] = value
+        self.postNotification(notification="Glyph.MarkColorChanged", data=dict(oldValue=oldValue, newValue=value))
+
+    markColor = property(_get_markColor, _set_markColor, doc="The glyph's mark color. The value should be a :class:`Color` object but any value that can be converted to that type of object can be accepted when setting. Setting this posts *Glyph.MarkColorChanged* and *Glyph.Changed* notifications.")
 
     # -----------
     # Pen Methods
@@ -1084,6 +1112,23 @@ def _testAnchors():
     >>> glyph = font['A']
     >>> len(glyph.anchors)
     2
+    """
+
+def _testMarkColor():
+    """
+    >>> from defcon.objects.font import Font
+    >>> font = Font()
+    >>> font.newGlyph("A")
+    >>> glyph = font["A"]
+    >>> glyph.markColor
+    >>> glyph.markColor = "1,0,1,0"
+    >>> glyph.markColor
+    '1,0,1,0'
+    >>> glyph.markColor = "1,0,1,0"
+    >>> glyph.markColor
+    '1,0,1,0'
+    >>> glyph.markColor = None
+    >>> glyph.markColor
     """
 
 def _testCopyFromGlyph():
