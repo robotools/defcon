@@ -193,6 +193,22 @@ class LayerSet(BaseObject):
     # Methods
     # -------
 
+    def getSaveProgressBarTickCount(self, formatVersion):
+        """
+        Get the number of ticks that will be used by a progress bar
+        in the save method. This method should not be called externally.
+        Subclasses may override this method to implement custom saving behavior.
+        """
+        count = 0
+        if formatVersion < 3:
+            count += 1
+            count += self.defaultLayer.getSaveProgressBarTickCount(formatVersion)
+        else:
+            for layer in self:
+                count += 1
+                count += layer.getSaveProgressBarTickCount(formatVersion)
+        return count
+
     def save(self, writer, saveAs=False, progressBar=None):
         """
         Save all layers. This method should not be called externally.
@@ -228,13 +244,17 @@ class LayerSet(BaseObject):
                     pass
         # save the layers
         if writer.formatVersion < 3:
+            if progressBar is not None:
+                progressBar.update(text="Saving glyphs...", increment=0)
             layer = self.defaultLayer
             glyphSet = writer.getGlyphSet(layerName=None, defaultLayer=True)
             layer.save(glyphSet, saveAs=saveAs, progressBar=progressBar)
+            if progressBar is not None:
+                progressBar.update()
         else:
             for layerName in self.layerOrder:
                 if progressBar is not None:
-                    progressBar.setTitle("Saving layer \"%s\"..." % layerName)
+                    progressBar.update(text="Saving layer \"%s\"..." % layerName, increment=0)
                 layer = self[layerName]
                 isDefaultLayer = layer == self.defaultLayer
                 glyphSet = writer.getGlyphSet(layerName=layerName, defaultLayer=isDefaultLayer)
@@ -244,7 +264,7 @@ class LayerSet(BaseObject):
                 self._stampLayerInfoDataState(layer)
                 layer.dirty = False
                 if progressBar is not None:
-                    progressBar.tick()
+                    progressBar.update()
             writer.writeLayerContents(self.layerOrder)
         # reset the action history
         self._layerActionHistory = []

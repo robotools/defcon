@@ -75,6 +75,14 @@ class DataSet(BaseObject):
     # File Management
     # ---------------
 
+    def getSaveProgressBarTickCount(self, formatVersion):
+        """
+        Get the number of ticks that will be used by a progress bar
+        in the save method. This method should not be called externally.
+        Subclasses may override this method to implement custom saving behavior.
+        """
+        return 0
+
     def save(self, writer, saveAs=False, progressBar=None):
         """
         Save data. This method should not be called externally.

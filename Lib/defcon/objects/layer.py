@@ -447,7 +447,19 @@ class Layer(BaseObject):
     # Methods
     # -------
 
+    def getSaveProgressBarTickCount(self, formatVersion):
+        """
+        Get the number of ticks that will be used by a progress bar
+        in the save method. This method should not be called externally.
+        Subclasses may override this method to implement custom saving behavior.
+        """
+        return 0
+
     def save(self, glyphSet, saveAs=False, progressBar=None):
+        """
+        Save the layer. This method should not be called externally.
+        Subclasses may override this method to implement custom saving behavior.
+        """
         # for a save as operation, load all the glyphs
         # and mark them as dirty. this could be more
         # effeciently handled by os.copy...
@@ -455,7 +467,7 @@ class Layer(BaseObject):
             for glyph in self:
                 glyph.dirty = True
         for glyphName, glyph in sorted(self._glyphs.items()):
-            self.saveGlyph(glyph, glyphSet, saveAs=saveAs, progressBar=progressBar)
+            self.saveGlyph(glyph, glyphSet, saveAs=saveAs)
         # remove deleted glyphs
         if not saveAs and self._scheduledForDeletion:
             for glyphName in self._scheduledForDeletion.keys():
@@ -465,7 +477,11 @@ class Layer(BaseObject):
         self._glyphSet = glyphSet
         self._scheduledForDeletion.clear()
 
-    def saveGlyph(self, glyph, glyphSet, saveAs=False, progressBar=None):
+    def saveGlyph(self, glyph, glyphSet, saveAs=False):
+        """
+        Save a glyph. This method should not be called externally.
+        Subclasses may override this method to implement custom saving behavior.
+        """
         if glyph.dirty:
             glyphSet.writeGlyph(glyph.name, glyph, glyph.drawPoints)
             self._stampGlyphDataState(glyph)
