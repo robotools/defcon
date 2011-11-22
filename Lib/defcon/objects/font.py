@@ -515,7 +515,6 @@ class Font(BaseObject):
             if downConvertinginPlace:
                 shutil.rmtree(self._path)
                 shutil.move(path, self._path)
-                # XXX reset internal time stamping on things that weren't saved
         finally:
             # if down converting in place, handle the temp
             if downConvertinginPlace:
