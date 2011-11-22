@@ -46,6 +46,43 @@ class Lib(BaseDictObject):
     updateNotificationName = "Lib.Updated"
     representationFactories = {}
 
+    # parents
+
+    def _get_font(self):
+        from defcon.objects.glyph import Glyph
+        parent = self.getParent()
+        if isinstance(parent, Glyph):
+            return parent.font
+        return parent
+
+    font = property(_get_font, doc="The :class:`Font` that this object belongs to.")
+
+    def _get_layerSet(self):
+        glyph = self.glyph
+        if glyph is None:
+            return None
+        return glyph.layerSet
+
+    layerSet = property(_get_layerSet, doc="The :class:`LayerSet` that this object belongs to (if it isn't a font lib).")
+
+    def _get_layer(self):
+        glyph = self.glyph
+        if glyph is None:
+            return None
+        return glyph.layer
+
+    layer = property(_get_layer, doc="The :class:`Layer` that this object belongs to (if it isn't a font lib).")
+
+    def _get_glyph(self):
+        from defcon.objects.font import Font
+        parent = self.getParent()
+        if isinstance(parent, Font):
+            return None
+        return parent
+
+    glyph = property(_get_glyph, doc="The :class:`Glyph` that this object belongs to (if it isn't a font lib).")
+
+
 
 if __name__ == "__main__":
     import doctest

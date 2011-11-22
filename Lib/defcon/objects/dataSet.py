@@ -27,6 +27,11 @@ class DataSet(BaseObject):
         self._data = {}
         self._scheduledForDeletion = {}
 
+    def _get_font(self):
+        return self.getParent()
+
+    font = property(_get_font, doc="The :class:`Font` that this object belongs to.")
+
     def _get_fileNames(self):
         return self._data.keys()
 

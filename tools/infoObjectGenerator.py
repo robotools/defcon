@@ -108,6 +108,7 @@ print "        if guidelineClass is None:"
 print "            guidelineClass = Guideline"
 print "        self._guidelineClass = guidelineClass"
 
+
 defaults = dict(
     guidelines=[],
 #    openTypeGaspRangeRecords=[],
@@ -123,6 +124,13 @@ defaults = dict(
 
 for attr in sorted(ufoLib.fontInfoAttributesVersion3):
     print "        self._%s = %s" % (attr, str(defaults.get(attr)))
+print
+
+print
+print "    def _get_font(self):"
+print "        return self.getParent()"
+print
+print "    font = property(_get_font, doc=\"The :class:`Font` that this object belongs to.\")"
 print
 
 print "    # ----------"
@@ -252,7 +260,7 @@ handBuilt = """
     def clearGuidelines(self):
         \"\"\"
         Clear all guidelines from the info.
-    
+
         This posts a *Glyph.Changed* notification.
         \"\"\"
         self.holdNotifications()

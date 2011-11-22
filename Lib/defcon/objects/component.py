@@ -34,6 +34,37 @@ class Component(BaseObject):
     # Attributes
     # ----------
 
+    # parents
+
+    def _get_font(self):
+        glyph = self.glyph
+        if glyph is None:
+            return None
+        return glyph.font
+
+    font = property(_get_font, doc="The :class:`Font` that this component belongs to.")
+
+    def _get_layerSet(self):
+        glyph = self.glyph
+        if glyph is None:
+            return None
+        return glyph.layerSet
+
+    layerSet = property(_get_layerSet, doc="The :class:`LayerSet` that this component belongs to.")
+
+    def _get_layer(self):
+        glyph = self.glyph
+        if glyph is None:
+            return None
+        return glyph.layer
+
+    layer = property(_get_layer, doc="The :class:`Layer` that this component belongs to.")
+
+    def _get_glyph(self):
+        return self.getParent()
+
+    glyph = property(_get_glyph, doc="The :class:`Glyph` that this component belongs to.")
+
     def _get_bounds(self):
         from robofab.pens.boundsPen import BoundsPen
         glyph = self.getParent()

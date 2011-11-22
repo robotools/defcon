@@ -1,3 +1,4 @@
+import weakref
 from fontTools.misc import arrayTools
 from defcon.objects.base import BaseObject
 from defcon.objects.contour import Contour
@@ -74,6 +75,7 @@ class Glyph(BaseObject):
     def __init__(self, contourClass=None, pointClass=None, componentClass=None, anchorClass=None, guidelineClass=None, libClass=None):
         super(Glyph, self).__init__()
 
+        self._layer = None
         self._parent = None
         self._dirty = False
         self._name = None
@@ -149,6 +151,33 @@ class Glyph(BaseObject):
     # Attributes
     # ----------
 
+    def _get_font(self):
+        return self.getParent()
+
+    font = property(_get_font, doc="The :class:`Font` that this glyph belongs to.")
+
+    def _get_layerSet(self):
+        layer = self.layer
+        if layer is None:
+            return None
+        return layer.layerSet
+
+    layerSet = property(_get_layerSet, doc="The :class:`LayerSet` that this glyph belongs to.")
+
+    def _get_layer(self):
+        if self._layer is None:
+            return None
+        return self._layer()
+
+    def _set_layer(self, value):
+        if value is not None:
+            value = weakref.ref(value)
+        self._layer = value
+
+    layer = property(_get_layer, _set_layer, doc="The :class:`Layer` that this glyph belongs to. This should not be set externally.")
+
+    # classes
+
     def _get_contourClass(self):
         return self._contourClass
 
@@ -174,10 +203,14 @@ class Glyph(BaseObject):
 
     guidelineClass = property(_get_guidelineClass, doc="The class used for guidelines.")
 
+    # identifiers
+
     def _get_identifiers(self):
         return self._identifiers
 
     identifiers = property(_get_identifiers, doc="Set of identifiers for the glyph. This is primarily for internal use.")
+
+    # name
 
     def _set_name(self, value):
         oldName = self._name
@@ -190,6 +223,8 @@ class Glyph(BaseObject):
         return self._name
 
     name = property(_get_name, _set_name, doc="The name of the glyph. Setting this posts *GLyph.NameChanged* and *Glyph.NameChanged* notifications.")
+
+    # unicodes
 
     def _get_unicodes(self):
         return list(self._unicodes)
@@ -220,6 +255,8 @@ class Glyph(BaseObject):
 
     unicode = property(_get_unicode, _set_unicode, doc="The primary unicode value for the glyph. This is the equivalent of ``glyph.unicodes[0]``. This is a convenience attribute that works with the ``unicodes`` attribute.")
 
+    # bounds
+
     def _get_bounds(self):
         from robofab.pens.boundsPen import BoundsPen
         if self._boundsCache is None:
@@ -239,6 +276,8 @@ class Glyph(BaseObject):
         return self._controlPointBoundsCache
 
     controlPointBounds = property(_get_controlPointBounds, doc="The control bounds of all points in the glyph. This only measures the point positions, it does not measure curves. So, curves without points at the extrema will not be properly measured.")
+
+    # margins
 
     def _get_leftMargin(self):
         bounds = self.bounds
@@ -280,6 +319,8 @@ class Glyph(BaseObject):
 
     rightMargin = property(_get_rightMargin, _set_rightMargin, doc="The right margin of the glyph. Setting this posts *Glyph.WidthChanged* and *Glyph.Changed* notifications among others.")
 
+    # width
+
     def _get_width(self):
         return self._width
 
@@ -292,6 +333,8 @@ class Glyph(BaseObject):
 
     width = property(_get_width, _set_width, doc="The width of the glyph. Setting this posts *Glyph.WidthChanged* and *Glyph.Changed* notifications.")
 
+    # height
+
     def _get_height(self):
         return self._height
 
@@ -303,6 +346,8 @@ class Glyph(BaseObject):
             self.dirty = True
 
     height = property(_get_height, _set_height, doc="The height of the glyph. Setting this posts *Glyph.HeightChanged* and *Glyph.Changed* notifications.")
+
+    # sub-object collections
 
     def _get_components(self):
         return list(self._components)
@@ -333,6 +378,8 @@ class Glyph(BaseObject):
 
     guidelines = property(_get_guidelines, _set_guidelines, doc="An ordered list of :class:`Guideline` objects stored in the glyph. Setting this will post a *Glyph.Changed* notification along with any notifications posted by the :py:meth:`Glyph.appendGuideline` and :py:meth:`Glyph.clearGuidelines` methods.")
 
+    # note
+
     def _get_note(self):
         return self._note
 
@@ -347,6 +394,8 @@ class Glyph(BaseObject):
 
     note = property(_get_note, _set_note, doc="An arbitrary note for the glyph. Setting this will post a *Glyph.Changed* notification.")
 
+    # lib
+
     def _get_lib(self):
         return self._lib
 
@@ -356,6 +405,8 @@ class Glyph(BaseObject):
         self.dirty = True
 
     lib = property(_get_lib, _set_lib, doc="The glyph's :class:`Lib` object. Setting this will clear any existing lib data and post a *Glyph.Changed* notification if data was replaced.")
+
+    # image
 
     def _get_image(self):
         return self._image
@@ -379,6 +430,8 @@ class Glyph(BaseObject):
                 self.dirty = True
 
     image = property(_get_image, _set_image, doc="The glyph's :class:`Image` object. Setting this posts *Glyph.ImageChanged* and *Glyph.Changed* notifications.")
+
+    # mark color
 
     def _get_markColor(self):
         value = self.lib.get("public.markColor")

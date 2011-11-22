@@ -61,6 +61,37 @@ class Contour(BaseObject):
     # Attributes
     # ----------
 
+    # parents
+
+    def _get_font(self):
+        glyph = self.glyph
+        if glyph is None:
+            return None
+        return glyph.font
+
+    font = property(_get_font, doc="The :class:`Font` that this contour belongs to.")
+
+    def _get_layerSet(self):
+        glyph = self.glyph
+        if glyph is None:
+            return None
+        return glyph.layerSet
+
+    layerSet = property(_get_layerSet, doc="The :class:`LayerSet` that this contour belongs to.")
+
+    def _get_layer(self):
+        glyph = self.glyph
+        if glyph is None:
+            return None
+        return glyph.layer
+
+    layer = property(_get_layer, doc="The :class:`Layer` that this contour belongs to.")
+
+    def _get_glyph(self):
+        return self.getParent()
+
+    glyph = property(_get_glyph, doc="The :class:`Glyph` that this contour belongs to.")
+
     def _get_pointClass(self):
         return self._pointClass
 

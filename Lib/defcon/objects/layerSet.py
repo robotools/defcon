@@ -60,6 +60,11 @@ class LayerSet(BaseObject):
 
         self._layerActionHistory = []
 
+    def _get_font(self):
+        return self.getParent()
+
+    font = property(_get_font, doc="The :class:`Font` that this layer set belongs to.")
+
     def _get_defaultLayerName(self):
         defaultLayer = self.defaultLayer
         for name, layer in self._layers.items():

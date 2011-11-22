@@ -854,6 +854,8 @@ class Font(BaseObject):
                     continue
                 if attr == "dispatcher":
                     continue
+                if attr == "font":
+                    continue
                 if not hasattr(oldInfo, attr):
                     continue
                 newValue = getattr(newInfo, attr)

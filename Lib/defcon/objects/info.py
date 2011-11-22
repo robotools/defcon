@@ -145,6 +145,12 @@ class Info(BaseObject):
         self._xHeight = None
         self._year = None
 
+
+    def _get_font(self):
+        return self.getParent()
+
+    font = property(_get_font, doc="The :class:`Font` that this object belongs to.")
+
     # ----------
     # Properties
     # ----------
@@ -2383,7 +2389,7 @@ class Info(BaseObject):
     def clearGuidelines(self):
         """
         Clear all guidelines from the info.
-    
+
         This posts a *Glyph.Changed* notification.
         """
         self.holdNotifications()

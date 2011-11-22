@@ -24,6 +24,11 @@ class Features(BaseObject):
         self._dirty = False
         self._text = None
 
+    def _get_font(self):
+        return self.getParent()
+
+    font = property(_get_font, doc="The :class:`Font` that this object belongs to.")
+
     def _set_text(self, value):
         oldValue = self._text
         if oldValue == value:

@@ -44,6 +44,55 @@ class Guideline(BaseDictObject):
     # Properties
     # ----------
 
+    # parents
+
+    def _get_font(self):
+        glyph = self.glyph
+        if glyph is not None:
+            return glyph.font
+        info = self.info
+        if info is not None:
+            return info.font
+        return None
+
+    font = property(_get_font, doc="The :class:`Font` that this object belongs to.")
+
+    def _get_info(self):
+        from defcon.objects.info import Info
+        parent = self.getParent()
+        if not isinstance(parent, Info):
+            return None
+        return parent
+
+    info = property(_get_info, doc="The :class:`Info` that this object belongs to (if it is a font info guideline).")
+
+    def _get_layerSet(self):
+        glyph = self.glyph
+        if glyph is None:
+            return None
+        return glyph.layerSet
+
+    layerSet = property(_get_layerSet, doc="The :class:`LayerSet` that this object belongs to (if it isn't a font a guideline).")
+
+    def _get_layer(self):
+        glyph = self.glyph
+        if glyph is None:
+            return None
+        return glyph.layer
+
+    layer = property(_get_layer, doc="The :class:`Layer` that this object belongs to (if it isn't a font a guideline).")
+
+    def _get_glyph(self):
+        from defcon.objects.font import Glyph
+        parent = self.getParent()
+        if not isinstance(parent, Glyph):
+            return None
+        return parent
+
+    glyph = property(_get_glyph, doc="The :class:`Glyph` that this object belongs to (if it isn't a font a guideline).")
+
+
+
     def _get_x(self):
         return self.get("x")
 

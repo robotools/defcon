@@ -15,6 +15,7 @@ from defcon.objects.contour import Contour
 from defcon.objects.point import Point
 from defcon.objects.component import Component
 from defcon.objects.anchor import Anchor
+from defcon.objects.image import Image
 from defcon.objects.info import Info
 from defcon.objects.groups import Groups
 from defcon.objects.kerning import Kerning

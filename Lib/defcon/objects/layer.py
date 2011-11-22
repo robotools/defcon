@@ -135,6 +135,7 @@ class Layer(BaseObject):
             font = layerSet.getParent()
         if font is not None:
             glyph.setParent(font)
+        glyph.layer = self
         glyph.addObserver(observer=self, methodName="_glyphDirtyStateChange", notification="Glyph.Changed")
         glyph.addObserver(observer=self, methodName="_glyphNameChange", notification="Glyph.NameChanged")
         glyph.addObserver(observer=self, methodName="_glyphUnicodesChange", notification="Glyph.UnicodesChanged")
@@ -143,6 +144,7 @@ class Layer(BaseObject):
         glyph.removeObserver(observer=self, notification="Glyph.Changed")
         glyph.removeObserver(observer=self, notification="Glyph.NameChanged")
         glyph.removeObserver(observer=self, notification="Glyph.UnicodesChanged")
+        glyph.layer = None
         glyph.setParent(None)
 
     def newGlyph(self, name):
@@ -244,6 +246,19 @@ class Layer(BaseObject):
     # ----------
     # Attributes
     # ----------
+
+    def _get_font(self):
+        layerSet = self.layerSet
+        if layerSet is None:
+            return None
+        return layerSet.font
+
+    font = property(_get_font, doc="The :class:`Font` that this layer belongs to.")
+
+    def _get_layerSet(self):
+        return self.getParent()
+
+    layerSet = property(_get_layerSet, doc="The :class:`LayerSet` that this layer belongs to.")
 
     def _set_name(self, value):
         oldName = self._name

@@ -49,15 +49,27 @@ class UnicodeData(BaseDictObject):
         self._forcedUnicodeToGlyphName = {}
 
     def _get_font(self):
-        layer = self.getParent()
-        if layer is None:
-            return None
-        layerSet = layer.getParent()
+        layerSet = self.layerSet
         if layerSet is None:
             return None
-        return layerSet.getParent()
+        return layerSet.font
 
-    _font = property(_get_font)
+    font = property(_get_font, doc="The :class:`Font` that this object belongs to.")
+
+    def _get_layerSet(self):
+        layer = self.layer
+        if layer is None:
+            return None
+        return layer.layerSet
+
+    layerSet = property(_get_layerSet, doc="The :class:`LayerSet` that this object belongs to.")
+
+    def _get_layer(self):
+        if self._layer is None:
+            return None
+        return self._layer()
+
+    layer = property(_get_layer, doc="The :class:`Layer` that this object belongs to.")
 
     # -----------
     # set and get
@@ -190,7 +202,7 @@ class UnicodeData(BaseDictObject):
         Get the Unicode value for **glyphName**. Returns *None*
         if no value is found.
         """
-        font = self._font
+        font = self.font
         if glyphName not in font:
             return None
         glyph = font[glyphName]
@@ -316,7 +328,7 @@ class UnicodeData(BaseDictObject):
         if uniValue is None:
             return glyphName
         if uniValue is not None:
-            font = self._font
+            font = self.font
             decomposition = unicodeTools.decompositionBase(uniValue)
             if decomposition != -1:
                 if decomposition in font.unicodeData:
@@ -377,7 +389,7 @@ class UnicodeData(BaseDictObject):
         if "." in glyphName:
             suffix = glyphName.split(".", 1)[1]
             pseudoMatch = preciseMatch + "." + suffix
-            if pseudoMatch in self._font:
+            if pseudoMatch in self.font:
                 return pseudoMatch
         return preciseMatch
 
@@ -656,7 +668,7 @@ class UnicodeData(BaseDictObject):
                 if base is not None:
                     if "." in glyphName and not glyphName.startswith("."):
                         suffix = glyphName.split(".")[1]
-                        if base + "." + suffix in self._font:
+                        if base + "." + suffix in self.font:
                             base = base + "." + suffix
             if base not in baseToGlyphNames:
                 baseToGlyphNames[base] = []
@@ -695,7 +707,7 @@ class UnicodeData(BaseDictObject):
     # custom sorts
 
     def _sortByCustomFunction(self, glyphNames, ascending, allowPseudoUnicode, function):
-        return function(self._font, glyphNames, ascending, allowPseudoUnicode)
+        return function(self.font, glyphNames, ascending, allowPseudoUnicode)
 
     # complex sorts
 

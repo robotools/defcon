@@ -67,6 +67,11 @@ class Groups(BaseDictObject):
     updateNotificationName = "Groups.Updated"
     representationFactories = {}
 
+    def _get_font(self):
+        return self.getParent()
+
+    font = property(_get_font, doc="The :class:`Font` that this object belongs to.")
+
 
 if __name__ == "__main__":
     import doctest
