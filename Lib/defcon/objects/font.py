@@ -422,6 +422,34 @@ class Font(BaseObject):
     # Methods
     # -------
 
+    def getSaveProgressBarTickCount(self, formatVersion=None):
+        """
+        Get the number of ticks that will be used by a progress bar
+        in the save method. Subclasses may override this method to
+        implement custom saving behavior.
+        """
+        # if not format version is given, use the existing.
+        # if that doesn't exist, go to 3.
+        if formatVersion is None:
+            formatVersion = self._ufoFormatVersion
+        if formatVersion is None:
+            formatVersion = 3
+        count = 0
+        count += 1 # info
+        count += 1 # groups
+        count += 1 # lib
+        if formatVersion != self._ufoFormatVersion and formatVersion < 3:
+            count += 1
+        else:
+            count += int(self.kerning.dirty)
+        if formatVersion >= 2:
+            count += int(self.features.dirty)
+        if formatVersion >= 3:
+            count += self.images.getSaveProgressBarTickCount(formatVersion)
+            count += self.data.getSaveProgressBarTickCount(formatVersion)
+        count += self.layers.getSaveProgressBarTickCount(formatVersion)
+        return count
+
     def save(self, path=None, formatVersion=None, removeUnreferencedImages=False, progressBar=None):
         """
         Save the font to **path**. If path is None, the path
@@ -508,12 +536,12 @@ class Font(BaseObject):
         """
         # info should always be saved
         if progressBar is not None:
-            progressBar.setTitle("Saving info...")
+            progressBar.update(text="Saving info...", increment=0)
         writer.writeInfo(self.info)
         self.info.dirty = False
         self._stampInfoDataState(UFOReader(writer.path))
         if progressBar is not None:
-            progressBar.tick()
+            progressBar.update()
 
     def saveGroups(self, writer, saveAs=False, progressBar=None):
         """
@@ -522,12 +550,12 @@ class Font(BaseObject):
         """
         # groups should always be saved
         if progressBar is not None:
-            progressBar.setTitle("Saving groups...")
+            progressBar.update(text="Saving groups...", increment=0)
         writer.writeGroups(self.groups)
         self.groups.dirty = False
         self._stampGroupsDataState(UFOReader(writer.path))
         if progressBar is not None:
-            progressBar.tick()
+            progressBar.update()
 
     def saveKerning(self, writer, saveAs=False, progressBar=None):
         """
@@ -535,13 +563,13 @@ class Font(BaseObject):
         Subclasses may override this method to implement custom saving behavior.
         """
         if progressBar is not None:
-            progressBar.setTitle("Saving kerning...")
+            progressBar.update(text="Saving kerning...", increment=0)
         if self.kerning.dirty or saveAs:
             writer.writeKerning(self.kerning)
             self.kerning.dirty = False
             self._stampKerningDataState(UFOReader(writer.path))
         if progressBar is not None:
-            progressBar.tick()
+            progressBar.update()
 
     def saveFeatures(self, writer, saveAs=False, progressBar=None):
         """
@@ -549,13 +577,13 @@ class Font(BaseObject):
         Subclasses may override this method to implement custom saving behavior.
         """
         if progressBar is not None:
-            progressBar.setTitle("Saving features...")
+            progressBar.update(text="Saving features...", increment=0)
         if self.features.dirty or saveAs:
             writer.writeFeatures(self.features.text)
             self.features.dirty = False
             self._stampFeaturesDataState(UFOReader(writer.path))
         if progressBar is not None:
-            progressBar.tick()
+            progressBar.update()
 
     def saveLib(self, writer, saveAs=False, progressBar=None):
         """
@@ -564,7 +592,7 @@ class Font(BaseObject):
         """
         # lib should always be saved
         if progressBar is not None:
-            progressBar.setTitle("Saving lib...")
+            progressBar.update(text="Saving lib...", increment=0)
         # if making format version 1, do some
         # temporary down conversion before
         # passing the lib to the writer
@@ -575,7 +603,7 @@ class Font(BaseObject):
         self.lib.dirty = False
         self._stampLibDataState(UFOReader(writer.path))
         if progressBar is not None:
-            progressBar.tick()
+            progressBar.update()
 
     def saveImages(self, writer, removeUnreferencedImages=False, saveAs=False, progressBar=None):
         """
@@ -583,10 +611,10 @@ class Font(BaseObject):
         Subclasses may override this method to implement custom saving behavior.
         """
         if progressBar is not None:
-            progressBar.setTitle("Saving images...")
+            progressBar.update(text="Saving images...", increment=0)
         self.images.save(writer, removeUnreferencedImages=removeUnreferencedImages, saveAs=saveAs, progressBar=progressBar)
         if progressBar is not None:
-            progressBar.tick()
+            progressBar.update()
 
     def saveData(self, writer, saveAs=False, progressBar=None):
         """
@@ -594,10 +622,10 @@ class Font(BaseObject):
         Subclasses may override this method to implement custom saving behavior.
         """
         if progressBar is not None:
-            progressBar.setTitle("Saving data...")
+            progressBar.update(text="Saving data...", increment=0)
         self.data.save(writer, saveAs=saveAs, progressBar=progressBar)
         if progressBar is not None:
-            progressBar.tick()
+            progressBar.update()
 
     # ----------------------
     # Notification Callbacks
