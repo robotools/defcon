@@ -48,7 +48,7 @@ class DataSet(BaseObject):
 
     def __getitem__(self, fileName):
         if self._data[fileName]["data"] is None:
-            path = self.getParent().path
+            path = self.font.path
             reader = UFOReader(path)
             path = os.path.join("data", fileName)
             data = reader.readBytesFromPath(path)
@@ -94,7 +94,7 @@ class DataSet(BaseObject):
         Subclasses may override this method to implement custom saving behavior.
         """
         if saveAs:
-            font = self.getParent()
+            font = self.font
             if font is not None and font.path is not None and os.path.exists(font.path):
                 reader = UFOReader(font.path)
                 readerDataDirectoryListing = reader.getDataDirectoryListing()

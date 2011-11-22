@@ -2360,7 +2360,7 @@ class Info(BaseObject):
             assert guideline.identifier not in identifiers
             if guideline.identifier is not None:
                 identifiers.add(guideline.identifier)
-        if guideline.getParent() != self:
+        if guideline.info != self:
             self._setParentDataInGuideline(guideline)
         self._guidelines.insert(index, guideline)
         self.postNotification("Info.GuidelinesChanged")

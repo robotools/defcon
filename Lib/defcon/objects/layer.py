@@ -129,10 +129,7 @@ class Layer(BaseObject):
 
     def _setParentDataInGlyph(self, glyph):
         # the parent of a glyph is always the font, not the layer
-        font = None
-        layerSet = self.getParent()
-        if layerSet is not None:
-            font = layerSet.getParent()
+        font = self.font
         if font is not None:
             glyph.setParent(font)
         glyph.layer = self

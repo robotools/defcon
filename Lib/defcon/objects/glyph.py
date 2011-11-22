@@ -260,7 +260,7 @@ class Glyph(BaseObject):
     def _get_bounds(self):
         from robofab.pens.boundsPen import BoundsPen
         if self._boundsCache is None:
-            pen = BoundsPen(self.getParent())
+            pen = BoundsPen(self.layer)
             self.draw(pen)
             self._boundsCache = pen.bounds
         return self._boundsCache
@@ -270,7 +270,7 @@ class Glyph(BaseObject):
     def _get_controlPointBounds(self):
         from fontTools.pens.boundsPen import ControlBoundsPen
         if self._controlPointBoundsCache is None:
-            pen = ControlBoundsPen(self.getParent())
+            pen = ControlBoundsPen(self.layer)
             self.draw(pen)
             self._controlPointBoundsCache = pen.bounds
         return self._controlPointBoundsCache
@@ -683,7 +683,7 @@ class Glyph(BaseObject):
             if point.identifier is not None:
                 assert point.identifier not in identifiers
                 self._identifiers.add(point.identifier)
-        if contour.getParent() != self:
+        if contour.glyph != self:
             self._setParentDataInContour(contour)
         self._contours.insert(index, contour)
         self._destroyBoundsCache()
@@ -706,7 +706,7 @@ class Glyph(BaseObject):
             assert component.identifier not in identifiers
             if component.identifier is not None:
                 identifiers.add(component.identifier)
-        if component.getParent() != self:
+        if component.glyph != self:
             self._setParentDataInComponent(component)
         self._components.insert(index, component)
         self._destroyBoundsCache()
@@ -731,7 +731,7 @@ class Glyph(BaseObject):
             assert anchor.identifier not in identifiers
             if anchor.identifier is not None:
                 identifiers.add(anchor.identifier)
-        if anchor.getParent() != self:
+        if anchor.glyph != self:
             self._setParentDataInAnchor(anchor)
         self._anchors.insert(index, anchor)
         self.postNotification(notification="Glyph.AnchorsChanged")
@@ -755,7 +755,7 @@ class Glyph(BaseObject):
             assert guideline.identifier not in identifiers
             if guideline.identifier is not None:
                 identifiers.add(guideline.identifier)
-        if guideline.getParent() != self:
+        if guideline.glyph != self:
             self._setParentDataInGuideline(guideline)
         self._guidelines.insert(index, guideline)
         self.postNotification(notification="Glyph.GuidelinesChanged")

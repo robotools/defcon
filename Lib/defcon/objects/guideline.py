@@ -83,15 +83,13 @@ class Guideline(BaseDictObject):
     layer = property(_get_layer, doc="The :class:`Layer` that this object belongs to (if it isn't a font a guideline).")
 
     def _get_glyph(self):
-        from defcon.objects.font import Glyph
+        from defcon.objects.glyph import Glyph
         parent = self.getParent()
         if not isinstance(parent, Glyph):
             return None
         return parent
 
     glyph = property(_get_glyph, doc="The :class:`Glyph` that this object belongs to (if it isn't a font a guideline).")
-
-
 
     def _get_x(self):
         return self.get("x")
@@ -163,7 +161,9 @@ class Guideline(BaseDictObject):
 
     def _get_identifiers(self):
         identifiers = None
-        parent = self.getParent()
+        parent = self.glyph
+        if parent is None:
+            parent = self.info
         if parent is not None:
             identifiers = parent.identifiers
         if identifiers is None:

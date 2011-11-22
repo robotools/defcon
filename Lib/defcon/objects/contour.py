@@ -525,9 +525,9 @@ class Contour(BaseObject):
 
     def _get_identifiers(self):
         identifiers = None
-        parent = self.getParent()
-        if parent is not None:
-            identifiers = parent.identifiers
+        glyph = self.glyph
+        if glyph is not None:
+            identifiers = glyph.identifiers
         if identifiers is None:
             identifiers = set()
         return identifiers

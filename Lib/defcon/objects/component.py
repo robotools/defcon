@@ -67,10 +67,10 @@ class Component(BaseObject):
 
     def _get_bounds(self):
         from robofab.pens.boundsPen import BoundsPen
-        glyph = self.getParent()
+        glyph = self.glyph
         if glyph is None:
             return None
-        font = glyph.getParent()
+        font = glyph.font
         if font is None:
             return None
         pen = BoundsPen(font)
@@ -81,10 +81,10 @@ class Component(BaseObject):
 
     def _get_controlPointBounds(self):
         from fontTools.pens.boundsPen import ControlBoundsPen
-        glyph = self.getParent()
+        glyph = self.glyph
         if glyph is None:
             return None
-        font = glyph.getParent()
+        font = glyph.font
         if font is None:
             return None
         pen = ControlBoundsPen(font)
@@ -162,10 +162,10 @@ class Component(BaseObject):
         "black" area of the component.
         """
         from fontTools.pens.pointInsidePen import PointInsidePen
-        glyph = self.getParent()
+        glyph = self.glyph
         if glyph is None:
             return False
-        font = self.getParent()
+        font = self.font
         if font is None:
             return False
         pen = PointInsidePen(glyphSet=font, testPoint=(x, y), evenOdd=evenOdd)
@@ -178,9 +178,9 @@ class Component(BaseObject):
 
     def _get_identifiers(self):
         identifiers = None
-        parent = self.getParent()
-        if parent is not None:
-            identifiers = parent.identifiers
+        glyph = self.glyph
+        if glyph is not None:
+            identifiers = glyph.identifiers
         if identifiers is None:
             identifiers = set()
         return identifiers

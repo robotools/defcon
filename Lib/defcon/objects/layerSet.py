@@ -367,7 +367,7 @@ class LayerSet(BaseObject):
         """
         Reload the layers. This should not be called externally.
         """
-        reader = UFOReader(self.getParent().path)
+        reader = UFOReader(self.font.path)
         # handle the layers
         currentLayerOrder = self.layerOrder
         for layerName, l in layerData.get("layers", {}).items():

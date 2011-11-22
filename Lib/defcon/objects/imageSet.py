@@ -73,7 +73,7 @@ class ImageSet(BaseObject):
     fileNames = property(_get_fileNames, _set_fileNames, doc="A list of all image file names. This should not be set externally.")
 
     def _get_unreferencedFileNames(self):
-        font = self.getParent()
+        font = self.font
         if font is None:
             return []
         unreferenced = set(self.fileNames)
@@ -90,7 +90,7 @@ class ImageSet(BaseObject):
     def __getitem__(self, fileName):
         d = self._data[fileName]
         if d["data"] is None:
-            path = self.getParent().path
+            path = self.font.path
             reader = UFOReader(path)
             data = reader.readImage(fileName)
             d["data"] = data
@@ -148,7 +148,7 @@ class ImageSet(BaseObject):
                 del self[fileName]
             self.enableNotifications()
         if saveAs:
-            font = self.getParent()
+            font = self.font
             if font is not None and font.path is not None and os.path.exists(font.path):
                 reader = UFOReader(font.path)
                 readerImageNames = reader.getImageDirectoryListing()

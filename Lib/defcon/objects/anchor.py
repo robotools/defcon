@@ -69,6 +69,8 @@ class Anchor(BaseDictObject):
 
     glyph = property(_get_glyph, doc="The :class:`Glyph` that this anchor belongs to.")
 
+    # coordinates
+
     def _get_x(self):
         return self.get("x")
 
@@ -93,6 +95,8 @@ class Anchor(BaseDictObject):
 
     y = property(_get_y, _set_y, doc="The y coordinate. Setting this will post *Anchor.YChanged* and *Anchor.Changed* notifications.")
 
+    # name
+
     def _get_name(self):
         return self.get("name")
 
@@ -104,6 +108,8 @@ class Anchor(BaseDictObject):
         self.postNotification("Anchor.NameChanged", data=dict(oldValue=old, newValue=value))
 
     name = property(_get_name, _set_name, doc="The name. Setting this will post *Anchor.NameChanged* and *Anchor.Changed* notifications.")
+
+    # color
 
     def _get_color(self):
         return self.get("color")
@@ -121,24 +127,13 @@ class Anchor(BaseDictObject):
 
     color = property(_get_color, _set_color, doc="The anchors's :class:`Color` object. When setting, the value can be a UFO color string, a sequence of (r, g, b, a) or a :class:`Color` object. Setting this posts *Anchor.ColorChanged* and *Anchor.Changed* notifications.")
 
-    # -------
-    # Methods
-    # -------
-
-    def move(self, (x, y)):
-        """
-        Move the anchor by **(x, y)**.
-
-        This will post *Anchor.XChange*, *Anchor.YChanged* and *Anchor.Changed* notifications if anything changed.
-        """
-        self.x += x
-        self.y += y
+    # identifier
 
     def _get_identifiers(self):
         identifiers = None
-        parent = self.getParent()
-        if parent is not None:
-            identifiers = parent.identifiers
+        glyph = self.glyph
+        if glyph is not None:
+            identifiers = glyph.identifiers
         if identifiers is None:
             identifiers = set()
         return identifiers
@@ -174,6 +169,19 @@ class Anchor(BaseDictObject):
         """
         identifier = makeRandomIdentifier(existing=self.identifiers)
         self.identifier = identifier
+
+    # -------
+    # Methods
+    # -------
+
+    def move(self, (x, y)):
+        """
+        Move the anchor by **(x, y)**.
+
+        This will post *Anchor.XChange*, *Anchor.YChanged* and *Anchor.Changed* notifications if anything changed.
+        """
+        self.x += x
+        self.y += y
 
 
 def _test():
