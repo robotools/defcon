@@ -243,7 +243,9 @@ class Contour(BaseObject):
 
     def reverse(self):
         """
-        Reverse the direction of the contour.
+        Reverse the direction of the contour. It's important to note
+        that the actual points stored in this object will be completely
+        repalced by new points.
 
         This will post *Contour.WindingDirectionChanged*,
         *Contour.PointsChanged* and *Contour.Changed* notifications.
@@ -251,16 +253,17 @@ class Contour(BaseObject):
         from robofab.pens.reverseContourPointPen import ReverseContourPointPen
         oldDirection = self.clockwise
         # put the current points in another contour
-        otherContour = self.__class__(self._pointClass)
+        otherContour = self.__class__(self.pointClass)
         # draw the points in this contour through
         # the reversing pen.
         reversePen = ReverseContourPointPen(otherContour)
         self.drawPoints(reversePen)
         # clear the points in this contour
-        # and copy the points from the other
-        # contour to this contour.
         self._clear(postNotification=False)
-        self._points = list(otherContour._points)
+        # draw the points back into this contour
+        self.disableNotifications()
+        otherContour.drawPoints(self)
+        self.enableNotifications()
         # post a notification
         self.postNotification("Contour.WindingDirectionChanged", data=dict(oldValue=oldDirection, newValue=self.clockwise))
         self.postNotification("Contour.PointsChanged")
