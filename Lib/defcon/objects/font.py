@@ -642,6 +642,8 @@ class Font(BaseObject):
         layer.addObserver(self, "_glyphDeletedNotificationCallback", "Layer.GlyphDeleted")
 
     def _layerWillBeDeletedNotificationCallback(self, notification):
+        name = notification.data["name"]
+        layer = self.layers[name]
         layer.removeObserver(self, "Layer.GlyphAdded")
         layer.removeObserver(self, "Layer.GlyphDeleted")
 
