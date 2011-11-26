@@ -1,22 +1,69 @@
+"""
+A flexible and relatively robust implementation
+of the Observer Pattern.
+"""
+
 import weakref
+from defcon.tools.future import *
+
+"""
+
+----------------------
+Internal Documentation
+----------------------
+
+Storage Structures:
+
+registry : {
+        (notification, observable) : OrderedDict(
+            observer : method name
+        )
+    }
+
+holds : {
+    (notification, observable, observer) : {
+        count=int,
+        notifications=[
+            (notification name, observable ref, data)
+        ]
+    )
+}
+
+disabled : {
+    (notification, observable, observer) : count
+}
+
+"""
+
 
 class NotificationCenter(object):
 
     def __init__(self):
-        self._observables = {}
+        self._registry = {}
         self._holds = {}
         self._disabled = {}
 
-    def addObserver(self, observer, methodName, notification, observable):
+    # -----
+    # Basic
+    # -----
+
+    def addObserver(self, observer, methodName, notification=None, observable=None):
         """
         Add an observer to this notification dispatcher.
 
         * **observer** An object that can be referenced with weakref.
         * **methodName** A string epresenting the method to be called
           when the notification is posted.
-        * **notification** The notification that teh observer should
-          be notified of.
-        * **observable** The object to observe.
+        * **notification** The notification that the observer should
+          be notified of. If this is None, all notifications for
+          the *observable* will be posted to *observer*.
+        * **observable** The object to observe. If this is None,
+          all notifications with the name provided as *notification*
+          will be posted to the *observer*.
+
+        If None is given for both *notification* and *observable*
+        **all** notifications posted will be sent to the method
+        given method of the observer.
 
         The method that will be called as a result of the action
         must accept a single *notification* argument. This will
@@ -25,13 +72,25 @@ class NotificationCenter(object):
         if observable is not None:
             observable = weakref.ref(observable)
         observer = weakref.ref(observer)
-        if notification not in self._observables:
-            self._observables[notification] = {}
-        observableDict = self._observables[notification]
-        if observable not in observableDict:
-            observableDict[observable] = {}
-        observerDict = observableDict[observable]
-        observerDict[observer] = methodName
+        key = (notification, observable)
+        if key not in self._registry:
+            self._registry[key] = OrderedDict()
+        assert observer not in self._registry[key], "An observer is only allowed to have one callback for a given notification + observable combination."
+        self._registry[key][observer] = methodName
+
+    def hasObserver(self, observer, notification, observable):
+        """
+        Returns a boolean indicating if the **observer** is registered
+        for **notification** posted by **observable**. Either
+        *observable* or *notification* may be None.
+        """
+        if observable is not None:
+            observable = weakref.ref(observable)
+        key = (notification, observable)
+        if key not in self._registry:
+            return False
+        observer = weakref.ref(observer)
+        return observer in self._registry[key]
 
     def removeObserver(self, observer, notification, observable):
         """
@@ -44,89 +103,104 @@ class NotificationCenter(object):
         """
         if observable is not None:
             observable = weakref.ref(observable)
+        key = (notification, observable)
+        if key not in self._registry:
+            return
         observer = weakref.ref(observer)
-        del self._observables[notification][observable][observer]
-
-    def hasObserver(self, observer, notification, observable):
-        """
-        Returns a boolean indicating is the **observer** is registered
-        for **notification** posted by **observable**.
-        """
-        if observable is not None:
-            observable = weakref.ref(observable)
-        observer = weakref.ref(observer)
-        if notification not in self._observables:
-            return False
-        if observable not in self._observables[notification]:
-            return False
-        if observer not in self._observables[notification][observable]:
-            return False
-        return True
+        if observer in self._registry[key]:
+            del self._registry[key][observer]
+        if not len(self._registry[key]):
+            del self._registry[key]
 
     def postNotification(self, notification, observable, data=None):
-        """
-        Post a notification to all objects observing **notification**
-        in **observable**.
-
-        * **notification** The name of the notification.
-        * **observable** The object that the notification belongs to.
-        * **data** Arbitrary data that will be stored in the :class:`Notification` object.
-
-        This will create a :class:`Notification` object and post it to
-        all relevant observers.
-        """
-        observableObj = observable
-        if observable is not None:
-            observable = weakref.ref(observable)
-        # check for some known combinations in the holds and disableds
+        assert notification is not None
+        assert observable is not None
+        observableRef = weakref.ref(observable)
+        # observer independent hold/disabled
+        # ----------------------------------
         if self._holds or self._disabled:
-            possibilities = [
+            holdDisabledPossibilities = (
+                # least specific -> most specific
+                # suspended for all
                 (None, None, None),
-                (observable, None, None),
-                (None, None, notification),
-                (observable, None, notification)
-            ]
-            for possibleObservable, possibleObserver, possibleNotification in possibilities:
-                key = self._makeHoldAndDisableKey(observable=possibleObservable, observer=possibleObserver, notification=possibleNotification)
+                # suspended for this notification
+                (notification, None, None),
+                # suspended for this observer
+                (None, observableRef, None),
+                # suspended for this notification + observable
+                (notification, observableRef, None)
+            )
+            for key in holdDisabledPossibilities:
                 if key in self._disabled:
                     return
                 if key in self._holds:
-                    n = (notification, observable, data)
+                    self._holds[key]
+                    n = (notification, observableRef, data)
                     if not self._holds[key]["notifications"] or self._holds[key]["notifications"][-1] != n:
                         self._holds[key]["notifications"].append(n)
                     return
-        # post
-        if notification in self._observables:
-            for observableRef, observerDict in self._observables[notification].items():
-                if observable == observableRef or observable is None:
-                    for observerRef, methodName in observerDict.items():
-                        observer = observerRef()
-                        # check the holds and disableds
-                        if self._disabled:
-                            possibilities = [
-                                (None, observerRef, None),
-                                (observableRef, observerRef, None),
-                                (None, observerRef, notification),
-                                (observableRef, observerRef, notification),
-                            ]
-                            skip = False
-                            for key in possibilities:
-                                if key in self._disabled:
-                                    break
-                                    skip = True
-                                if key in self._holds:
-                                    n = (notification, observable, data)
-                                    if not self._holds[key]["notifications"] or self._holds[key]["notifications"][-1] != n:
-                                        self._holds[key]["notifications"].append(n)
-                                    skip = True
-                                    break
-                            if skip:
-                                continue
-                        callback = getattr(observer, methodName)
-                        n = Notification(notification, observableRef, data)
-                        callback(n)
+        # posting
+        # -------
+        notificationObj = Notification(notification, observableRef, data)
+        registryPossibilities = (
+            # most specific -> least specific
+            (notification, observableRef),
+            (notification, None),
+            (None, observableRef),
+            (None, None)
+        )
+        for key in registryPossibilities:
+            if key not in self._registry:
+                continue
+            for observerRef, methodName in self._registry[key].items():
+                # observer specific hold/disabled
+                # -------------------------------
+                if self._holds or self._disabled:
+                    holdDisabledPossibilities = (
+                        # least specific -> most specific
+                        # suspended for observer
+                        (None, None, observerRef),
+                        # suspended for notification + observer
+                        (notification, None, observerRef),
+                        # suspended for observable + observer
+                        (None, observableRef, observerRef),
+                        # suspended for notification + observable + observer
+                        (notification, observableRef, observerRef)
+                    )
+                    disabled = False
+                    if self._disabled:
+                        for disableKey in holdDisabledPossibilities:
+                            if disableKey in self._disabled:
+                                disabled = True
+                                break
+                    if disabled:
+                        continue
+                    hold = False
+                    if self._holds:
+                        for holdKey in holdDisabledPossibilities:
+                            if holdKey in self._holds:
+                                hold = True
+                                n = (notification, observableRef, data)
+                                if not self._holds[holdKey]["notifications"] or self._holds[holdKey]["notifications"][-1] != n:
+                                    self._holds[holdKey]["notifications"].append(n)
+                                break
+                    if hold:
+                        continue
+                # post
+                # ----
+                observer = observerRef()
+                if observer is None:
+                    # dead ref.
+                    # XXX: delete?
+                    continue
+                callback = getattr(observer, methodName)
+                callback(notificationObj)
 
-    def holdNotifications(self, observable=None, notification=None):
+    # ----
+    # Hold
+    # ----
+
+    def holdNotifications(self, observable=None, notification=None, observer=None):
         """
         Hold all notifications posted to all objects observing
         **notification** in **observable**.
@@ -136,6 +210,9 @@ class NotificationCenter(object):
         * **notification** The name of the notification. This is optional.
           If no *notification* is given, *all* notifications for *observable*
           will be held.
+         * **observer** The specific observer to not hold notifications for.
+           If no *observer* is given, the appropriate notifications will be
+           held for all observers.
 
         Held notifications will be posted after the matching *notification*
         and *observable* have been passed to :meth:`Notification.releaseHeldNotifications`.
@@ -146,42 +223,53 @@ class NotificationCenter(object):
         """
         if observable is not None:
             observable = weakref.ref(observable)
-        key = self._makeHoldAndDisableKey(observable=observable, notification=notification)
+        if observer is not None:
+            observer = weakref.ref(observer)
+        key = (notification, observable, observer)
         if key not in self._holds:
-            self._holds[key] = dict(holdCount=0, notifications=[])
-        self._holds[key]["holdCount"] += 1
+            self._holds[key] = dict(count=0, notifications=[])
+        self._holds[key]["count"] += 1
 
-    def releaseHeldNotifications(self, observable=None, notification=None):
+    def releaseHeldNotifications(self, observable=None, notification=None, observer=None):
         """
         Release all held notifications posted to all objects observing
         **notification** in **observable**.
 
         * **observable** The object that the notification belongs to. This is optional.
         * **notification** The name of the notification. This is optional.
+        * **observer** The observer. This is optional.
         """
-        observableObj = observable
         if observable is not None:
             observable = weakref.ref(observable)
-        key = self._makeHoldAndDisableKey(observable=observable, notification=notification)
-        self._holds[key]["holdCount"] -= 1
-        if self._holds[key]["holdCount"] == 0:
+        if observer is not None:
+            observer = weakref.ref(observer)
+        key = (notification, observable, observer)
+        self._holds[key]["count"] -= 1
+        if self._holds[key]["count"] == 0:
             notifications = self._holds[key]["notifications"]
             del self._holds[key]
-            for notification, o, data in notifications:
-                self.postNotification(notification, observableObj, data)
+            for notification, observableRef, data in notifications:
+                self.postNotification(notification, observableRef(), data)
 
-    def areNotificationsHeld(self, observable=None, notification=None):
+    def areNotificationsHeld(self, observable=None, notification=None, observer=None):
         """
         Returns a boolean indicating if notifications posted to all objects observing
         **notification** in **observable** are being held.
 
         * **observable** The object that the notification belongs to. This is optional.
         * **notification** The name of the notification. This is optional.
+        * **observer** The observer. This is optional.
         """
         if observable is not None:
             observable = weakref.ref(observable)
-        key = self._makeHoldAndDisableKey(observable=observable, notification=notification)
+        if observer is not None:
+            observer = weakref.ref(observer)
+        key = (notification, observable, observer)
         return key in self._holds
+
+    # -------
+    # Disable
+    # -------
 
     def disableNotifications(self, observable=None, notification=None, observer=None):
         """
@@ -206,7 +294,7 @@ class NotificationCenter(object):
             observable = weakref.ref(observable)
         if observer is not None:
             observer = weakref.ref(observer)
-        key = self._makeHoldAndDisableKey(observable, notification=notification, observer=observer)
+        key = (notification, observable, observer)
         if key not in self._disabled:
             self._disabled[key] = 0
         self._disabled[key] += 1
@@ -220,12 +308,11 @@ class NotificationCenter(object):
         * **notification** The name of the notification. This is optional.
         * **observer** The observer. This is optional.
         """
-        observableObj = observable
         if observable is not None:
             observable = weakref.ref(observable)
         if observer is not None:
             observer = weakref.ref(observer)
-        key = self._makeHoldAndDisableKey(observable, notification=notification, observer=observer)
+        key = (notification, observable, observer)
         self._disabled[key] -= 1
         if self._disabled[key] == 0:
             del self._disabled[key]
@@ -243,17 +330,15 @@ class NotificationCenter(object):
             observable = weakref.ref(observable)
         if observer is not None:
             observer = weakref.ref(observer)
-        key = self._makeHoldAndDisableKey(observable, notification=notification, observer=observer)
+        key = (notification, observable, observer)
         return key in self._disabled
-
-    def _makeHoldAndDisableKey(self, observable, notification=None, observer=None):
-        key = (observable, observer, notification)
-        return key
 
 
 class Notification(object):
 
     """An object that wraps notification data."""
+
+    __slots__ = ("_name", "_objRef", "_data")
 
     def __init__(self, name, objRef, data):
         self._name = name
@@ -303,6 +388,7 @@ class _TestObservable(object):
 
 def _testAddObserver():
     """
+    # notification, observable
     >>> center = NotificationCenter()
     >>> observable = _TestObservable(center, "Observable")
     >>> observer = _TestObserver()
@@ -310,6 +396,40 @@ def _testAddObserver():
     >>> center.hasObserver(observer, "A", observable)
     True
     >>> center.hasObserver(observer, "B", observable)
+    False
+
+    # notification, no observable
+    >>> center = NotificationCenter()
+    >>> observable = _TestObservable(center, "Observable")
+    >>> observer = _TestObserver()
+    >>> center.addObserver(observer, "notificationCallback", "A", None)
+    >>> center.hasObserver(observer, "A", None)
+    True
+    >>> center.hasObserver(observer, "A", observable)
+    False
+
+    # no notification, observable
+    >>> center = NotificationCenter()
+    >>> observable = _TestObservable(center, "Observable")
+    >>> observer = _TestObserver()
+    >>> center.addObserver(observer, "notificationCallback", None, observable)
+    >>> center.hasObserver(observer, None, observable)
+    True
+    >>> center.hasObserver(observer, "A", observable)
+    False
+
+    # no notification, no observable
+    >>> center = NotificationCenter()
+    >>> observable = _TestObservable(center, "Observable")
+    >>> observer = _TestObserver()
+    >>> center.addObserver(observer, "notificationCallback", None, None)
+    >>> center.hasObserver(observer, None, None)
+    True
+    >>> center.hasObserver(observer, "A", observable)
+    False
+    >>> center.hasObserver(observer, None, observable)
+    False
+    >>> center.hasObserver(observer, "A", None)
     False
     """
 
@@ -322,16 +442,98 @@ def _testRemoveObserver():
     >>> center.removeObserver(observer, "A", observable)
     >>> center.hasObserver(observer, "A", observable)
     False
-    """
 
-def _testPostNotification():
-    """
+    # notification, observable
     >>> center = NotificationCenter()
     >>> observable = _TestObservable(center, "Observable")
     >>> observer = _TestObserver()
     >>> center.addObserver(observer, "notificationCallback", "A", observable)
-    >>> observable.postNotification("A")
-    A Observable
+    >>> center.removeObserver(observer, "A", observable)
+    >>> center.hasObserver(observer, "A", observable)
+    False
+
+    # notification, no observable
+    >>> center = NotificationCenter()
+    >>> observable = _TestObservable(center, "Observable")
+    >>> observer = _TestObserver()
+    >>> center.addObserver(observer, "notificationCallback", "A", None)
+    >>> center.removeObserver(observer, "A", None)
+    >>> center.hasObserver(observer, "A", None)
+    False
+
+    # no notification, observable
+    >>> center = NotificationCenter()
+    >>> observable = _TestObservable(center, "Observable")
+    >>> observer = _TestObserver()
+    >>> center.addObserver(observer, "notificationCallback", None, observable)
+    >>> center.removeObserver(observer, None, observable)
+    >>> center.hasObserver(observer, None, observable)
+    False
+
+    # no notification, no observable
+    >>> center = NotificationCenter()
+    >>> observable = _TestObservable(center, "Observable")
+    >>> observer = _TestObserver()
+    >>> center.addObserver(observer, "notificationCallback", None, None)
+    >>> center.removeObserver(observer, None, None)
+    >>> center.hasObserver(observer, None, None)
+    False
+    """
+
+def _testPostNotification():
+    """
+    # notification, observable
+    >>> center = NotificationCenter()
+    >>> observable1 = _TestObservable(center, "Observable1")
+    >>> observable2 = _TestObservable(center, "Observable2")
+    >>> observer = _TestObserver()
+    >>> center.addObserver(observer, "notificationCallback", "A", observable1)
+    >>> center.postNotification("A", observable1)
+    A Observable1
+    >>> center.postNotification("A", observable2)
+    >>> center.postNotification("B", observable1)
+    >>> center.postNotification("B", observable2)
+
+    # notification, no observable
+    >>> center = NotificationCenter()
+    >>> observable1 = _TestObservable(center, "Observable1")
+    >>> observable2 = _TestObservable(center, "Observable2")
+    >>> observer = _TestObserver()
+    >>> center.addObserver(observer, "notificationCallback", "A", None)
+    >>> center.postNotification("A", observable1)
+    A Observable1
+    >>> center.postNotification("A", observable2)
+    A Observable2
+    >>> center.postNotification("B", observable1)
+    >>> center.postNotification("B", observable2)
+
+    # no notification, observable
+    >>> center = NotificationCenter()
+    >>> observable1 = _TestObservable(center, "Observable1")
+    >>> observable2 = _TestObservable(center, "Observable2")
+    >>> observer = _TestObserver()
+    >>> center.addObserver(observer, "notificationCallback", None, observable1)
+    >>> center.postNotification("A", observable1)
+    A Observable1
+    >>> center.postNotification("A", observable2)
+    >>> center.postNotification("B", observable1)
+    B Observable1
+    >>> center.postNotification("B", observable2)
+
+    # no notification, no observable
+    >>> center = NotificationCenter()
+    >>> observable1 = _TestObservable(center, "Observable1")
+    >>> observable2 = _TestObservable(center, "Observable2")
+    >>> observer = _TestObserver()
+    >>> center.addObserver(observer, "notificationCallback", None, None)
+    >>> center.postNotification("A", observable1)
+    A Observable1
+    >>> center.postNotification("A", observable2)
+    A Observable2
+    >>> center.postNotification("B", observable1)
+    B Observable1
+    >>> center.postNotification("B", observable2)
+    B Observable2
     """
 
 def _testHoldNotifications():
@@ -380,14 +582,11 @@ def _testHoldNotifications():
 
 def _testAreNotificationsHeld():
     """
-    >>> center = NotificationCenter()
-    >>> observable1 = _TestObservable(center, "Observable1")
-    >>> observable2 = _TestObservable(center, "Observable2")
-    >>> observer = _TestObserver()
-    >>> center.addObserver(observer, "notificationCallback", "A", observable1)
-    >>> center.addObserver(observer, "notificationCallback", "B", observable2)
-
     # all held
+    >>> center = NotificationCenter()
+    >>> observable = _TestObservable(center, "Observable")
+    >>> observer = _TestObserver()
+    >>> center.addObserver(observer, "notificationCallback", "A", observable)
     >>> center.holdNotifications()
     >>> center.areNotificationsHeld()
     True
@@ -396,6 +595,12 @@ def _testAreNotificationsHeld():
     False
 
     # observable off
+    >>> center = NotificationCenter()
+    >>> observable1 = _TestObservable(center, "Observable1")
+    >>> observable2 = _TestObservable(center, "Observable2")
+    >>> observer = _TestObserver()
+    >>> center.addObserver(observer, "notificationCallback", "A", observable1)
+    >>> center.addObserver(observer, "notificationCallback", "B", observable2)
     >>> center.holdNotifications(observable=observable1)
     >>> center.areNotificationsHeld(observable=observable1)
     True
@@ -406,6 +611,11 @@ def _testAreNotificationsHeld():
     False
 
     # notification off
+    >>> center = NotificationCenter()
+    >>> observable = _TestObservable(center, "Observable")
+    >>> observer = _TestObserver()
+    >>> center.addObserver(observer, "notificationCallback", "A", observable)
+    >>> center.addObserver(observer, "notificationCallback", "B", observable)
     >>> center.holdNotifications(notification="A")
     >>> center.areNotificationsHeld(notification="A")
     True
@@ -414,10 +624,27 @@ def _testAreNotificationsHeld():
     >>> center.releaseHeldNotifications(notification="A")
     >>> center.areNotificationsHeld(notification="A")
     False
+
+    # observer off
+    >>> center = NotificationCenter()
+    >>> observable = _TestObservable(center, "Observable")
+    >>> observer1 = _TestObserver()
+    >>> observer2 = _TestObserver()
+    >>> center.addObserver(observer1, "notificationCallback", "A", observable)
+    >>> center.addObserver(observer2, "notificationCallback", "A", observable)
+    >>> center.holdNotifications(observer=observer1)
+    >>> center.areNotificationsHeld(observer=observer1)
+    True
+    >>> center.areNotificationsHeld(observer=observer2)
+    False
+    >>> center.releaseHeldNotifications(observer=observer1)
+    >>> center.areNotificationsHeld(observer=observer1)
+    False
     """
 
 def _testDisableNotifications():
     """
+    # disable all notifications
     >>> center = NotificationCenter()
     >>> observable1 = _TestObservable(center, "Observable1")
     >>> observable2 = _TestObservable(center, "Observable2")
@@ -425,8 +652,6 @@ def _testDisableNotifications():
     >>> center.addObserver(observer, "notificationCallback", "A", observable1)
     >>> center.addObserver(observer, "notificationCallback", "B", observable1)
     >>> center.addObserver(observer, "notificationCallback", "C", observable2)
-
-    # disable all notifications
     >>> center.disableNotifications()
     >>> observable1.postNotification("A")
     >>> observable1.postNotification("B")
@@ -436,6 +661,13 @@ def _testDisableNotifications():
     A Observable1
 
     # disable all notifications for a specific observable
+    >>> center = NotificationCenter()
+    >>> observable1 = _TestObservable(center, "Observable1")
+    >>> observable2 = _TestObservable(center, "Observable2")
+    >>> observer = _TestObserver()
+    >>> center.addObserver(observer, "notificationCallback", "A", observable1)
+    >>> center.addObserver(observer, "notificationCallback", "B", observable1)
+    >>> center.addObserver(observer, "notificationCallback", "C", observable2)
     >>> center.disableNotifications(observable=observable1)
     >>> observable1.postNotification("A")
     >>> observable1.postNotification("B")
@@ -446,6 +678,13 @@ def _testDisableNotifications():
     A Observable1
 
     # disable all notifications for a specific notification
+    >>> center = NotificationCenter()
+    >>> observable1 = _TestObservable(center, "Observable1")
+    >>> observable2 = _TestObservable(center, "Observable2")
+    >>> observer = _TestObserver()
+    >>> center.addObserver(observer, "notificationCallback", "A", observable1)
+    >>> center.addObserver(observer, "notificationCallback", "B", observable1)
+    >>> center.addObserver(observer, "notificationCallback", "C", observable2)
     >>> center.disableNotifications(notification="A")
     >>> observable1.postNotification("A")
     >>> observable1.postNotification("B")
@@ -455,18 +694,33 @@ def _testDisableNotifications():
     >>> center.enableNotifications(notification="A")
     >>> observable1.postNotification("A")
     A Observable1
+
+    # disable all notifications for a specific observer
+    >>> center = NotificationCenter()
+    >>> observable1 = _TestObservable(center, "Observable1")
+    >>> observable2 = _TestObservable(center, "Observable2")
+    >>> observer = _TestObserver()
+    >>> center.addObserver(observer, "notificationCallback", "A", observable1)
+    >>> center.addObserver(observer, "notificationCallback", "B", observable1)
+    >>> center.addObserver(observer, "notificationCallback", "C", observable2)
+    >>> center.disableNotifications(observer=observer)
+    >>> observable1.postNotification("A")
+    >>> observable1.postNotification("B")
+    >>> observable2.postNotification("C")
+    >>> center.enableNotifications(observer=observer)
+    >>> observable1.postNotification("A")
+    A Observable1
     """
 
 def _testAreNotificationsDisabled():
     """
+    # all off
     >>> center = NotificationCenter()
     >>> observable1 = _TestObservable(center, "Observable1")
     >>> observable2 = _TestObservable(center, "Observable2")
     >>> observer = _TestObserver()
     >>> center.addObserver(observer, "notificationCallback", "A", observable1)
     >>> center.addObserver(observer, "notificationCallback", "B", observable2)
-
-    # all off
     >>> center.disableNotifications()
     >>> center.areNotificationsDisabled()
     True
@@ -475,6 +729,12 @@ def _testAreNotificationsDisabled():
     False
 
     # observable off
+    >>> center = NotificationCenter()
+    >>> observable1 = _TestObservable(center, "Observable1")
+    >>> observable2 = _TestObservable(center, "Observable2")
+    >>> observer = _TestObserver()
+    >>> center.addObserver(observer, "notificationCallback", "A", observable1)
+    >>> center.addObserver(observer, "notificationCallback", "B", observable2)
     >>> center.disableNotifications(observable=observable1)
     >>> center.areNotificationsDisabled(observable=observable1)
     True
@@ -485,6 +745,12 @@ def _testAreNotificationsDisabled():
     False
 
     # notification off
+    >>> center = NotificationCenter()
+    >>> observable1 = _TestObservable(center, "Observable1")
+    >>> observable2 = _TestObservable(center, "Observable2")
+    >>> observer = _TestObserver()
+    >>> center.addObserver(observer, "notificationCallback", "A", observable1)
+    >>> center.addObserver(observer, "notificationCallback", "B", observable2)
     >>> center.disableNotifications(notification="A")
     >>> center.areNotificationsDisabled(notification="A")
     True
@@ -492,6 +758,23 @@ def _testAreNotificationsDisabled():
     False
     >>> center.enableNotifications(notification="A")
     >>> center.areNotificationsDisabled(notification="A")
+    False
+
+    # observer off
+    >>> center = NotificationCenter()
+    >>> observable1 = _TestObservable(center, "Observable1")
+    >>> observable2 = _TestObservable(center, "Observable2")
+    >>> observer1 = _TestObserver()
+    >>> observer2 = _TestObserver()
+    >>> center.addObserver(observer1, "notificationCallback", "A", observable1)
+    >>> center.addObserver(observer2, "notificationCallback", "A", observable1)
+    >>> center.disableNotifications(observer=observer1)
+    >>> center.areNotificationsDisabled(observer=observer1)
+    True
+    >>> center.areNotificationsDisabled(observer=observer2)
+    False
+    >>> center.enableNotifications(observer=observer1)
+    >>> center.areNotificationsDisabled(observer=observer1)
     False
     """
 
