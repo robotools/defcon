@@ -49,6 +49,7 @@ class Lib(BaseDictObject):
 
     def __init__(self, font=None, layer=None, glyph=None):
         self._font = None
+        self._layerSet = None
         self._layer = None
         self._glyph = None
         if font is not None:
@@ -74,13 +75,16 @@ class Lib(BaseDictObject):
         return None
 
     def _get_font(self):
-        if self._font is not None:
-            return self._font()
-        elif self._layer is not None:
-            return self.layer.font
-        elif self._glyph is not None:
-            return self.glyph.font
-        return None
+        font = None
+        if self._font is None:
+            layerSet = self.layerSet
+            if layerSet is not None:
+                font = layerSet.font
+                if font is not None:
+                    self._font = weakref.ref(font)
+        else:
+            font = self._font()
+        return font
 
     def _set_font(self, font):
         assert self._font is None
@@ -93,19 +97,30 @@ class Lib(BaseDictObject):
     font = property(_get_font, _set_font, doc="The :class:`Font` that this object belongs to. This should not be set externally.")
 
     def _get_layerSet(self):
-        glyph = self.glyph
-        if glyph is None:
-            return None
-        return glyph.layerSet
+        layerSet = None
+        if self._layerSet is None:
+            layer = self.layer
+            if layer is not None:
+                layerSet = layer.layerSet
+                if layerSet is not None:
+                    self._layerSet = weakref.ref(layerSet)
+        else:
+            layerSet = self._layerSet()
+        return layerSet
 
     layerSet = property(_get_layerSet, doc="The :class:`LayerSet` that this object belongs to (if it isn't a font lib).")
 
     def _get_layer(self):
-        if self._layer is not None:
-            return self._layer()
-        elif self._glyph is not None:
-            return self.glyph.layer
-        return None
+        layer = None
+        if self._layer is None:
+            glyph = self.glyph
+            if glyph is not None:
+                layer = glyph.layer
+                if layer is not None:
+                    self._layer = weakref.ref(layer)
+        else:
+            layer = self._layer()
+        return layer
 
     def _set_layer(self, layer):
         assert self._font is None
@@ -139,8 +154,9 @@ class Lib(BaseDictObject):
     def endSelfNotificationObservation(self):
         super(Lib, self).endSelfNotificationObservation()
         self._font = None
+        self._layerSet = None
         self._layer = None
-        self._glyph =None
+        self._glyph = None
 
 
 if __name__ == "__main__":

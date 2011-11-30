@@ -31,7 +31,10 @@ class Guideline(BaseDictObject):
     representationFactories = {}
 
     def __init__(self, fontInfo=None, glyph=None, guidelineDict=None):
+        self._font = None
         self._fontInfo = None
+        self._layerSet = None
+        self._layer = None
         self._glyph = None
         if fontInfo is not None:
             self.fontInfo = fontInfo
@@ -60,11 +63,19 @@ class Guideline(BaseDictObject):
         return None
 
     def _get_font(self):
-        if self._fontInfo is not None:
-            return self.fontInfo.font
-        elif self._glyph is not None:
-            return self.glyph.font
-        return None
+        font = None
+        if self._font is None:
+            fontInfo = self.fontInfo
+            layerSet = self.layerSet
+            if fontInfo is not None:
+                font = fontInfo.font
+            elif layerSet is not None:
+                font = layerSet.font
+            if font is not None:
+                self._font = weakref.ref(font)
+        else:
+            font = self._font()
+        return font
 
     font = property(_get_font, doc="The :class:`Font` that this object belongs to.")
 
@@ -83,18 +94,30 @@ class Guideline(BaseDictObject):
     fontInfo = property(_get_fontInfo, _set_fontInfo, doc="The :class:`Info` that this object belongs to (if it is a font info guideline). This should not be set externally.")
 
     def _get_layerSet(self):
-        glyph = self.glyph
-        if glyph is None:
-            return None
-        return glyph.layerSet
+        layerSet = None
+        if self._layerSet is None:
+            layer = self.layer
+            if layer is not None:
+                layerSet = layer.layerSet
+                if layerSet is not None:
+                    self._layerSet = weakref.ref(layerSet)
+        else:
+            layerSet = self._layerSet()
+        return layerSet
 
     layerSet = property(_get_layerSet, doc="The :class:`LayerSet` that this object belongs to (if it isn't a font info guideline).")
 
     def _get_layer(self):
-        glyph = self.glyph
-        if glyph is None:
-            return None
-        return glyph.layer
+        layer = None
+        if self._layer is None:
+            glyph = self.glyph
+            if glyph is not None:
+                layer = glyph.layer
+                if layer is not None:
+                    self._layer = weakref.ref(layer)
+        else:
+            layer = self._layer()
+        return layer
 
     layer = property(_get_layer, doc="The :class:`Layer` that this object belongs to (if it isn't a font info guideline).")
 
@@ -243,7 +266,10 @@ class Guideline(BaseDictObject):
 
     def endSelfNotificationObservation(self):
         super(Guideline, self).endSelfNotificationObservation()
+        self._font = None
         self._fontInfo = None
+        self._layerSet = None
+        self._layer = None
         self._glyph = None
 
 

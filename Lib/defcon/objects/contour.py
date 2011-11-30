@@ -42,6 +42,9 @@ class Contour(BaseObject):
     representationFactories = {}
 
     def __init__(self, glyph=None, pointClass=None):
+        self._font = None
+        self._layerSet = None
+        self._layer = None
         self._glyph = None
         self.glyph = glyph
         super(Contour, self).__init__()
@@ -72,26 +75,44 @@ class Contour(BaseObject):
         return self.glyph
 
     def _get_font(self):
-        glyph = self.glyph
-        if glyph is None:
-            return None
-        return glyph.font
+        font = None
+        if self._font is None:
+            glyph = self.glyph
+            if glyph is not None:
+                font = glyph.font
+                if font is not None:
+                    self._font = weakref.ref(font)
+        else:
+            font = self._font()
+        return font
 
     font = property(_get_font, doc="The :class:`Font` that this contour belongs to.")
 
     def _get_layerSet(self):
-        glyph = self.glyph
-        if glyph is None:
-            return None
-        return glyph.layerSet
+        layerSet = None
+        if self._layerSet is None:
+            glyph = self.glyph
+            if glyph is not None:
+                layerSet = glyph.layerSet
+                if layerSet is not None:
+                    self._layerSet = weakref.ref(layerSet)
+        else:
+            layerSet = self._layerSet()
+        return layerSet
 
     layerSet = property(_get_layerSet, doc="The :class:`LayerSet` that this contour belongs to.")
 
     def _get_layer(self):
-        glyph = self.glyph
-        if glyph is None:
-            return None
-        return glyph.layer
+        layer = None
+        if self._layer is None:
+            glyph = self.glyph
+            if glyph is not None:
+                layer = glyph.layer
+                if layer is not None:
+                    self._layer = weakref.ref(layer)
+        else:
+            layer = self._layer()
+        return layer
 
     layer = property(_get_layer, doc="The :class:`Layer` that this contour belongs to.")
 
@@ -104,6 +125,9 @@ class Contour(BaseObject):
         assert self._glyph is None
         if glyph is not None:
             glyph = weakref.ref(glyph)
+        self._font = None
+        self._layerSet = None
+        self._layer = None
         self._glyph = glyph
 
     glyph = property(_get_glyph, _set_glyph, doc="The :class:`Glyph` that this contour belongs to. This should not be set externally.")
@@ -631,6 +655,9 @@ class Contour(BaseObject):
 
     def endSelfNotificationObservation(self):
         super(Contour, self).endSelfNotificationObservation()
+        self._font = None
+        self._layerSet = None
+        self._layer = None
         self._glyph = None
 
 

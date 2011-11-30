@@ -75,9 +75,13 @@ class Glyph(BaseObject):
     def __init__(self, layer=None,
         contourClass=None, pointClass=None, componentClass=None, anchorClass=None,
         guidelineClass=None, libClass=None, imageClass=None):
-
+        layerSet = font = None
         if layer is not None:
+            font = weakref.ref(layer.layerSet.font)
+            layerSet = weakref.ref(layer.layerSet)
             layer = weakref.ref(layer)
+        self._font = font
+        self._layerSet = layerSet
         self._layer = layer
         super(Glyph, self).__init__()
         self.beginSelfNotificationObservation()
@@ -144,18 +148,16 @@ class Glyph(BaseObject):
         return self.font
 
     def _get_font(self):
-        layerSet = self.layerSet
-        if layerSet is None:
+        if self._font is None:
             return None
-        return layerSet.font
+        return self._font()
 
     font = property(_get_font, doc="The :class:`Font` that this glyph belongs to.")
 
     def _get_layerSet(self):
-        layer = self.layer
-        if layer is None:
+        if self._layerSet is None:
             return None
-        return layer.layerSet
+        return self._layerSet()
 
     layerSet = property(_get_layerSet, doc="The :class:`LayerSet` that this glyph belongs to.")
 
@@ -1051,6 +1053,8 @@ class Glyph(BaseObject):
         self.endSelfImageNotificationObservation()
         super(Glyph, self).endSelfNotificationObservation()
         self._font = None
+        self._layerSet = None
+        self._layer = None
 
     def _imageChanged(self, notification):
         self.postNotification(notification="Glyph.ImageChanged")
