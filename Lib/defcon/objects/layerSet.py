@@ -1,3 +1,4 @@
+import weakref
 from ufoLib import UFOReader
 from defcon.objects.base import BaseObject
 from defcon.objects.layer import Layer
@@ -37,13 +38,19 @@ class LayerSet(BaseObject):
     changeNotificationName = "LayerSet.Changed"
     representationFactories = {}
 
-    def __init__(self, layerClass=None, libClass=None, unicodeDataClass=None, 
+    def __init__(self, font=None, layerClass=None, libClass=None, unicodeDataClass=None, 
             guidelineClass=None, glyphClass=None,
-            glyphContourClass=None, glyphPointClass=None, glyphComponentClass=None, glyphAnchorClass=None):
+            glyphContourClass=None, glyphPointClass=None, glyphComponentClass=None, glyphAnchorClass=None,
+            glyphImageClass=None):
+
+        if font is not None:
+            font = weakref.ref(font)
+        self._font = font
         super(LayerSet, self).__init__()
+        self.beginSelfNotificationObservation()
+
         if layerClass is None:
             layerClass = Layer
-
         self._layerClass = layerClass
         self._libClass = libClass
         self._unicodeDataClass = unicodeDataClass
@@ -52,6 +59,7 @@ class LayerSet(BaseObject):
         self._glyphPointClass = glyphPointClass
         self._glyphComponentClass = glyphComponentClass
         self._glyphAnchorClass = glyphAnchorClass
+        self._glyphImageClass = glyphImageClass
         self._guidelineClass = guidelineClass
 
         self._layers = {}
@@ -60,10 +68,27 @@ class LayerSet(BaseObject):
 
         self._layerActionHistory = []
 
+    def __del__(self):
+        super(LayerSet, self).__del__()
+        self._layers = None
+
+    # --------------
+    # Parent Objects
+    # --------------
+
+    def getParent(self):
+        return self.font
+
     def _get_font(self):
-        return self.getParent()
+        if self._font is None:
+            return None
+        return self._font()
 
     font = property(_get_font, doc="The :class:`Font` that this layer set belongs to.")
+
+    # -------------
+    # Default Layer
+    # -------------
 
     def _get_defaultLayerName(self):
         defaultLayer = self.defaultLayer
@@ -91,6 +116,10 @@ class LayerSet(BaseObject):
 
     defaultLayer = property(_get_defaultLayer, _set_defaultLayer, doc="The default :class:`Layer` object. Setting this will post *LayerSet.DefaultLayerChanged* and *LayerSet.Changed* notifications.")
 
+    # -----------
+    # Layer Order
+    # -----------
+
     def _get_layerOrder(self):
         return list(self._layerOrder)
 
@@ -107,11 +136,12 @@ class LayerSet(BaseObject):
     layerOrder = property(_get_layerOrder, _set_layerOrder, doc="The layer order from top to bottom. Setting this will post *LayerSet.LayerOrderChanged* and *LayerSet.Changed* notifications.")
 
     # -------------
-    # Dict Behavior
+    # Layer Creation
     # -------------
 
-    def _instantiateLayerObject(self, glyphSet):
+    def instantiateLayer(self, glyphSet):
         layer = self._layerClass(
+            layerSet=self,
             glyphSet=glyphSet,
             libClass=self._libClass,
             unicodeDataClass=self._unicodeDataClass,
@@ -120,19 +150,21 @@ class LayerSet(BaseObject):
             glyphPointClass=self._glyphPointClass,
             glyphComponentClass=self._glyphComponentClass,
             glyphAnchorClass=self._glyphAnchorClass,
-            guidelineClass=self._guidelineClass
+            guidelineClass=self._guidelineClass,
+            glyphImageClass=self._glyphImageClass
         )
         return layer
 
-    def _setParentDataInLayer(self, layer):
-        layer.setParent(self)
+    def beginSelfLayerNotificationObservation(self, layer):
         layer.addObserver(observer=self, methodName="_layerDirtyStateChange", notification="Layer.Changed")
         layer.addObserver(observer=self, methodName="_layerNameChange", notification="Layer.NameChanged")
 
-    def _removeParentDataInLayer(self, layer):
+    def endSelfLayerNotificationObservation(self, layer):
+        if layer.dispatcher is None:
+            return
         layer.removeObserver(observer=self, notification="Layer.Changed")
         layer.removeObserver(observer=self, notification="Layer.NameChanged")
-        layer.setParent(None)
+        layer.endSelfNotificationObservation()
 
     def newLayer(self, name, glyphSet=None):
         """
@@ -145,13 +177,16 @@ class LayerSet(BaseObject):
         if name in self._layers:
             raise KeyError("A layer named \"%s\" already exists." % name)
         assert name is not None
-        layer = self._instantiateLayerObject(glyphSet)
+        layer = self.instantiateLayer(glyphSet)
+        self.beginSelfLayerNotificationObservation(layer)
+        layer.disableNotifications()
         layer.name = name
-        self._setParentDataInLayer(layer)
         if glyphSet is None:
             layer.dirty = True
         else:
             glyphSet.readLayerInfo(layer)
+            layer.dirty = False
+        layer.enableNotifications()
         self._stampLayerInfoDataState(layer)
         self._layers[name] = layer
         self._layerOrder.append(name)
@@ -160,6 +195,10 @@ class LayerSet(BaseObject):
         self.postNotification("LayerSet.LayersChanged")
         self.dirty = True
         return layer
+
+    # -------------
+    # Dict Behavior
+    # -------------
 
     def __iter__(self):
         names = self.layerOrder
@@ -179,6 +218,8 @@ class LayerSet(BaseObject):
         if name not in self:
             raise KeyError("%s not in layers" % name)
         self.postNotification("LayerSet.LayerWillBeDeleted", data=dict(name=name))
+        layer = self._layers[name]
+        self.endSelfLayerNotificationObservation(layer)
         del self._layers[name]
         self._layerOrder.remove(name)
         self._layerActionHistory.append(dict(action="delete", name=name))
@@ -194,9 +235,9 @@ class LayerSet(BaseObject):
             name = self._defaultLayerName
         return name in self._layers
 
-    # -------
-    # Methods
-    # -------
+    # ----
+    # Save
+    # ----
 
     def getSaveProgressBarTickCount(self, formatVersion):
         """
@@ -280,9 +321,17 @@ class LayerSet(BaseObject):
                 continue
             self._layerActionHistory.append(dict(action="new", name=layer.name))
 
-    # ----------------------
-    # Notification Callbacks
-    # ----------------------
+    # ------------------------
+    # Notification Observation
+    # ------------------------
+
+    def endSelfNotificationObservation(self):
+        if self.dispatcher is None:
+            return
+        for layer in self_layers.values():
+            self.endSelfLayerNotificationObservation(layer)
+        super(LayerSet, self).endSelfNotificationObservation()
+        self._font = None
 
     def _layerDirtyStateChange(self, notification):
         self.postNotification("LayerSet.LayerChanged")

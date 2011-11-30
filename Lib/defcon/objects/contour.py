@@ -41,8 +41,11 @@ class Contour(BaseObject):
     changeNotificationName = "Contour.Changed"
     representationFactories = {}
 
-    def __init__(self, pointClass=None):
+    def __init__(self, glyph=None, pointClass=None):
+        self._glyph = None
+        self.glyph = glyph
         super(Contour, self).__init__()
+        self.beginSelfNotificationObservation()
         self._points = []
         self._boundsCache = None
         self._controlPointBoundsCache = None
@@ -57,11 +60,16 @@ class Contour(BaseObject):
         self._boundsCache = None
         self._controlPointBoundsCache = None
 
-    # ----------
-    # Attributes
-    # ----------
+    def __del__(self):
+        super(Contour, self).__del__()
+        self._points = None
 
-    # parents
+    # --------------
+    # Parent Objects
+    # --------------
+
+    def getParent(self):
+        return self.glyph
 
     def _get_font(self):
         glyph = self.glyph
@@ -88,124 +96,31 @@ class Contour(BaseObject):
     layer = property(_get_layer, doc="The :class:`Layer` that this contour belongs to.")
 
     def _get_glyph(self):
-        return self.getParent()
+        if self._glyph is None:
+            return None
+        return self._glyph()
 
-    glyph = property(_get_glyph, doc="The :class:`Glyph` that this contour belongs to.")
+    def _set_glyph(self, glyph):
+        assert self._glyph is None
+        if glyph is not None:
+            glyph = weakref.ref(glyph)
+        self._glyph = glyph
+
+    glyph = property(_get_glyph, _set_glyph, doc="The :class:`Glyph` that this contour belongs to. This should not be set externally.")
+
+    # ------
+    # Points
+    # ------
 
     def _get_pointClass(self):
         return self._pointClass
 
     pointClass = property(_get_pointClass, doc="The class used for point.")
 
-    def _get_bounds(self):
-        from robofab.pens.boundsPen import BoundsPen
-        if self._boundsCache is None:
-            pen = BoundsPen(None)
-            self.draw(pen)
-            self._boundsCache = pen.bounds
-        return self._boundsCache
-
-    bounds = property(_get_bounds, doc="The bounds of the contour's outline expressed as a tuple of form (xMin, yMin, xMax, yMax).")
-
-    def _get_controlPointBounds(self):
-        from fontTools.pens.boundsPen import ControlBoundsPen
-        if self._controlPointBoundsCache is None:
-            pen = ControlBoundsPen(None)
-            self.draw(pen)
-            self._controlPointBoundsCache = pen.bounds
-        return self._controlPointBoundsCache
-
-    controlPointBounds = property(_get_controlPointBounds, doc="The control bounds of all points in the contour. This only measures the point positions, it does not measure curves. So, curves without points at the extrema will not be properly measured.")
-
-    def _get_clockwise(self):
-        from defcon.pens.clockwiseTestPointPen import ClockwiseTestPointPen
-        if self._clockwiseCache is None:
-            pen = ClockwiseTestPointPen()
-            self.drawPoints(pen)
-            self._clockwiseCache = pen.getIsClockwise()
-        return self._clockwiseCache
-
-    def _set_clockwise(self, value):
-        if self.clockwise != value:
-            self.reverse()
-            self._clockwiseCache = None
-
-    clockwise = property(_get_clockwise, _set_clockwise, doc="A boolean representing if the contour has a clockwise direction. Setting this posts *Contour.WindingDirectionChanged* and *Contour.Changed* notifications.")
-
-    def _get_open(self):
-        if not self._points:
-            return True
-        return self._points[0].segmentType == 'move'
-
-    open = property(_get_open, doc="A boolean indicating if the contour is open or not.")
-
     def _get_onCurvePoints(self):
         return [point for point in self._points if point.segmentType]
 
     onCurvePoints = property(_get_onCurvePoints, doc="A list of all on curve points in the contour.")
-
-    def _get_segments(self):
-        if not len(self._points):
-            return []
-        segments = [[]]
-        lastWasOffCurve = False
-        for point in self._points:
-            segments[-1].append(point)
-            if point.segmentType is not None:
-                segments.append([])
-            lastWasOffCurve = point.segmentType is None
-        if len(segments[-1]) == 0:
-            del segments[-1]
-        if lastWasOffCurve:
-            segment = segments.pop(-1)
-            assert len(segments[0]) == 1
-            segment.append(segments[0][0])
-            del segments[0]
-            segments.append(segment)
-        elif segments[0][-1].segmentType != "move":
-            segment = segments.pop(0)
-            segments.append(segment)
-        return segments
-
-    segments = property(_get_segments, doc="A list of all points in the contour organized into segments.")
-
-    # -------
-    # Methods
-    # -------
-
-    def __len__(self):
-        return len(self._points)
-
-    def __getitem__(self, index):
-        if index > len(self._points):
-            raise IndexError
-        return self._points[index]
-
-    def __iter__(self):
-        pointCount = len(self)
-        index = 0
-        while index < pointCount:
-            point = self[index]
-            yield point
-            index += 1
-
-    def clear(self):
-        """
-        Clear the contents of the contour.
-
-        This posts *Contour.PointsChanged* and *Contour.Changed* notifications.
-        """
-        self._clear()
-
-    def _clear(self, postNotification=True):
-        # clear the internal storage
-        self._points = []
-        # reset the clockwise cache
-        self._clockwiseCache = None
-        # post a dirty notification
-        if postNotification:
-            self.postNotification("Contour.PointsChanged")
-            self.dirty = True
 
     def appendPoint(self, point):
         """
@@ -241,76 +156,6 @@ class Contour(BaseObject):
         self.postNotification("Contour.PointsChanged")
         self.dirty = True
 
-    def reverse(self):
-        """
-        Reverse the direction of the contour. It's important to note
-        that the actual points stored in this object will be completely
-        repalced by new points.
-
-        This will post *Contour.WindingDirectionChanged*,
-        *Contour.PointsChanged* and *Contour.Changed* notifications.
-        """
-        from robofab.pens.reverseContourPointPen import ReverseContourPointPen
-        oldDirection = self.clockwise
-        # put the current points in another contour
-        otherContour = self.__class__(self.pointClass)
-        # draw the points in this contour through
-        # the reversing pen.
-        reversePen = ReverseContourPointPen(otherContour)
-        self.drawPoints(reversePen)
-        # clear the points in this contour
-        self._clear(postNotification=False)
-        # draw the points back into this contour
-        self.disableNotifications()
-        otherContour.drawPoints(self)
-        self.enableNotifications()
-        # post a notification
-        self.postNotification("Contour.WindingDirectionChanged", data=dict(oldValue=oldDirection, newValue=self.clockwise))
-        self.postNotification("Contour.PointsChanged")
-        self.dirty = True
-
-    def move(self, (x, y)):
-        """
-        Move all points in the contour by **(x, y)**.
-
-        This will post *Contour.PointsChanged* and *Contour.Changed* notifications.
-        """
-        for point in self._points:
-            point.move((x, y))
-        # update the bounds cache
-        if self._boundsCache:
-            xMin, yMin, xMax, yMax = self._boundsCache
-            xMin += x
-            yMin += y
-            xMax += x
-            yMax += y
-            self._boundsCache = (xMin, yMin, xMax, yMax)
-        if self._controlPointBoundsCache:
-            xMin, yMin, xMax, yMax = self._controlPointBoundsCache
-            xMin += x
-            yMin += y
-            xMax += x
-            yMax += y
-            self._controlPointBoundsCache = (xMin, yMin, xMax, yMax)
-        self.postNotification("Contour.PointsChanged")
-        self.dirty = True
-
-    def pointInside(self, (x, y), evenOdd=False):
-        """
-        Returns a boolean indicating if **(x, y)** is in the
-        "black" area of the contour.
-        """
-        from fontTools.pens.pointInsidePen import PointInsidePen
-        pen = PointInsidePen(glyphSet=None, testPoint=(x, y), evenOdd=evenOdd)
-        self.draw(pen)
-        return pen.getResult()
-
-    def index(self, point):
-        """
-        Get the index for **point**.
-        """
-        return self._points.index(point)
-
     def setStartPoint(self, index):
         """
         Set the point at **index** as the first point in the contour.
@@ -330,62 +175,106 @@ class Contour(BaseObject):
         self.postNotification("Contour.PointsChanged")
         self.dirty = True
 
-    def positionForProspectivePointInsertionAtSegmentAndT(self, segmentIndex, t):
-        """
-        Get the precise coordinates and a boolean indicating
-        if the point will be smooth for the given **segmentIndex**
-        and **t**.
-        """
-        return self._splitAndInsertAtSegmentAndT(segmentIndex, t, False)
+    # -------------
+    # List Behavior
+    # -------------
 
-    def splitAndInsertPointAtSegmentAndT(self, segmentIndex, t):
-        """
-        Insert a point into the contour for the given
-        **segmentIndex** and **t**.
+    def __len__(self):
+        return len(self._points)
 
-        This posts a *Contour.Changed* notification.
-        """
-        self._splitAndInsertAtSegmentAndT(segmentIndex, t, True)
+    def __getitem__(self, index):
+        if index > len(self._points):
+            raise IndexError
+        return self._points[index]
 
-    def _splitAndInsertAtSegmentAndT(self, segmentIndex, t, insert):
-        segments = self.segments
-        segment = segments[segmentIndex]
-        segment.insert(0, segments[segmentIndex-1][-1])
-        firstPoint = segment[0]
-        lastPoint = segment[-1]
-        segmentType = lastPoint.segmentType
-        segment = [(point.x, point.y) for point in segment]
-        if segmentType == "line":
-            (x1, y1), (x2, y2) = segment
-            x = x1 + (x2 - x1) * t
-            y = y1 + (y2 - y1) * t
-            pointsToInsert = [((x, y), "line", False)]
-            insertionPoint =  (x, y)
-            pointWillBeSmooth = False
-        elif segmentType == "curve":
-            pt1, pt2, pt3, pt4 = segment
-            (pt1, pt2, pt3, pt4), (pt5, pt6, pt7, pt8) = bezierTools.splitCubicAtT(pt1, pt2, pt3, pt4, t)
-            pointsToInsert = [(pt2, None, False), (pt3, None, False), (pt4, "curve", True), (pt6, None, False), (pt7, None, False)]
-            insertionPoint = tuple(pt4)
-            pointWillBeSmooth = True
-        else:
-            # XXX could be a quad. in that case, we could handle it.
-            raise NotImplementedError("unknown segment type: %s" % segmentType)
-        if insert:
-            firstPointIndex = self._points.index(firstPoint)
-            lastPointIndex = self._points.index(lastPoint)
-            firstPoints = self._points[:firstPointIndex + 1]
-            if firstPointIndex == len(self._points) - 1:
-                firstPoints = firstPoints[lastPointIndex:]
-                lastPoints = []
-            elif lastPointIndex == 0:
-                lastPoints = []
-            else:
-                lastPoints = self._points[lastPointIndex:]
-            newPoints = [self._pointClass(pos, segmentType=segmentType, smooth=smooth) for pos, segmentType, smooth in pointsToInsert]
-            self._points = firstPoints + newPoints + lastPoints
+    def __iter__(self):
+        pointCount = len(self)
+        index = 0
+        while index < pointCount:
+            point = self[index]
+            yield point
+            index += 1
+
+    def clear(self):
+        """
+        Clear the contents of the contour.
+
+        This posts *Contour.PointsChanged* and *Contour.Changed* notifications.
+        """
+        self._clear()
+
+    def _clear(self, postNotification=True):
+        # clear the internal storage
+        self._points = []
+        # reset the clockwise cache
+        self._clockwiseCache = None
+        # post a dirty notification
+        if postNotification:
+            self.postNotification("Contour.PointsChanged")
             self.dirty = True
-        return insertionPoint, pointWillBeSmooth
+
+    def index(self, point):
+        """
+        Get the index for **point**.
+        """
+        return self._points.index(point)
+
+    def reverse(self):
+        """
+        Reverse the direction of the contour. It's important to note
+        that the actual points stored in this object will be completely
+        repalced by new points.
+
+        This will post *Contour.WindingDirectionChanged*,
+        *Contour.PointsChanged* and *Contour.Changed* notifications.
+        """
+        from robofab.pens.reverseContourPointPen import ReverseContourPointPen
+        oldDirection = self.clockwise
+        # put the current points in another contour
+        otherContour = self.__class__(glyph=None, pointClass=self.pointClass)
+        # draw the points in this contour through
+        # the reversing pen.
+        reversePen = ReverseContourPointPen(otherContour)
+        self.drawPoints(reversePen)
+        # clear the points in this contour
+        self._clear(postNotification=False)
+        # draw the points back into this contour
+        self.disableNotifications()
+        otherContour.drawPoints(self)
+        self.enableNotifications()
+        # post a notification
+        self.postNotification("Contour.WindingDirectionChanged", data=dict(oldValue=oldDirection, newValue=self.clockwise))
+        self.postNotification("Contour.PointsChanged")
+        self.dirty = True
+
+    # --------
+    # Segments
+    # --------
+
+    def _get_segments(self):
+        if not len(self._points):
+            return []
+        segments = [[]]
+        lastWasOffCurve = False
+        for point in self._points:
+            segments[-1].append(point)
+            if point.segmentType is not None:
+                segments.append([])
+            lastWasOffCurve = point.segmentType is None
+        if len(segments[-1]) == 0:
+            del segments[-1]
+        if lastWasOffCurve:
+            segment = segments.pop(-1)
+            assert len(segments[0]) == 1
+            segment.append(segments[0][0])
+            del segments[0]
+            segments.append(segment)
+        elif segments[0][-1].segmentType != "move":
+            segment = segments.pop(0)
+            segments.append(segment)
+        return segments
+
+    segments = property(_get_segments, doc="A list of all points in the contour organized into segments.")
 
     def removeSegment(self, segmentIndex, preserveCurve=False):
         """
@@ -470,6 +359,165 @@ class Contour(BaseObject):
         # mark the contour as dirty
         self._destroyBoundsCache()
         self.dirty = True
+
+    # ----------------
+    # Basic Attributes
+    # ----------------
+
+    # clockwise
+
+    def _get_clockwise(self):
+        from defcon.pens.clockwiseTestPointPen import ClockwiseTestPointPen
+        if self._clockwiseCache is None:
+            pen = ClockwiseTestPointPen()
+            self.drawPoints(pen)
+            self._clockwiseCache = pen.getIsClockwise()
+        return self._clockwiseCache
+
+    def _set_clockwise(self, value):
+        if self.clockwise != value:
+            self.reverse()
+            self._clockwiseCache = None
+
+    clockwise = property(_get_clockwise, _set_clockwise, doc="A boolean representing if the contour has a clockwise direction. Setting this posts *Contour.WindingDirectionChanged* and *Contour.Changed* notifications.")
+
+    # open
+
+    def _get_open(self):
+        if not self._points:
+            return True
+        return self._points[0].segmentType == 'move'
+
+    open = property(_get_open, doc="A boolean indicating if the contour is open or not.")
+
+    # ------
+    # Bounds
+    # ------
+
+    def _get_bounds(self):
+        from robofab.pens.boundsPen import BoundsPen
+        if self._boundsCache is None:
+            pen = BoundsPen(None)
+            self.draw(pen)
+            self._boundsCache = pen.bounds
+        return self._boundsCache
+
+    bounds = property(_get_bounds, doc="The bounds of the contour's outline expressed as a tuple of form (xMin, yMin, xMax, yMax).")
+
+    def _get_controlPointBounds(self):
+        from fontTools.pens.boundsPen import ControlBoundsPen
+        if self._controlPointBoundsCache is None:
+            pen = ControlBoundsPen(None)
+            self.draw(pen)
+            self._controlPointBoundsCache = pen.bounds
+        return self._controlPointBoundsCache
+
+    controlPointBounds = property(_get_controlPointBounds, doc="The control bounds of all points in the contour. This only measures the point positions, it does not measure curves. So, curves without points at the extrema will not be properly measured.")
+
+    # ----
+    # Move
+    # ----
+
+    def move(self, (x, y)):
+        """
+        Move all points in the contour by **(x, y)**.
+
+        This will post *Contour.PointsChanged* and *Contour.Changed* notifications.
+        """
+        for point in self._points:
+            point.move((x, y))
+        # update the bounds cache
+        if self._boundsCache:
+            xMin, yMin, xMax, yMax = self._boundsCache
+            xMin += x
+            yMin += y
+            xMax += x
+            yMax += y
+            self._boundsCache = (xMin, yMin, xMax, yMax)
+        if self._controlPointBoundsCache:
+            xMin, yMin, xMax, yMax = self._controlPointBoundsCache
+            xMin += x
+            yMin += y
+            xMax += x
+            yMax += y
+            self._controlPointBoundsCache = (xMin, yMin, xMax, yMax)
+        self.postNotification("Contour.PointsChanged")
+        self.dirty = True
+
+    # ------------
+    # Point Inside
+    # ------------
+
+    def pointInside(self, (x, y), evenOdd=False):
+        """
+        Returns a boolean indicating if **(x, y)** is in the
+        "black" area of the contour.
+        """
+        from fontTools.pens.pointInsidePen import PointInsidePen
+        pen = PointInsidePen(glyphSet=None, testPoint=(x, y), evenOdd=evenOdd)
+        self.draw(pen)
+        return pen.getResult()
+
+    # ---------
+    # Splitting
+    # ---------
+
+    def positionForProspectivePointInsertionAtSegmentAndT(self, segmentIndex, t):
+        """
+        Get the precise coordinates and a boolean indicating
+        if the point will be smooth for the given **segmentIndex**
+        and **t**.
+        """
+        return self._splitAndInsertAtSegmentAndT(segmentIndex, t, False)
+
+    def splitAndInsertPointAtSegmentAndT(self, segmentIndex, t):
+        """
+        Insert a point into the contour for the given
+        **segmentIndex** and **t**.
+
+        This posts a *Contour.Changed* notification.
+        """
+        self._splitAndInsertAtSegmentAndT(segmentIndex, t, True)
+
+    def _splitAndInsertAtSegmentAndT(self, segmentIndex, t, insert):
+        segments = self.segments
+        segment = segments[segmentIndex]
+        segment.insert(0, segments[segmentIndex-1][-1])
+        firstPoint = segment[0]
+        lastPoint = segment[-1]
+        segmentType = lastPoint.segmentType
+        segment = [(point.x, point.y) for point in segment]
+        if segmentType == "line":
+            (x1, y1), (x2, y2) = segment
+            x = x1 + (x2 - x1) * t
+            y = y1 + (y2 - y1) * t
+            pointsToInsert = [((x, y), "line", False)]
+            insertionPoint =  (x, y)
+            pointWillBeSmooth = False
+        elif segmentType == "curve":
+            pt1, pt2, pt3, pt4 = segment
+            (pt1, pt2, pt3, pt4), (pt5, pt6, pt7, pt8) = bezierTools.splitCubicAtT(pt1, pt2, pt3, pt4, t)
+            pointsToInsert = [(pt2, None, False), (pt3, None, False), (pt4, "curve", True), (pt6, None, False), (pt7, None, False)]
+            insertionPoint = tuple(pt4)
+            pointWillBeSmooth = True
+        else:
+            # XXX could be a quad. in that case, we could handle it.
+            raise NotImplementedError("unknown segment type: %s" % segmentType)
+        if insert:
+            firstPointIndex = self._points.index(firstPoint)
+            lastPointIndex = self._points.index(lastPoint)
+            firstPoints = self._points[:firstPointIndex + 1]
+            if firstPointIndex == len(self._points) - 1:
+                firstPoints = firstPoints[lastPointIndex:]
+                lastPoints = []
+            elif lastPointIndex == 0:
+                lastPoints = []
+            else:
+                lastPoints = self._points[lastPointIndex:]
+            newPoints = [self._pointClass(pos, segmentType=segmentType, smooth=smooth) for pos, segmentType, smooth in pointsToInsert]
+            self._points = firstPoints + newPoints + lastPoints
+            self.dirty = True
+        return insertionPoint, pointWillBeSmooth
 
     # -----------
     # Pen methods
@@ -576,6 +624,15 @@ class Contour(BaseObject):
         identifier = makeRandomIdentifier(existing=self.identifiers)
         point.identifier = identifier
         self.dirty = True
+
+    # ------------------------
+    # Notification Observation
+    # ------------------------
+
+    def endSelfNotificationObservation(self):
+        super(Contour, self).endSelfNotificationObservation()
+        self._glyph = None
+
 
 # -----
 # Tests

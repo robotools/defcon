@@ -1,3 +1,4 @@
+import weakref
 import unicodedata
 from fontTools.agl import AGL2UV
 from defcon.tools import unicodeTools
@@ -43,10 +44,21 @@ class UnicodeData(BaseDictObject):
     changeNotificationName = "UnicodeData.Changed"
     representationFactories = {}
 
-    def __init__(self):
+    def __init__(self, layer=None):
+        self._layer = None
+        if layer is not None:
+            self._layer = weakref.ref(layer)
         super(UnicodeData, self).__init__()
+        self.beginSelfNotificationObservation()
         self._glyphNameToForcedUnicode = {}
         self._forcedUnicodeToGlyphName = {}
+
+    # --------------
+    # Parent Objects
+    # --------------
+
+    def getParent(self):
+        return self.layer
 
     def _get_font(self):
         layerSet = self.layerSet
@@ -961,6 +973,14 @@ class UnicodeData(BaseDictObject):
                     insertionPoint = glyphNames.index(matched[0])
                     glyphNames = glyphNames[:insertionPoint + 1] + matched[1:] + glyphNames[insertionPoint + 1:]
         return glyphNames
+
+    # ------------------------
+    # Notification Observation
+    # ------------------------
+
+    def endSelfNotificationObservation(self):
+        super(UnicodeData, self).endSelfNotificationObservation()
+        self._layer = None
 
 
 # -----

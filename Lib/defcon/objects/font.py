@@ -69,8 +69,12 @@ class Font(BaseObject):
                     kerningClass=None, infoClass=None, groupsClass=None, featuresClass=None, libClass=None, unicodeDataClass=None,
                     layerSetClass=None, layerClass=None, imageSetClass=None, dataSetClass=None,
                     guidelineClass=None,
-                    glyphClass=None, glyphContourClass=None, glyphPointClass=None, glyphComponentClass=None, glyphAnchorClass=None):
+                    glyphClass=None, glyphContourClass=None, glyphPointClass=None, glyphComponentClass=None, glyphAnchorClass=None, glyphImageClass=None):
+
         super(Font, self).__init__()
+        self._dispatcher = NotificationCenter()
+        self.beginSelfNotificationObservation()
+
         if infoClass is None:
             infoClass = Info
         if kerningClass is None:
@@ -87,15 +91,23 @@ class Font(BaseObject):
             imageSetClass = ImageSet
         if dataSetClass is None:
             dataSetClass = DataSet
-
-        self._dispatcher = NotificationCenter()
-
+        self._unicodeDataClass = unicodeDataClass
+        self._layerSetClass = layerSetClass
+        self._layerClass = layerClass
+        self._glyphClass = glyphClass
+        self._glyphContourClass = glyphContourClass
+        self._glyphPointClass = glyphPointClass
+        self._glyphComponentClass = glyphComponentClass
+        self._glyphAnchorClass = glyphAnchorClass
+        self._glyphImageClass = glyphImageClass
         self._kerningClass = kerningClass
         self._infoClass = infoClass
         self._groupsClass = groupsClass
         self._featuresClass = featuresClass
         self._libClass = libClass
         self._guidelineClass = guidelineClass
+        self._imageSetClass = imageSetClass
+        self._dataSetClass = dataSetClass
 
         self._path = path
         self._ufoFormatVersion = None
@@ -106,22 +118,12 @@ class Font(BaseObject):
         self._features = None
         self._lib = None
 
-        self._layers = layerSetClass(
-            libClass=libClass, unicodeDataClass=unicodeDataClass, guidelineClass=guidelineClass,
-            layerClass=layerClass, glyphClass=glyphClass,
-            glyphContourClass=glyphContourClass, glyphPointClass=glyphPointClass,
-            glyphComponentClass=glyphComponentClass, glyphAnchorClass=glyphAnchorClass
-        )
-        self._layers.setParent(self)
-        self._layers.addObserver(self, "_objectDirtyStateChange", "LayerSet.Changed")
-        self._layers.addObserver(self, "_layerAddedNotificationCallback", "LayerSet.LayerAdded")
-        self._layers.addObserver(self, "_layerWillBeDeletedNotificationCallback", "LayerSet.LayerWillBeDeleted")
-
-        self._images = imageSetClass()
-        self._images.setParent(self)
-
-        self._data = dataSetClass()
-        self._data.setParent(self)
+        self._layers = self.instantiateLayerSet()
+        self.beginSelfLayerSetNotificationObservation()
+        self._images = self.instantiateImageSet()
+        self.beginSelfImageSetNotificationObservation()
+        self._data = self.instantiateDataSet()
+        self.beginSelfDataSetNotificationObservation()
 
         self._dirty = False
 
@@ -271,32 +273,108 @@ class Font(BaseObject):
     # Sub-Objects
     # -----------
 
+    # layers
+
+    def instantiateLayerSet(self):
+        layers = self._layerSetClass(
+            font=self,
+            libClass=self._libClass,
+            unicodeDataClass=self._unicodeDataClass,
+            guidelineClass=self._guidelineClass,
+            layerClass=self._layerClass,
+            glyphClass=self._glyphClass,
+            glyphContourClass=self._glyphContourClass,
+            glyphPointClass=self._glyphPointClass,
+            glyphComponentClass=self._glyphComponentClass,
+            glyphAnchorClass=self._glyphAnchorClass,
+            glyphImageClass=self._glyphImageClass
+        )
+        return layers
+
+    def beginSelfLayerSetNotificationObservation(self):
+        layers = self.layers
+        layers.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="LayerSet.Changed")
+        layers.addObserver(observer=self, methodName="_layerAddedNotificationCallback", notification="LayerSet.LayerAdded")
+        layers.addObserver(observer=self, methodName="_layerWillBeDeletedNotificationCallback", notification="LayerSet.LayerWillBeDeleted")
+
+    def endSelfLayerSetNotificationObservation(self):
+        layers = self.layers
+        if layers.dispatcher is None:
+            return
+        layers.removeObserver(observer=self, notification="LayerSet.Changed")
+        layers.removeObserver(observer=self, notification="LayerSet.LayerAdded")
+        layers.removeObserver(observer=self, notification="LayerSet.LayerWillBeDeleted")
+        layers.endSelfNotificationObservation()
+
     def _get_layers(self):
         return self._layers
 
     layers = property(_get_layers, doc="The font's :class:`LayerSet` object.")
 
+    # info
+
+    def instantiateInfo(self):
+        info = self._infoClass(
+            font=self,
+            guidelineClass=self._guidelineClass
+        )
+        return info
+
+    def beginSelfInfoSetNotificationObservation(self):
+        info = self.info
+        info.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Info.Changed")
+
+    def endSelfInfoSetNotificationObservation(self):
+        if self._info is None:
+            return
+        if self._info.dispatcher is None:
+            return
+        self._info.removeObserver(observer=self, notification="Info.Changed")
+        self._info.endSelfNotificationObservation()
+
     def _get_info(self):
         if self._info is None:
-            self._info = self._infoClass(guidelineClass=self._guidelineClass)
-            self._info.setParent(self)
+            self._info = self.instantiateInfo()
+            self.beginSelfInfoSetNotificationObservation()
             reader = None
             if self._path is not None:
+                self._info.disableNotifications()
                 reader = UFOReader(self._path)
                 reader.readInfo(self._info)
                 self._info.dirty = False
-            self._info.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Info.Changed")
+                self._info.enableNotifications()
             self._stampInfoDataState(reader)
         return self._info
 
     info = property(_get_info, doc="The font's :class:`Info` object.")
 
+    # kerning
+
+    def instantiateKerning(self):
+        kerning = self._kerningClass(
+            font=self
+        )
+        return kerning
+
+    def beginSelfKerningNotificationObservation(self):
+        kerning = self.kerning
+        kerning.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Kerning.Changed")
+
+    def endSelfKerningNotificationObservation(self):
+        if self._kerning is None:
+            return
+        if self._kerning.dispatcher is None:
+            return
+        self._kerning.addObserver(observer=self, notification="Kerning.Changed")
+        self._kerning.endSelfNotificationObservation()
+
     def _get_kerning(self):
         if self._kerning is None:
-            self._kerning = self._kerningClass()
-            self._kerning.setParent(self)
+            self._kerning = self.instantiateKerning()
+            self.beginSelfKerningNotificationObservation()
             reader = None
             if self._path is not None:
+                self._kerning.disableNotifications()
                 # the _reader attribute may be present during __init__
                 # but only under certain conditions.
                 if hasattr(self, "_reader"):
@@ -306,18 +384,39 @@ class Font(BaseObject):
                 d = reader.readKerning()
                 self._kerning.update(d)
                 self._kerning.dirty = False
-            self._kerning.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Kerning.Changed")
+                self._kerning.enableNotifications()
             self._stampKerningDataState(reader)
         return self._kerning
 
     kerning = property(_get_kerning, doc="The font's :class:`Kerning` object.")
 
+    # groups
+
+    def instantiateGroups(self):
+        groups = self._groupsClass(
+            font=self
+        )
+        return groups
+
+    def beginSelfGroupsNotificationObservation(self):
+        groups = self.groups
+        groups.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Groups.Changed")
+
+    def endSelfGroupsNotificationObservation(self):
+        if self._groups is None:
+            return
+        if self._groups.dispatcher is None:
+            return
+        self._groups.addObserver(observer=self, notification="Groups.Changed")
+        self._groups.endSelfNotificationObservation()
+
     def _get_groups(self):
         if self._groups is None:
-            self._groups = self._groupsClass()
-            self._groups.setParent(self)
+            self._groups = self.instantiateGroups()
+            self.beginSelfGroupsNotificationObservation()
             reader = None
             if self._path is not None:
+                self._groups.disableNotifications()
                 # the _reader attribute may be present during __init__
                 # but only under certain conditions.
                 if hasattr(self, "_reader"):
@@ -327,57 +426,134 @@ class Font(BaseObject):
                 d = reader.readGroups()
                 self._groups.update(d)
                 self._groups.dirty = False
-            self._groups.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Groups.Changed")
+                self._groups.enableNotifications()
             self._stampGroupsDataState(reader)
         return self._groups
 
     groups = property(_get_groups, doc="The font's :class:`Groups` object.")
 
+    # features
+
+    def instantiateFeatures(self):
+        features = self._featuresClass(
+            font=self
+        )
+        return features
+
+    def beginSelfFeaturesNotificationObservation(self):
+        features = self.features
+        features.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Features.Changed")
+
+    def endSelfFeaturesNotificationObservation(self):
+        if self._features is None:
+            return
+        if self._features.dispatcher is None:
+            return
+        self._features.addObserver(observer=self, notification="Features.Changed")
+        self._features.endSelfNotificationObservation()
+
     def _get_features(self):
         if self._features is None:
-            self._features = self._featuresClass()
-            self._features.setParent(self)
+            self._features = self.instantiateFeatures()
+            self.beginSelfFeaturesNotificationObservation()
             reader = None
             if self._path is not None:
+                self._features.disableNotifications()
                 reader = UFOReader(self._path)
                 t = reader.readFeatures()
                 self._features.text = t
                 self._features.dirty = False
-            self._features.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Features.Changed")
+                self._features.enableNotifications()
             self._stampFeaturesDataState(reader)
         return self._features
 
     features = property(_get_features, doc="The font's :class:`Features` object.")
 
+    # lib
+
+    def instantiateLib(self):
+        lib = self._libClass(
+            font=self
+        )
+        return lib
+
+    def beginSelfLibNotificationObservation(self):
+        self._lib.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Lib.Changed")
+
+    def endSelfLibNotificationObservation(self):
+        if self._lib is None:
+            return
+        if self._lib.dispatcher is None:
+            return
+        self._lib.removeObserver(observer=self, notification="Lib.Changed")
+        self._lib.endSelfNotificationObservation()
+
     def _get_lib(self):
         if self._lib is None:
-            self._lib = self._libClass()
-            self._lib.setParent(self)
+            self._lib = self.instantiateLib()
+            self.beginSelfLibNotificationObservation()
             reader = None
             if self._path is not None:
+                self._lib.disableNotifications()
                 reader = UFOReader(self._path)
                 d = reader.readLib()
                 self._lib.update(d)
-            self._lib.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="Lib.Changed")
+                self._lib.enableNotifications()
             self._stampLibDataState(reader)
         return self._lib
 
     lib = property(_get_lib, doc="The font's :class:`Lib` object.")
 
-    def _get_unicodeData(self):
-        return self._glyphSet._unicodeData
+    # images
 
-    unicodeData = property(_get_unicodeData, doc="The font's :class:`UnicodeData` object.")
+    def instantiateImageSet(self):
+        imageSet = self._imageSetClass(
+            font=self
+        )
+        return imageSet
+
+    def beginSelfImageSetNotificationObservation(self):
+        self._images.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="ImageSet.Changed")
+
+    def endSelfImageSetNotificationObservation(self):
+        if self._images.dispatcher is None:
+            return
+        self._images.removeObserver(observer=self, notification="ImageSet.Changed")
+        self._images.endSelfNotificationObservation()
 
     def _get_images(self):
         return self._images
 
     images = property(_get_images, doc="The font's :class:`ImageSet` object.")
 
+    # data
+
+    def instantiateDataSet(self):
+        dataSet = self._dataSetClass(
+            font=self
+        )
+        return dataSet
+
+    def beginSelfDataSetNotificationObservation(self):
+        self._data.addObserver(observer=self, methodName="_objectDirtyStateChange", notification="DataSet.Changed")
+
+    def endSelfDataSetNotificationObservation(self):
+        if self._data.dispatcher is None:
+            return
+        self._data.removeObserver(observer=self, notification="DataSet.Changed")
+        self._data.endSelfNotificationObservation()
+
     def _get_data(self):
         return self._data
 
     data = property(_get_data, doc="The font's :class:`DataSet` object.")
+
+    # unicode data (legacy)
+
+    def _get_unicodeData(self):
+        return self._glyphSet._unicodeData
+
+    unicodeData = property(_get_unicodeData, doc="The font's :class:`UnicodeData` object.")
 
     # glyph order
 
@@ -626,9 +802,22 @@ class Font(BaseObject):
         if progressBar is not None:
             progressBar.update()
 
-    # ----------------------
-    # Notification Callbacks
-    # ----------------------
+    # ------------------------
+    # Notification Observation
+    # ------------------------
+
+    def endSelfNotificationObservation(self):
+        if self.dispatcher is None:
+            return
+        self.endSelfLayerSetNotificationObservation()
+        #self.endSelfInfoSetNotificationObservation()
+        #self.endSelfKerningNotificationObservation()
+        #self.endSelfGroupsNotificationObservation()
+        #self.endSelfLibNotificationObservation()
+        #self.endSelfFeaturesNotificationObservation()
+        #self.endSelfImageSetNotificationObservation()
+        #self.endSelfDataSetNotificationObservation()
+        super(Font, self).endSelfNotificationObservation()
 
     def _objectDirtyStateChange(self, notification):
         if notification.object.dirty:

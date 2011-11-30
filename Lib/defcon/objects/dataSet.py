@@ -1,4 +1,5 @@
 import os
+import weakref
 from ufoLib import UFOReader, UFOLibError
 from defcon.objects.base import BaseObject
 
@@ -20,17 +21,35 @@ class DataSet(BaseObject):
 
     """
 
+    changeNotificationName = "DataSet.Changed"
     representationFactories = {}
 
-    def __init__(self, fileNames=None):
+    def __init__(self, font=None):
+        self._font = None
+        if font is not None:
+            self._font = weakref.ref(font)
         super(DataSet, self).__init__()
+        self.beginSelfNotificationObservation()
         self._data = {}
         self._scheduledForDeletion = {}
 
+    # --------------
+    # Parent Objects
+    # --------------
+
+    def getParent(self):
+        return self.font
+
     def _get_font(self):
-        return self.getParent()
+        if self._font is not None:
+            return self._font()
+        return None
 
     font = property(_get_font, doc="The :class:`Font` that this object belongs to.")
+
+    # ----------
+    # File Names
+    # ----------
 
     def _get_fileNames(self):
         return self._data.keys()
@@ -76,9 +95,9 @@ class DataSet(BaseObject):
         self._scheduledForDeletion[fileName] = dict(self._data.pop(fileName))
         self.dirty = True
 
-    # ---------------
-    # File Management
-    # ---------------
+    # ----
+    # Save
+    # ----
 
     def getSaveProgressBarTickCount(self, formatVersion):
         """
@@ -168,6 +187,14 @@ class DataSet(BaseObject):
         for fileName in fileNames:
             self._data[fileName] = _dataDict()
             data = self[fileName]
+
+    # ------------------------
+    # Notification Observation
+    # ------------------------
+
+    def endSelfNotificationObservation(self):
+        super(DataSet, self).endSelfNotificationObservation()
+        self._font = None
 
 
 def _dataDict(data=None, dirty=False, onDisk=True, onDiskModTime=None):

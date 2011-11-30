@@ -16,6 +16,7 @@ from defcon.objects import info
 from defcon.objects import groups
 from defcon.objects import imageSet
 from defcon.objects import image
+from defcon.objects import dataSet
 
 test = [
     base,
@@ -33,7 +34,8 @@ test = [
     info,
     groups,
     imageSet,
-    image
+    image,
+    dataSet
 ]
 
 suite = unittest.TestSuite()

@@ -1,3 +1,4 @@
+import weakref
 from defcon.objects.base import BaseDictObject
 from defcon.objects.color import Color
 
@@ -35,8 +36,11 @@ class Image(BaseDictObject):
     changeNotificationName = "Image.Changed"
     representationFactories = {}
 
-    def __init__(self, imageDict=None):
+    def __init__(self, glyph=None, imageDict=None):
+        self._glyph = None
+        self.glyph = glyph
         super(Image, self).__init__()
+        self.beginSelfNotificationObservation()
         self["fileName"] = None
         self["color"] = None
         if imageDict is not None:
@@ -46,11 +50,12 @@ class Image(BaseDictObject):
                 self[key] = value
         self._dirty = False
 
-    # ----------
-    # Properties
-    # ----------
+    # --------------
+    # Parent Objects
+    # --------------
 
-    # parents
+    def getParent(self):
+        return self.glyph
 
     def _get_font(self):
         glyph = self.glyph
@@ -77,9 +82,23 @@ class Image(BaseDictObject):
     layer = property(_get_layer, doc="The :class:`Layer` that this image belongs to.")
 
     def _get_glyph(self):
-        return self.getParent()
+        if self._glyph is None:
+            return None
+        return self._glyph()
 
-    glyph = property(_get_glyph, doc="The :class:`Glyph` that this image belongs to.")
+    def _set_glyph(self, glyph):
+        assert self._glyph is None
+        if glyph is not None:
+            glyph = weakref.ref(glyph)
+        self._glyph = glyph
+
+    glyph = property(_get_glyph, _set_glyph, doc="The :class:`Glyph` that this image belongs to. This should not be set externally.")
+
+    # ----------
+    # Attributes
+    # ----------
+
+    # file name
 
     def _get_fileName(self):
         return self["fileName"]
@@ -92,6 +111,8 @@ class Image(BaseDictObject):
         self.postNotification("Image.FileNameChanged", data=dict(oldValue=oldFileName, newValue=fileName))
 
     fileName = property(_get_fileName, _set_fileName, doc="The file name the image. Setting this will posts *Image.Changed* and *Image.FileNameChanged* notifications.")
+
+    # transformation
 
     def _get_transformation(self):
         if "xScale" not in self:
@@ -116,6 +137,8 @@ class Image(BaseDictObject):
 
     transformation = property(_get_transformation, _set_transformation, doc="The transformation matrix for the image. Setting this will posts *Image.Changed* and *Image.TransformationChanged* notifications.")
 
+    # color
+
     def _get_color(self):
         return self.get("color")
 
@@ -131,6 +154,14 @@ class Image(BaseDictObject):
         self.postNotification("Image.ColorChanged", data=dict(oldValue=oldColor, newValue=newColor))
 
     color = property(_get_color, _set_color, doc="The image's :class:`Color` object. When setting, the value can be a UFO color string, a sequence of (r, g, b, a) or a :class:`Color` object. Setting this posts *Image.ColorChanged* and *Image.Changed* notifications.")
+
+    # ------------------------
+    # Notification Observation
+    # ------------------------
+
+    def endSelfNotificationObservation(self):
+        super(Image, self).endSelfNotificationObservation()
+        self._glyph = None
 
 
 def _testAttributes():
@@ -159,7 +190,7 @@ def _testAttributes():
     >>> i.dirty
     True
 
-    >>> i = Image(dict(fileName="foo.png", xScale="1", xyScale="2", yxScale="3", yScale="4", xOffset="5", yOffset="6", color="0,0,0,0"))
+    >>> i = Image(imageDict=dict(fileName="foo.png", xScale="1", xyScale="2", yxScale="3", yScale="4", xOffset="5", yOffset="6", color="0,0,0,0"))
     >>> i.fileName, i.transformation, i.color
     ('foo.png', ('1', '2', '3', '4', '5', '6'), '0,0,0,0')
     """
@@ -186,7 +217,7 @@ def _testWrite():
     >>> path = makeTestFontCopy()
     >>> font = Font(path)
     >>> glyph = font.layers[None]["A"]
-    >>> glyph.image = Image()
+    >>> glyph.image = glyph.instantiateImage()
     >>> glyph.image.color = "1,1,1,1"
     >>> glyph.image.fileName = "foo.png"
     >>> glyph.image.transformation = (1, 2, 3, 4, 5, 6)

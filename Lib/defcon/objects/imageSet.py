@@ -1,5 +1,6 @@
 import os
 import hashlib
+import weakref
 from ufoLib import UFOReader, UFOLibError
 from defcon.objects.base import BaseObject
 from ufoLib.filenames import userNameToFileName
@@ -17,6 +18,7 @@ class ImageSet(BaseObject):
     ===========================
     Name
     ===========================
+    ImageSet.Changed
     ImageSet.FileNamesChanged
     ImageSet.ImageChanged
     ImageSet.ImageWillBeDeleted
@@ -48,17 +50,35 @@ class ImageSet(BaseObject):
         del images["image file name"]
     """
 
+    changeNotificationName = "ImageSet.Changed"
     representationFactories = {}
 
-    def __init__(self, fileNames=None):
+    def __init__(self, font=None):
+        self._font = None
+        if font is not None:
+            self._font = weakref.ref(font)
         super(ImageSet, self).__init__()
+        self.beginSelfNotificationObservation()
         self._data = {}
         self._scheduledForDeletion = {}
 
+    # --------------
+    # Parent Objects
+    # --------------
+
+    def getParent(self):
+        return self.font
+
     def _get_font(self):
-        return self.getParent()
+        if self._font is not None:
+            return self._font()
+        return None
 
     font = property(_get_font, doc="The :class:`Font` that this object belongs to.")
+
+    # ----------
+    # File Names
+    # ----------
 
     def _get_fileNames(self):
         return self._data.keys()
@@ -125,9 +145,9 @@ class ImageSet(BaseObject):
         self.postNotification("ImageSet.ImageDeleted", data=dict(name=fileName))
         self.dirty = True
 
-    # ---------------
-    # File Management
-    # ---------------
+    # ----
+    # Save
+    # ----
 
     def getSaveProgressBarTickCount(self, formatVersion):
         """
@@ -176,6 +196,10 @@ class ImageSet(BaseObject):
             data["onDisk"] = True
             data["onDiskModTime"] = reader.getFileModificationTime(os.path.join("images", fileName))
         self.dirty = False
+
+    # ---------------
+    # File Management
+    # ---------------
 
     def makeFileName(self, fileName):
         """
@@ -256,6 +280,14 @@ class ImageSet(BaseObject):
         for fileName in fileNames:
             self._data[fileName] = _imageDict()
             image = self[fileName]
+
+    # ------------------------
+    # Notification Observation
+    # ------------------------
+
+    def endSelfNotificationObservation(self):
+        super(ImageSet, self).endSelfNotificationObservation()
+        self._font = None
 
 
 def _imageDict(data=None, dirty=False, digest=None, onDisk=True, onDiskModTime=None):

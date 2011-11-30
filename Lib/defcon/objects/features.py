@@ -1,3 +1,4 @@
+import weakref
 from defcon.objects.base import BaseObject
 
 
@@ -19,15 +20,32 @@ class Features(BaseObject):
     changeNotificationName = "Features.Changed"
     representationFactories = {}
 
-    def __init__(self):
+    def __init__(self, font=None):
+        self._font = None
+        if font is not None:
+            self._font = weakref.ref(font)
         super(Features, self).__init__()
+        self.beginSelfNotificationObservation()
         self._dirty = False
         self._text = None
 
+    # --------------
+    # Parent Objects
+    # --------------
+
+    def getParent(self):
+        return self.font
+
     def _get_font(self):
-        return self.getParent()
+        if self._font is not None:
+            return self._font()
+        return None
 
     font = property(_get_font, doc="The :class:`Font` that this object belongs to.")
+
+    # ----
+    # Text
+    # ----
 
     def _set_text(self, value):
         oldValue = self._text
@@ -42,3 +60,10 @@ class Features(BaseObject):
 
     text = property(_get_text, _set_text, doc="The raw feature text. Setting this post *Features.TextChanged* and *Features.Changed* notifications.")
 
+    # ------------------------
+    # Notification Observation
+    # ------------------------
+
+    def endSelfNotificationObservation(self):
+        super(Features, self).endSelfNotificationObservation()
+        self._font = None

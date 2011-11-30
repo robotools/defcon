@@ -26,8 +26,11 @@ class Component(BaseObject):
     changeNotificationName = "Component.Changed"
     representationFactories = {}
 
-    def __init__(self):
+    def __init__(self, glyph=None):
+        self._glyph = None
+        self.glyph = glyph
         super(Component, self).__init__()
+        self.beginSelfNotificationObservation()
         self._dirty = False
         self._baseGlyph = None
         self._transformation = tuple(_defaultTransformation)
@@ -38,6 +41,9 @@ class Component(BaseObject):
     # ----------
 
     # parents
+
+    def getParent(self):
+        return self.glyph
 
     def _get_font(self):
         glyph = self.glyph
@@ -64,9 +70,17 @@ class Component(BaseObject):
     layer = property(_get_layer, doc="The :class:`Layer` that this component belongs to.")
 
     def _get_glyph(self):
-        return self.getParent()
+        if self._glyph is None:
+            return None
+        return self._glyph()
 
-    glyph = property(_get_glyph, doc="The :class:`Glyph` that this component belongs to.")
+    def _set_glyph(self, glyph):
+        assert self._glyph is None
+        if glyph is not None:
+            glyph = weakref.ref(glyph)
+        self._glyph = glyph
+
+    glyph = property(_get_glyph, _set_glyph, doc="The :class:`Glyph` that this component belongs to. This should not be set externally.")
 
     # bounds
 
@@ -150,9 +164,9 @@ class Component(BaseObject):
             pointPen.addComponent(self._baseGlyph, self._transformation)
             warn("The addComponent method needs an identifier kwarg. The component's identifier value has been discarded.", DeprecationWarning)
 
-    # -------
-    # Methods
-    # -------
+    # ----
+    # Move
+    # ----
 
     def move(self, (x, y)):
         """
@@ -164,6 +178,10 @@ class Component(BaseObject):
         xOffset += x
         yOffset += y
         self.transformation = (xScale, xyScale, yxScale, yScale, xOffset, yOffset)
+
+    # ------------
+    # Point Inside
+    # ------------
 
     def pointInside(self, (x, y), evenOdd=False):
         """
@@ -226,6 +244,14 @@ class Component(BaseObject):
         """
         identifier = makeRandomIdentifier(existing=self.identifiers)
         self.identifier = identifier
+
+    # ------------------------
+    # Notification Observation
+    # ------------------------
+
+    def endSelfNotificationObservation(self):
+        super(Component, self).endSelfNotificationObservation()
+        self._glyph = None
 
 
 def _testIdentifier():

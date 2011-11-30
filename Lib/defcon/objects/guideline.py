@@ -1,3 +1,4 @@
+import weakref
 from defcon.objects.base import BaseDictObject
 from defcon.objects.color import Color
 from defcon.tools.identifiers import makeRandomIdentifier
@@ -29,8 +30,15 @@ class Guideline(BaseDictObject):
     changeNotificationName = "Guideline.Changed"
     representationFactories = {}
 
-    def __init__(self, guidelineDict=None):
+    def __init__(self, fontInfo=None, glyph=None, guidelineDict=None):
+        self._fontInfo = None
+        self._glyph = None
+        if fontInfo is not None:
+            self.fontInfo = fontInfo
+        if glyph is not None:
+            self.glyph = glyph
         super(Guideline, self).__init__()
+        self.beginSelfNotificationObservation()
         self._dirty = False
         if guidelineDict is not None:
             self.x = guidelineDict.get("x")
@@ -40,31 +48,39 @@ class Guideline(BaseDictObject):
             self.color = guidelineDict.get("color")
             self.identifier = guidelineDict.get("identifier")
 
-    # ----------
-    # Properties
-    # ----------
+    # --------------
+    # Parent Objects
+    # --------------
 
-    # parents
+    def getParent(self):
+        if self._fontInfo is not None:
+            return self.fontInfo
+        elif self._glyph is not None:
+            return self.glyph
+        return None
 
     def _get_font(self):
-        glyph = self.glyph
-        if glyph is not None:
-            return glyph.font
-        info = self.info
-        if info is not None:
-            return info.font
+        if self._fontInfo is not None:
+            return self.fontInfo.font
+        elif self._glyph is not None:
+            return self.glyph.font
         return None
 
     font = property(_get_font, doc="The :class:`Font` that this object belongs to.")
 
-    def _get_info(self):
-        from defcon.objects.info import Info
-        parent = self.getParent()
-        if not isinstance(parent, Info):
-            return None
-        return parent
+    def _get_fontInfo(self):
+        if self._fontInfo is not None:
+            return self._fontInfo()
+        return None
 
-    info = property(_get_info, doc="The :class:`Info` that this object belongs to (if it is a font info guideline).")
+    def _set_fontInfo(self, fontInfo):
+        assert self._fontInfo is None
+        assert self._glyph is None
+        if fontInfo is not None:
+            fontInfo = weakref.ref(fontInfo)
+        self._fontInfo = fontInfo
+
+    fontInfo = property(_get_fontInfo, _set_fontInfo, doc="The :class:`Info` that this object belongs to (if it is a font info guideline). This should not be set externally.")
 
     def _get_layerSet(self):
         glyph = self.glyph
@@ -72,7 +88,7 @@ class Guideline(BaseDictObject):
             return None
         return glyph.layerSet
 
-    layerSet = property(_get_layerSet, doc="The :class:`LayerSet` that this object belongs to (if it isn't a font a guideline).")
+    layerSet = property(_get_layerSet, doc="The :class:`LayerSet` that this object belongs to (if it isn't a font info guideline).")
 
     def _get_layer(self):
         glyph = self.glyph
@@ -80,16 +96,27 @@ class Guideline(BaseDictObject):
             return None
         return glyph.layer
 
-    layer = property(_get_layer, doc="The :class:`Layer` that this object belongs to (if it isn't a font a guideline).")
+    layer = property(_get_layer, doc="The :class:`Layer` that this object belongs to (if it isn't a font info guideline).")
 
     def _get_glyph(self):
-        from defcon.objects.glyph import Glyph
-        parent = self.getParent()
-        if not isinstance(parent, Glyph):
-            return None
-        return parent
+        if self._glyph is not None:
+            return self._glyph()
+        return None
 
-    glyph = property(_get_glyph, doc="The :class:`Glyph` that this object belongs to (if it isn't a font a guideline).")
+    def _set_glyph(self, glyph):
+        assert self._fontInfo is None
+        assert self._glyph is None
+        if glyph is not None:
+            glyph = weakref.ref(glyph)
+        self._glyph = glyph
+
+    glyph = property(_get_glyph, _set_glyph, doc="The :class:`Glyph` that this object belongs to (if it isn't a font info guideline). This should not be set externally.")
+
+    # ----------
+    # Attributes
+    # ----------
+
+    # x
 
     def _get_x(self):
         return self.get("x")
@@ -103,6 +130,8 @@ class Guideline(BaseDictObject):
 
     x = property(_get_x, _set_x, doc="The x coordinate. Setting this will post *Guideline.XChanged* and *Guideline.Changed* notifications.")
 
+    # y
+
     def _get_y(self):
         return self.get("y")
 
@@ -114,6 +143,8 @@ class Guideline(BaseDictObject):
         self.postNotification("Guideline.YChanged", data=dict(oldValue=old, newValue=value))
 
     y = property(_get_y, _set_y, doc="The y coordinate. Setting this will post *Guideline.YChanged* and *Guideline.Changed* notifications.")
+
+    # angle
 
     def _get_angle(self):
         return self.get("angle")
@@ -127,6 +158,8 @@ class Guideline(BaseDictObject):
 
     angle = property(_get_angle, _set_angle, doc="The angle. Setting this will post *Guideline.AngleChanged* and *Guideline.Changed* notifications.")
 
+    # name
+
     def _get_name(self):
         return self.get("name")
 
@@ -138,6 +171,8 @@ class Guideline(BaseDictObject):
         self.postNotification("Guideline.NameChanged", data=dict(oldValue=old, newValue=value))
 
     name = property(_get_name, _set_name, doc="The name. Setting this will post *Guideline.NameChanged* and *Guideline.Changed* notifications.")
+
+    # color
 
     def _get_color(self):
         return self.get("color")
@@ -155,15 +190,15 @@ class Guideline(BaseDictObject):
 
     color = property(_get_color, _set_color, doc="The guideline's :class:`Color` object. When setting, the value can be a UFO color string, a sequence of (r, g, b, a) or a :class:`Color` object. Setting this posts *Guideline.ColorChanged* and *Guideline.Changed* notifications.")
 
-    # -------
-    # Methods
-    # -------
+    # ----------
+    # Identifier
+    # ----------
 
     def _get_identifiers(self):
         identifiers = None
         parent = self.glyph
         if parent is None:
-            parent = self.info
+            parent = self.fontInfo
         if parent is not None:
             identifiers = parent.identifiers
         if identifiers is None:
@@ -201,6 +236,15 @@ class Guideline(BaseDictObject):
         """
         identifier = makeRandomIdentifier(existing=self.identifiers)
         self.identifier = identifier
+
+    # ------------------------
+    # Notification Observation
+    # ------------------------
+
+    def endSelfNotificationObservation(self):
+        super(Guideline, self).endSelfNotificationObservation()
+        self._fontInfo = None
+        self._glyph = None
 
 
 def _test():
@@ -266,7 +310,7 @@ def _test():
     >>> g.identifier is None
     False
 
-    >>> g = Guideline(dict(x=1, y=2, angle=3, name="4", identifier="5", color="1,1,1,1"))
+    >>> g = Guideline(guidelineDict=dict(x=1, y=2, angle=3, name="4", identifier="5", color="1,1,1,1"))
     >>> g.x, g.y, g.angle, g.name, g.identifier, g.color
     (1, 2, 3, '4', '5', '1,1,1,1')
     """

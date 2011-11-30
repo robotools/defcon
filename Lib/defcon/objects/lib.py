@@ -1,3 +1,4 @@
+import weakref
 from defcon.objects.base import BaseDictObject
 
 
@@ -46,16 +47,50 @@ class Lib(BaseDictObject):
     updateNotificationName = "Lib.Updated"
     representationFactories = {}
 
-    # parents
+    def __init__(self, font=None, layer=None, glyph=None):
+        self._font = None
+        self._layer = None
+        self._glyph = None
+        if font is not None:
+            self.font = font
+        if layer is not None:
+            self.layer = layer
+        if glyph is not None:
+            self.glyph = glyph
+        super(Lib, self).__init__()
+        self.beginSelfNotificationObservation()
+
+    # --------------
+    # Parent Objects
+    # --------------
+
+    def getParent(self):
+        if self._font is not None:
+            return self.font
+        elif self._layer is not None:
+            return self.layer
+        elif self._glyph is not None:
+            return self.glyph
+        return None
 
     def _get_font(self):
-        from defcon.objects.glyph import Glyph
-        parent = self.getParent()
-        if isinstance(parent, Glyph):
-            return parent.font
-        return parent
+        if self._font is not None:
+            return self._font()
+        elif self._layer is not None:
+            return self.layer.font
+        elif self._glyph is not None:
+            return self.glyph.font
+        return None
 
-    font = property(_get_font, doc="The :class:`Font` that this object belongs to.")
+    def _set_font(self, font):
+        assert self._font is None
+        assert self._layer is None
+        assert self._glyph is None
+        if font is not None:
+            font = weakref.ref(font)
+        self._font = font
+
+    font = property(_get_font, _set_font, doc="The :class:`Font` that this object belongs to. This should not be set externally.")
 
     def _get_layerSet(self):
         glyph = self.glyph
@@ -66,22 +101,46 @@ class Lib(BaseDictObject):
     layerSet = property(_get_layerSet, doc="The :class:`LayerSet` that this object belongs to (if it isn't a font lib).")
 
     def _get_layer(self):
-        glyph = self.glyph
-        if glyph is None:
-            return None
-        return glyph.layer
+        if self._layer is not None:
+            return self._layer()
+        elif self._glyph is not None:
+            return self.glyph.layer
+        return None
 
-    layer = property(_get_layer, doc="The :class:`Layer` that this object belongs to (if it isn't a font lib).")
+    def _set_layer(self, layer):
+        assert self._font is None
+        assert self._layer is None
+        assert self._glyph is None
+        if layer is not None:
+            layer = weakref.ref(layer)
+        self._layer = layer
+
+    layer = property(_get_layer, _set_layer, doc="The :class:`Layer` that this object belongs to (if it isn't a font lib). This should not be set externally.")
 
     def _get_glyph(self):
-        from defcon.objects.font import Font
-        parent = self.getParent()
-        if isinstance(parent, Font):
-            return None
-        return parent
+        if self._glyph is not None:
+            return self._glyph()
+        return None
 
-    glyph = property(_get_glyph, doc="The :class:`Glyph` that this object belongs to (if it isn't a font lib).")
+    def _set_glyph(self, glyph):
+        assert self._font is None
+        assert self._layer is None
+        assert self._glyph is None
+        if glyph is not None:
+            glyph = weakref.ref(glyph)
+        self._glyph = glyph
 
+    glyph = property(_get_glyph, _set_glyph, doc="The :class:`Glyph` that this object belongs to (if it isn't a font or layer lib). This should not be set externally.")
+
+    # ------------------------
+    # Notification Observation
+    # ------------------------
+
+    def endSelfNotificationObservation(self):
+        super(Lib, self).endSelfNotificationObservation()
+        self._font = None
+        self._layer = None
+        self._glyph =None
 
 
 if __name__ == "__main__":

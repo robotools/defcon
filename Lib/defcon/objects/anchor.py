@@ -1,3 +1,4 @@
+import weakref
 from defcon.objects.base import BaseDictObject
 from defcon.objects.color import Color
 from defcon.tools.identifiers import makeRandomIdentifier
@@ -28,8 +29,11 @@ class Anchor(BaseDictObject):
     changeNotificationName = "Anchor.Changed"
     representationFactories = {}
 
-    def __init__(self, anchorDict=None):
+    def __init__(self, glyph=None, anchorDict=None):
+        self._glyph = None
+        self.glyph = glyph
         super(Anchor, self).__init__()
+        self.beginSelfNotificationObservation()
         self._dirty = False
         if anchorDict is not None:
             self.x = anchorDict.get("x")
@@ -39,6 +43,9 @@ class Anchor(BaseDictObject):
             self.identifier = anchorDict.get("identifier")
 
     # parents
+
+    def getParent(self):
+        return self.glyph
 
     def _get_font(self):
         glyph = self.glyph
@@ -65,9 +72,17 @@ class Anchor(BaseDictObject):
     layer = property(_get_layer, doc="The :class:`Layer` that this anchor belongs to.")
 
     def _get_glyph(self):
-        return self.getParent()
+        if self._glyph is None:
+            return None
+        return self._glyph()
 
-    glyph = property(_get_glyph, doc="The :class:`Glyph` that this anchor belongs to.")
+    def _set_glyph(self, glyph):
+        assert self._glyph is None
+        if glyph is not None:
+            glyph = weakref.ref(glyph)
+        self._glyph = glyph
+
+    glyph = property(_get_glyph, _set_glyph, doc="The :class:`Glyph` that this anchor belongs to. This should not be set externally.")
 
     # coordinates
 
@@ -170,9 +185,9 @@ class Anchor(BaseDictObject):
         identifier = makeRandomIdentifier(existing=self.identifiers)
         self.identifier = identifier
 
-    # -------
-    # Methods
-    # -------
+    # ----
+    # Move
+    # ----
 
     def move(self, (x, y)):
         """
@@ -182,6 +197,14 @@ class Anchor(BaseDictObject):
         """
         self.x += x
         self.y += y
+
+    # ------------------------
+    # Notification Observation
+    # ------------------------
+
+    def endSelfNotificationObservation(self):
+        super(Anchor, self).endSelfNotificationObservation()
+        self._glyph = None
 
 
 def _test():
@@ -228,7 +251,7 @@ def _test():
     >>> a.identifier is None
     False
 
-    >>> a = Anchor(dict(x=1, y=2, name="3", identifier="4", color="1,1,1,1"))
+    >>> a = Anchor(anchorDict=dict(x=1, y=2, name="3", identifier="4", color="1,1,1,1"))
     >>> a.x, a.y, a.name, a.identifier, a.color
     (1, 2, '3', '4', '1,1,1,1')
     """

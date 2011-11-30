@@ -1,3 +1,4 @@
+import weakref
 from defcon.objects.base import BaseDictObject
 
 
@@ -67,10 +68,34 @@ class Groups(BaseDictObject):
     updateNotificationName = "Groups.Updated"
     representationFactories = {}
 
+    def __init__(self, font=None):
+        self._font = None
+        if font is not None:
+            self._font = weakref.ref(font)
+        super(Groups, self).__init__()
+        self.beginSelfNotificationObservation()
+
+    # --------------
+    # Parent Objects
+    # --------------
+
+    def getParent(self):
+        return self.font
+
     def _get_font(self):
-        return self.getParent()
+        if self._font is not None:
+            return self._font()
+        return None
 
     font = property(_get_font, doc="The :class:`Font` that this object belongs to.")
+
+    # ------------------------
+    # Notification Observation
+    # ------------------------
+
+    def endSelfNotificationObservation(self):
+        super(Groups, self).endSelfNotificationObservation()
+        self._font = None
 
 
 if __name__ == "__main__":

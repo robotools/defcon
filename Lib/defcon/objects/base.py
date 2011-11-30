@@ -38,45 +38,32 @@ class BaseObject(object):
         self._init()
 
     def _init(self):
-        self._parent = None
         self._dispatcher = None
         self._dataOnDisk = None
         self._dataOnDiskTimeStamp = None
         self._representations = {}
 
+    def __del__(self):
+        self.endSelfNotificationObservation()
+
     # ------
     # Parent
     # ------
 
-    def setParent(self, obj):
-        """
-        Set the parent of the object. This will reference the parent using weakref.
-        """
-        if obj is None:
-            self._parent = None
-        else:
-            self._parent = weakref.ref(obj)
-
     def getParent(self):
-        """
-        Get the parent. Returns None if no parent is set.
-        Note that because the reference to the parent is stored
-        as a weakref, the parent can disappear if it is no longer
-        referenced by any object other than this one.
-        """
-        if self._parent is not None:
-            return self._parent()
-        return None
+        raise NotImplementedError
 
     # -------------
     # Notifications
     # -------------
 
     def _get_dispatcher(self):
-        parent = self.getParent()
-        if parent is None:
+        if not hasattr(self, "font"):
+            return
+        font = self.font
+        if font is None:
             return None
-        return parent.dispatcher
+        return font.dispatcher
 
     dispatcher = property(_get_dispatcher, doc="The :class:`defcon.tools.notifications.NotificationCenter` assigned to the parent of this object.")
 
@@ -213,6 +200,23 @@ class BaseObject(object):
         dispatcher = self.dispatcher
         if dispatcher is not None:
             dispatcher.postNotification(notification=notification, observable=self, data=data)
+
+    # ------------------------
+    # Notification Observation
+    # ------------------------
+
+    def beginSelfNotificationObservation(self):
+        if self.dispatcher is None:
+            return
+        self.addObserver(self, "selfNotificationCallback", notification=None)
+
+    def endSelfNotificationObservation(self):
+        if self.dispatcher is None:
+            return
+        self.removeObserver(self, notification=None)
+
+    def selfNotificationCallback(self, notification):
+        pass
 
     # ---------------
     # Representations

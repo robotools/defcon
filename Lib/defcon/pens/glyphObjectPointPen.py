@@ -7,12 +7,14 @@ class GlyphObjectPointPen(AbstractPointPen):
         self._contour = None
 
     def beginPath(self, identifier=None, **kwargs):
-        self._contour = self._glyph.contourClass(pointClass=self._glyph.pointClass)
+        self._contour = self._glyph.instantiateContour()
+        self._contour.disableNotifications()
         self._contour.identifier = identifier
 
     def endPath(self):
         self._contour.dirty = False
         self._glyph.appendContour(self._contour)
+        self._contour.enableNotifications()
         self._contour = None
 
     def addPoint(self, pt, segmentType=None, smooth=False, name=None, identifier=None, **kwargs):

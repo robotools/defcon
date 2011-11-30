@@ -72,11 +72,16 @@ class Glyph(BaseObject):
     changeNotificationName = "Glyph.Changed"
     representationFactories = {}
 
-    def __init__(self, contourClass=None, pointClass=None, componentClass=None, anchorClass=None, guidelineClass=None, libClass=None):
-        super(Glyph, self).__init__()
+    def __init__(self, layer=None,
+        contourClass=None, pointClass=None, componentClass=None, anchorClass=None,
+        guidelineClass=None, libClass=None, imageClass=None):
 
-        self._layer = None
-        self._parent = None
+        if layer is not None:
+            layer = weakref.ref(layer)
+        self._layer = layer
+        super(Glyph, self).__init__()
+        self.beginSelfNotificationObservation()
+
         self._dirty = False
         self._name = None
         self._unicodes = []
@@ -105,54 +110,44 @@ class Glyph(BaseObject):
             guidelineClass = Guideline
         if libClass is None:
             libClass = Lib
-
+        if imageClass is None:
+            imageClass = Image
         self._contourClass = contourClass
         self._pointClass = pointClass
         self._componentClass = componentClass
         self._anchorClass = anchorClass
         self._guidelineClass = Guideline
-        self._lib = libClass()
+        self._libClass = libClass
+        self._imageClass = imageClass
 
-    def setParent(self, obj):
-        if obj is None:
-            if self.getParent() is not None:
-                for contour in self._contours:
-                    self._removeParentDataInContour(contour)
-                for component in self._components:
-                    self._removeParentDataInComponent(component)
-                for anchor in self._anchors:
-                    self._removeParentDataInAnchor(anchor)
-                for guideline in self._guidelines:
-                    self._removeParentDataInGuideline(guideline)
-                self._removeParentDataInLib()
-                self._removeParentDataInImage()
-                self.removeObserver(observer=self, notification="Glyph.Changed")
-                super(Glyph, self).setParent(obj)
-        else:
-            assert self.getParent() is None
-            super(Glyph, self).setParent(obj)
-            for contour in self._contours:
-                self._setParentDataInContour(contour)
-            for component in self._components:
-                self._setParentDataInComponent(component)
-            for anchor in self._anchors:
-                self._setParentDataInAnchor(anchor)
-            for guideline in self._guidelines:
-                self._setParentDataInGuideline(guideline)
-            self._setParentDataInLib()
-            self._setParentDataInImage()
-            self.addObserver(observer=self, methodName="destroyAllRepresentations", notification="Glyph.Changed")
+        self._lib = self.instantiateLib()
+        self.beginSelfLibNotificationObservation()
 
     def _destroyBoundsCache(self):
         self._boundsCache = None
         self._controlPointBoundsCache = None
 
-    # ----------
-    # Attributes
-    # ----------
+    def __del__(self):
+        super(Glyph, self).__del__()
+        self._contours = None
+        self._components = None
+        self._anchors = None
+        self._guidelines = None
+        self._lib = None
+        self._image = None
+
+    # --------------
+    # Parent Objects
+    # --------------
+
+    def getParent(self):
+        return self.font
 
     def _get_font(self):
-        return self.getParent()
+        layerSet = self.layerSet
+        if layerSet is None:
+            return None
+        return layerSet.font
 
     font = property(_get_font, doc="The :class:`Font` that this glyph belongs to.")
 
@@ -169,39 +164,11 @@ class Glyph(BaseObject):
             return None
         return self._layer()
 
-    def _set_layer(self, value):
-        if value is not None:
-            value = weakref.ref(value)
-        self._layer = value
+    layer = property(_get_layer, doc="The :class:`Layer` that this glyph belongs to.")
 
-    layer = property(_get_layer, _set_layer, doc="The :class:`Layer` that this glyph belongs to. This should not be set externally.")
-
-    # classes
-
-    def _get_contourClass(self):
-        return self._contourClass
-
-    contourClass = property(_get_contourClass, doc="The class used for contours.")
-
-    def _get_pointClass(self):
-        return self._pointClass
-
-    pointClass = property(_get_pointClass, doc="The class used for points.")
-
-    def _get_componentClass(self):
-        return self._componentClass
-
-    componentClass = property(_get_componentClass, doc="The class used for components.")
-
-    def _get_anchorClass(self):
-        return self._anchorClass
-
-    anchorClass = property(_get_anchorClass, doc="The class used for anchors.")
-
-    def _get_guidelineClass(self):
-        return self._guidelineClass
-
-    guidelineClass = property(_get_guidelineClass, doc="The class used for guidelines.")
+    # ----------------
+    # Basic Attributes
+    # ----------------
 
     # identifiers
 
@@ -254,6 +221,10 @@ class Glyph(BaseObject):
             self.unicodes = existing
 
     unicode = property(_get_unicode, _set_unicode, doc="The primary unicode value for the glyph. This is the equivalent of ``glyph.unicodes[0]``. This is a convenience attribute that works with the ``unicodes`` attribute.")
+
+    # -------
+    # Metrics
+    # -------
 
     # bounds
 
@@ -347,89 +318,9 @@ class Glyph(BaseObject):
 
     height = property(_get_height, _set_height, doc="The height of the glyph. Setting this posts *Glyph.HeightChanged* and *Glyph.Changed* notifications.")
 
-    # sub-object collections
-
-    def _get_components(self):
-        return list(self._components)
-
-    components = property(_get_components, doc="An ordered list of :class:`Component` objects stored in the glyph.")
-
-    def _get_anchors(self):
-        return list(self._anchors)
-
-    def _set_anchors(self, value):
-        self.clearAnchors()
-        self.holdNotifications()
-        for anchor in value:
-            self.appendAnchor(anchor)
-        self.releaseHeldNotifications()
-
-    anchors = property(_get_anchors, _set_anchors, doc="An ordered list of :class:`Anchor` objects stored in the glyph.")
-
-    def _get_guidelines(self):
-        return list(self._guidelines)
-
-    def _set_guidelines(self, value):
-        self.clearGuidelines()
-        self.holdNotifications()
-        for guideline in value:
-            self.appendGuideline(guideline)
-        self.releaseHeldNotifications()
-
-    guidelines = property(_get_guidelines, _set_guidelines, doc="An ordered list of :class:`Guideline` objects stored in the glyph. Setting this will post a *Glyph.Changed* notification along with any notifications posted by the :py:meth:`Glyph.appendGuideline` and :py:meth:`Glyph.clearGuidelines` methods.")
-
-    # note
-
-    def _get_note(self):
-        return self._note
-
-    def _set_note(self, value):
-        if value is not None:
-            assert isinstance(value, basestring)
-        oldValue = self._note
-        if oldValue != value:
-            self._note = value
-            self.postNotification(notification="Glyph.NoteChanged", data=dict(oldValue=oldValue, newValue=value))
-            self.dirty = True
-
-    note = property(_get_note, _set_note, doc="An arbitrary note for the glyph. Setting this will post a *Glyph.Changed* notification.")
-
-    # lib
-
-    def _get_lib(self):
-        return self._lib
-
-    def _set_lib(self, value):
-        self._lib.clear()
-        self._lib.update(value)
-        self.dirty = True
-
-    lib = property(_get_lib, _set_lib, doc="The glyph's :class:`Lib` object. Setting this will clear any existing lib data and post a *Glyph.Changed* notification if data was replaced.")
-
-    # image
-
-    def _get_image(self):
-        return self._image
-
-    def _set_image(self, image):
-        if image is None:
-            if self._image is not None:
-                self.postNotification(notification="Glyph.ImageWillBeDeleted")
-                self._removeParentDataInImage()
-                self._image = None
-                self.postNotification(notification="Glyph.ImageChanged")
-                self.dirty = True
-        else:
-            if self._image is None:
-                self._image = Image()
-                self._setParentDataInImage()
-            if set(self.image.items()) != set(image.items()):
-                for key in self._image.keys():
-                    self._image[key] = image.get(key)
-                self.postNotification(notification="Glyph.ImageChanged")
-                self.dirty = True
-
-    image = property(_get_image, _set_image, doc="The glyph's :class:`Image` object. Setting this posts *Glyph.ImageChanged* and *Glyph.Changed* notifications.")
+    # ----------------------
+    # Lib Wrapped Attributes
+    # ----------------------
 
     # mark color
 
@@ -460,9 +351,9 @@ class Glyph(BaseObject):
 
     markColor = property(_get_markColor, _set_markColor, doc="The glyph's mark color. When setting, the value can be a UFO color string, a sequence of (r, g, b, a) or a :class:`Color` object. Setting this posts *Glyph.MarkColorChanged* and *Glyph.Changed* notifications.")
 
-    # -----------
-    # Pen Methods
-    # -----------
+    # -------
+    # Pen API
+    # -------
 
     def draw(self, pen):
         """
@@ -495,77 +386,534 @@ class Glyph(BaseObject):
         from defcon.pens.glyphObjectPointPen import GlyphObjectPointPen
         return GlyphObjectPointPen(self)
 
-    # --------------------------
-    # Parent Setting and Removal
-    # --------------------------
+    # --------
+    # Contours
+    # --------
 
-    def _setParentDataInLib(self):
-        self._lib.setParent(self)
-        if self.dispatcher is not None and not self._lib.hasObserver(observer=self, notification="Lib.Changed"):
-            self._lib.addObserver(observer=self, methodName="_libContentChanged", notification="Lib.Changed")
+    def _get_contourClass(self):
+        return self._contourClass
 
-    def _removeParentDataInLib(self):
-        if self.dispatcher is not None:
-            self._lib.removeObserver(observer=self, notification="Lib.Changed")
-        self._lib.setParent(None)
+    contourClass = property(_get_contourClass, doc="The class used for contours.")
 
-    def _setParentDataInContour(self, contour):
-        contour.setParent(self)
-        if self.dispatcher is not None and not contour.hasObserver(observer=self, notification="Contour.Changed"):
-            contour.addObserver(observer=self, methodName="_contourChanged", notification="Contour.Changed")
+    def _get_pointClass(self):
+        return self._pointClass
 
-    def _removeParentDataInContour(self, contour):
-        if self.dispatcher is not None:
-            contour.removeObserver(observer=self, notification="Contour.Changed")
-        contour.setParent(None)
+    pointClass = property(_get_pointClass, doc="The class used for points.")
 
-    def _setParentDataInComponent(self, component):
-        component.setParent(self)
-        if self.dispatcher is not None and not component.hasObserver(observer=self, notification="Component.Changed"):
-            component.addObserver(observer=self, methodName="_componentChanged", notification="Component.Changed")
+    def instantiateContour(self):
+        contour = self._contourClass(
+            glyph=self,
+            pointClass=self.pointClass
+        )
+        return contour
 
-    def _removeParentDataInComponent(self, component):
-        if self.dispatcher is not None:
-            component.removeObserver(observer=self, notification="Component.Changed")
-        component.setParent(None)
-
-    def _setParentDataInAnchor(self, anchor):
-        anchor.setParent(self)
-        if self.dispatcher is not None and not anchor.hasObserver(observer=self, notification="Anchor.Changed"):
-            anchor.addObserver(observer=self, methodName="_anchorChanged", notification="Anchor.Changed")
-
-    def _removeParentDataInAnchor(self, anchor):
-        if self.dispatcher is not None:
-            anchor.removeObserver(observer=self, notification="Anchor.Changed")
-        anchor.setParent(None)
-
-    def _setParentDataInGuideline(self, guideline):
-        guideline.setParent(self)
-        if self.dispatcher is not None and not guideline.hasObserver(observer=self, notification="Guideline.Changed"):
-            guideline.addObserver(observer=self, methodName="_guidelineChanged", notification="Guideline.Changed")
-
-    def _removeParentDataInGuideline(self, guideline):
-        if self.dispatcher is not None:
-            guideline.removeObserver(observer=self, notification="Guideline.Changed")
-        guideline.setParent(None)
-
-    def _setParentDataInImage(self):
-        if self._image is None:
+    def beginSelfContourNotificationObservation(self, contour):
+        if contour.dispatcher is None:
             return
-        self._image.setParent(self)
-        if self.dispatcher is not None and not self._image.hasObserver(observer=self, notification="Image.Changed"):
-            self._image.addObserver(observer=self, methodName="_imageChanged", notification="Image.Changed")
+        contour.addObserver(observer=self, methodName="_contourChanged", notification="Contour.Changed")
 
-    def _removeParentDataInImage(self):
-        if self._image is None:
+    def endSelfContourNotificationObservation(self, contour):
+        if contour.dispatcher is None:
             return
-        if self.dispatcher is not None:
-            self._image.removeObserver(observer=self, notification="Image.Changed")
-        self._image.setParent(None)
+        contour.removeObserver(observer=self, notification="Contour.Changed")
+        contour.endSelfNotificationObservation()
+
+    def appendContour(self, contour):
+        """
+        Append **contour** to the glyph. The contour must be a defcon
+        :class:`Contour` object or a subclass of that object. An error
+        will be raised if the contour's identifier or a point identifier
+        conflicts with any of the identifiers within the glyph.
+
+        This will post a *Glyph.Changed* notification.
+        """
+        assert contour not in self._contours
+        self.insertContour(len(self._contours), contour)
+
+    def insertContour(self, index, contour):
+        """
+        Insert **contour** into the glyph at index. The contour
+        must be a defcon :class:`Contour` object or a subclass
+        of that object. An error will be raised if the contour's
+        identifier or a point identifier conflicts with any of
+        the identifiers within the glyph.
+
+        This will post a *Glyph.Changed* notification.
+        """
+        assert contour not in self._contours
+        assert contour.glyph in (self, None), "This contour belongs to another glyph."
+        if contour.glyph is None:
+            identifiers = self._identifiers
+            if contour.identifier is not None:
+                assert contour.identifier not in identifiers
+                identifiers.add(contour.identifier)
+            for point in contour:
+                if point.identifier is not None:
+                    assert point.identifier not in identifiers
+                    identifiers.add(point.identifier)
+            contour.glyph = self
+            contour.beginSelfNotificationObservation()
+        self.beginSelfContourNotificationObservation(contour)
+        self._contours.insert(index, contour)
+        self._destroyBoundsCache()
+        self.postNotification(notification="Glyph.ContoursChanged")
+        self.dirty = True
+
+    def removeContour(self, contour):
+        """
+        Remove **contour** from the glyph.
+
+        This will post a *Glyph.Changed* notification.
+        """
+        self.postNotification(notification="Glyph.ContourWillBeDeleted", data=dict(object=contour))
+        identifiers = self._identifiers
+        if contour.identifier is not None:
+            identifiers.remove(contour.identifier)
+        for point in contour:
+            if point.identifier is not None:
+                identifiers.remove(point.identifier)
+        self._contours.remove(contour)
+        self.endSelfContourNotificationObservation(contour)
+        self._destroyBoundsCache()
+        self.postNotification(notification="Glyph.ContoursChanged")
+        self.dirty = True
+
+    def contourIndex(self, contour):
+        """
+        Get the index for **contour**.
+        """
+        return self._contours.index(contour)
+
+    def clearContours(self):
+        """
+        Clear all contours from the glyph.
+
+        This posts a *Glyph.Changed* notification.
+        """
+        self.holdNotifications()
+        for contour in reversed(self._contours):
+            self.removeContour(contour)
+        self.releaseHeldNotifications()
+
+    # ----------
+    # Components
+    # ----------
+
+    def _get_componentClass(self):
+        return self._componentClass
+
+    componentClass = property(_get_componentClass, doc="The class used for components.")
+
+    def _get_components(self):
+        return list(self._components)
+
+    components = property(_get_components, doc="An ordered list of :class:`Component` objects stored in the glyph.")
+
+    def instantiateComponent(self):
+        component = self._componentClass(
+            glyph=self
+        )
+        return component
+
+    def beginSelfComponentNotificationObservation(self, component):
+        if component.dispatcher is None:
+            return
+        component.addObserver(observer=self, methodName="_componentChanged", notification="Component.Changed")
+
+    def endSelfComponentNotificationObservation(self, component):
+        if component.dispatcher is None:
+            return
+        component.removeObserver(observer=self, notification="Component.Changed")
+        component.endSelfNotificationObservation()
+
+    def appendComponent(self, component):
+        """
+        Append **component** to the glyph. The component must be a defcon
+        :class:`Component` object or a subclass of that object. An error
+        will be raised if the component's identifier conflicts with any of
+        the identifiers within the glyph.
+
+        This will post a *Glyph.Changed* notification.
+        """
+        assert component not in self._components
+        self.insertComponent(len(self._components), component)
+
+    def insertComponent(self, index, component):
+        """
+        Insert **component** into the glyph at index. The component
+        must be a defcon :class:`Component` object or a subclass
+        of that object. An error will be raised if the component's
+        identifier conflicts with any of the identifiers within
+        the glyph.
+
+        This will post a *Glyph.Changed* notification.
+        """
+        assert component not in self._components
+        assert component.glyph in (self, None), "This component belongs to another glyph."
+        if component.glyph is None:
+            if component.identifier is not None:
+                identifiers = self._identifiers
+                assert component.identifier not in identifiers
+                identifiers.add(component.identifier)
+            component.glyph = self
+            component.beginSelfNotificationObservation()
+        self.beginSelfComponentNotificationObservation(component)
+        self._components.insert(index, component)
+        self._destroyBoundsCache()
+        self.postNotification(notification="Glyph.ComponentsChanged")
+        self.dirty = True
+
+    def removeComponent(self, component):
+        """
+        Remove **component** from the glyph.
+
+        This will post a *Glyph.Changed* notification.
+        """
+        self.postNotification(notification="Glyph.ComponentWillBeDeleted", data=dict(object=component))
+        if component.identifier is not None:
+            self._identifiers.remove(component.identifier)
+        self._components.remove(component)
+        self.endSelfComponentNotificationObservation(component)
+        self._destroyBoundsCache()
+        self.postNotification(notification="Glyph.ComponentsChanged")
+        self.dirty = True
+
+    def componentIndex(self, component):
+        """
+        Get the index for **component**.
+        """
+        return self._components.index(component)
+
+    def clearComponents(self):
+        """
+        Clear all components from the glyph.
+
+        This posts a *Glyph.Changed* notification.
+        """
+        self.holdNotifications()
+        for component in reversed(self._components):
+            self.removeComponent(component)
+        self.releaseHeldNotifications()
 
     # -------
-    # Methods
+    # Anchors
     # -------
+
+    def _get_anchorClass(self):
+        return self._anchorClass
+
+    anchorClass = property(_get_anchorClass, doc="The class used for anchors.")
+
+    def _get_anchors(self):
+        return list(self._anchors)
+
+    def _set_anchors(self, value):
+        self.clearAnchors()
+        self.holdNotifications()
+        for anchor in value:
+            self.appendAnchor(anchor)
+        self.releaseHeldNotifications()
+
+    anchors = property(_get_anchors, _set_anchors, doc="An ordered list of :class:`Anchor` objects stored in the glyph.")
+
+    def instantiateAnchor(self, anchorDict=None):
+        anchor = self._anchorClass(
+            glyph=self,
+            anchorDict=anchorDict
+        )
+        return anchor
+
+    def beginSelfAnchorNotificationObservation(self, anchor):
+        if anchor.dispatcher is None:
+            return
+        anchor.addObserver(observer=self, methodName="_anchorChanged", notification="Anchor.Changed")
+
+    def endSelfAnchorNotificationObservation(self, anchor):
+        if anchor.dispatcher is None:
+            return
+        anchor.removeObserver(observer=self, notification="Anchor.Changed")
+        anchor.endSelfNotificationObservation()
+
+    def appendAnchor(self, anchor):
+        """
+        Append **anchor** to the glyph. The anchor must be a defcon
+        :class:`Anchor` object or a subclass of that object. An error
+        will be raised if the anchor's identifier conflicts with any of
+        the identifiers within the glyph.
+
+        This will post a *Glyph.Changed* notification.
+        """
+        assert anchor not in self._anchors
+        self.insertAnchor(len(self._anchors), anchor)
+
+    def insertAnchor(self, index, anchor):
+        """
+        Insert **anchor** into the glyph at index. The anchor
+        must be a defcon :class:`Anchor` object or a subclass
+        of that object. An error will be raised if the anchor's
+        identifier conflicts with any of the identifiers within
+        the glyph.
+
+        This will post a *Glyph.Changed* notification.
+        """
+        assert anchor not in self._anchors
+        if not isinstance(anchor, self._anchorClass):
+            anchor = self.instantiateAnchor(anchorDict=anchor)
+        assert anchor.glyph in (self, None), "This anchor belongs to another glyph."
+        if anchor.glyph is None:
+            if anchor.identifier is not None:
+                identifiers = self._identifiers
+                assert anchor.identifier not in identifiers
+                identifiers.add(anchor.identifier)
+            anchor.glyph = self
+            anchor.beginSelfNotificationObservation()
+        self.beginSelfAnchorNotificationObservation(anchor)
+        self._anchors.insert(index, anchor)
+        self.postNotification(notification="Glyph.AnchorsChanged")
+        self.dirty = True
+
+    def removeAnchor(self, anchor):
+        """
+        Remove **anchor** from the glyph.
+
+        This will post a *Glyph.Changed* notification.
+        """
+        self.postNotification(notification="Glyph.AnchorWillBeDeleted", data=dict(object=anchor))
+        if anchor.identifier is not None:
+            self._identifiers.remove(anchor.identifier)
+        self._anchors.remove(anchor)
+        self.endSelfAnchorNotificationObservation(anchor)
+        self.postNotification(notification="Glyph.AnchorsChanged")
+        self.dirty = True
+
+    def anchorIndex(self, anchor):
+        """
+        Get the index for **anchor**.
+        """
+        return self._anchors.index(anchor)
+
+    def clearAnchors(self):
+        """
+        Clear all anchors from the glyph.
+
+        This posts a *Glyph.Changed* notification.
+        """
+        self.holdNotifications()
+        for anchor in reversed(self._anchors):
+            self.removeAnchor(anchor)
+        self.releaseHeldNotifications()
+
+    # ----------
+    # Guidelines
+    # ----------
+
+    def _get_guidelineClass(self):
+        return self._guidelineClass
+
+    guidelineClass = property(_get_guidelineClass, doc="The class used for guidelines.")
+
+    def _get_guidelines(self):
+        return list(self._guidelines)
+
+    def _set_guidelines(self, value):
+        self.clearGuidelines()
+        self.holdNotifications()
+        for guideline in value:
+            self.appendGuideline(guideline)
+        self.releaseHeldNotifications()
+
+    guidelines = property(_get_guidelines, _set_guidelines, doc="An ordered list of :class:`Guideline` objects stored in the glyph. Setting this will post a *Glyph.Changed* notification along with any notifications posted by the :py:meth:`Glyph.appendGuideline` and :py:meth:`Glyph.clearGuidelines` methods.")
+
+    def instantiateGuideline(self, guidelineDict=None):
+        guideline = self._guidelineClass(
+            glyph=self,
+            guidelineDict=guidelineDict
+        )
+        return guideline
+
+    def beginSelfGuidelineNotificationObservation(self, guideline):
+        if guideline.dispatcher is None:
+            return
+        guideline.addObserver(observer=self, methodName="_guidelineChanged", notification="Guideline.Changed")
+
+    def endSelfGuidelineNotificationObservation(self, guideline):
+        if guideline.dispatcher is None:
+            return
+        guideline.removeObserver(observer=self, notification="Guideline.Changed")
+        guideline.endSelfNotificationObservation()
+
+    def appendGuideline(self, guideline):
+        """
+        Append **guideline** to the glyph. The guideline must be a defcon
+        :class:`Guideline` object or a subclass of that object. An error
+        will be raised if the guideline's identifier conflicts with any of
+        the identifiers within the glyph.
+
+        This will post a *Glyph.Changed* notification.
+        """
+        assert guideline not in self._guidelines
+        self.insertGuideline(len(self._guidelines), guideline)
+
+    def insertGuideline(self, index, guideline):
+        """
+        Insert **guideline** into the glyph at index. The guideline
+        must be a defcon :class:`Guideline` object or a subclass
+        of that object. An error will be raised if the guideline's
+        identifier conflicts with any of the identifiers within
+        the glyph.
+
+        This will post a *Glyph.Changed* notification.
+        """
+        assert guideline not in self._guidelines
+        if not isinstance(guideline, self._guidelineClass):
+            guideline = self.instantiateGuideline(guidelineDict=guideline)
+        assert guideline.glyph in (self, None), "This guideline belongs to another glyph."
+        if guideline.glyph is None:
+            assert guideline.fontInfo is None, "This guideline belongs to a font."
+        if guideline.glyph is None:
+            if guideline.identifier is not None:
+                identifiers = self._identifiers
+                assert guideline.identifier not in identifiers
+                if guideline.identifier is not None:
+                    identifiers.add(guideline.identifier)
+            guideline.glyph = self
+            guideline.beginSelfNotificationObservation()
+        self.beginSelfGuidelineNotificationObservation(guideline)
+        self._guidelines.insert(index, guideline)
+        self.postNotification(notification="Glyph.GuidelinesChanged")
+        self.dirty = True
+
+    def removeGuideline(self, guideline):
+        """
+        Remove **guideline** from the glyph.
+
+        This will post a *Glyph.Changed* notification.
+        """
+        self.postNotification(notification="Glyph.GuidelineWillBeDeleted", data=dict(object=guideline))
+        if guideline.identifier is not None:
+            self._identifiers.remove(guideline.identifier)
+        self._guidelines.remove(guideline)
+        self.endSelfGuidelineNotificationObservation(guideline)
+        self.postNotification(notification="Glyph.GuidelinesChanged")
+        self.dirty = True
+
+    def guidelineIndex(self, guideline):
+        """
+        Get the index for **guideline**.
+        """
+        return self._guidelines.index(guideline)
+
+    def clearGuidelines(self):
+        """
+        Clear all guidelines from the glyph.
+
+        This posts a *Glyph.Changed* notification.
+        """
+        self.holdNotifications()
+        for guideline in reversed(self._guidelines):
+            self.removeGuideline(guideline)
+        self.releaseHeldNotifications()
+
+    # ----
+    # Note
+    # ----
+
+    def _get_note(self):
+        return self._note
+
+    def _set_note(self, value):
+        if value is not None:
+            assert isinstance(value, basestring)
+        oldValue = self._note
+        if oldValue != value:
+            self._note = value
+            self.postNotification(notification="Glyph.NoteChanged", data=dict(oldValue=oldValue, newValue=value))
+            self.dirty = True
+
+    note = property(_get_note, _set_note, doc="An arbitrary note for the glyph. Setting this will post a *Glyph.Changed* notification.")
+
+    # ---
+    # Lib
+    # ---
+
+    def instantiateLib(self):
+        lib = self._libClass(
+            glyph=self
+        )
+        return lib
+
+    def _get_lib(self):
+        return self._lib
+
+    def _set_lib(self, value):
+        self._lib.clear()
+        self._lib.update(value)
+        self.dirty = True
+
+    lib = property(_get_lib, _set_lib, doc="The glyph's :class:`Lib` object. Setting this will clear any existing lib data and post a *Glyph.Changed* notification if data was replaced.")
+
+    def beginSelfLibNotificationObservation(self):
+        if self._lib.dispatcher is None:
+            return
+        self._lib.addObserver(observer=self, methodName="_libContentChanged", notification="Lib.Changed")
+
+    def endSelfLibNotificationObservation(self):
+        if self._lib.dispatcher is None:
+            return
+        self._lib.removeObserver(observer=self, notification="Lib.Changed")
+        self._lib.endSelfNotificationObservation()
+
+    # -----
+    # Image
+    # -----
+
+    def instantiateImage(self):
+        image = self._imageClass(
+            glyph=self
+        )
+        return image
+
+    def _get_image(self):
+        return self._image
+
+    def _set_image(self, image):
+        # removing image
+        if image is None:
+            if self._image is not None:
+                self.postNotification(notification="Glyph.ImageWillBeDeleted")
+                self.endSelfImageNotificationObservation()
+                self._image = None
+                self.postNotification(notification="Glyph.ImageChanged")
+                self.dirty = True
+        # adding image
+        else:
+            if self._image is None:
+                self._image = self.instantiateImage()
+                self.beginSelfImageNotificationObservation()
+            if set(self.image.items()) != set(image.items()):
+                for key in self._image.keys():
+                    self._image[key] = image.get(key)
+                self.postNotification(notification="Glyph.ImageChanged")
+                self.dirty = True
+
+    image = property(_get_image, _set_image, doc="The glyph's :class:`Image` object. Setting this posts *Glyph.ImageChanged* and *Glyph.Changed* notifications.")
+
+    def beginSelfImageNotificationObservation(self):
+        if self._image.dispatcher is None:
+            return
+        self._image.addObserver(observer=self, methodName="_imageChanged", notification="Image.Changed")
+
+    def endSelfImageNotificationObservation(self):
+        if self._image is None:
+            return
+        if self._image.dispatcher is None:
+            return
+        self._image.removeObserver(observer=self, notification="Image.Changed")
+        self._image.endSelfNotificationObservation()
+
+    # -------------
+    # List Behavior
+    # -------------
 
     def __len__(self):
         return len(self._contours)
@@ -583,6 +931,10 @@ class Glyph(BaseObject):
 
     def _getContourIndex(self, contour):
         return self._contours.index(contour)
+
+    # ----------------
+    # Glyph Absorption
+    # ----------------
 
     def copyDataFromGlyph(self, glyph):
         """
@@ -608,244 +960,16 @@ class Glyph(BaseObject):
         self.height = glyph.height
         self.unicodes = list(glyph.unicodes)
         self.note = glyph.note
-        self.guidelines = glyph.guidelines
-        self.anchors = glyph.anchors
+        self.guidelines = [self.instantiateGuideline(g) for g in glyph.guidelines]
+        self.anchors = [self.instantiateAnchor(a) for a in glyph.anchors]
         self.image = glyph.image
         pointPen = self.getPointPen()
         glyph.drawPoints(pointPen)
         self.lib = deepcopy(glyph.lib)
 
-    def appendContour(self, contour):
-        """
-        Append **contour** to the glyph. The contour must be a defcon
-        :class:`Contour` object or a subclass of that object. An error
-        will be raised if the contour's identifier or a point identifier
-        conflicts with any of the identifiers within the glyph.
-
-        This will post a *Glyph.Changed* notification.
-        """
-        assert contour not in self._contours
-        self.insertContour(len(self._contours), contour)
-
-    def appendComponent(self, component):
-        """
-        Append **component** to the glyph. The component must be a defcon
-        :class:`Component` object or a subclass of that object. An error
-        will be raised if the component's identifier conflicts with any of
-        the identifiers within the glyph.
-
-        This will post a *Glyph.Changed* notification.
-        """
-        assert component not in self._components
-        self.insertComponent(len(self._components), component)
-
-    def appendAnchor(self, anchor):
-        """
-        Append **anchor** to the glyph. The anchor must be a defcon
-        :class:`Anchor` object or a subclass of that object. An error
-        will be raised if the anchor's identifier conflicts with any of
-        the identifiers within the glyph.
-
-        This will post a *Glyph.Changed* notification.
-        """
-        assert anchor not in self._anchors
-        self.insertAnchor(len(self._anchors), anchor)
-
-    def appendGuideline(self, guideline):
-        """
-        Append **guideline** to the glyph. The guideline must be a defcon
-        :class:`Guideline` object or a subclass of that object. An error
-        will be raised if the guideline's identifier conflicts with any of
-        the identifiers within the glyph.
-
-        This will post a *Glyph.Changed* notification.
-        """
-        assert guideline not in self._guidelines
-        self.insertGuideline(len(self._guidelines), guideline)
-
-    def insertContour(self, index, contour):
-        """
-        Insert **contour** into the glyph at index. The contour
-        must be a defcon :class:`Contour` object or a subclass
-        of that object. An error will be raised if the contour's
-        identifier or a point identifier conflicts with any of
-        the identifiers within the glyph.
-
-        This will post a *Glyph.Changed* notification.
-        """
-        assert contour not in self._contours
-        identifiers = self._identifiers
-        if contour.identifier is not None:
-            assert contour.identifier not in identifiers
-            if contour.identifier is not None:
-                identifiers.add(contour.identifier)
-        for point in contour:
-            if point.identifier is not None:
-                assert point.identifier not in identifiers
-                self._identifiers.add(point.identifier)
-        if contour.glyph != self:
-            self._setParentDataInContour(contour)
-        self._contours.insert(index, contour)
-        self._destroyBoundsCache()
-        self.postNotification(notification="Glyph.ContoursChanged")
-        self.dirty = True
-
-    def insertComponent(self, index, component):
-        """
-        Insert **component** into the glyph at index. The component
-        must be a defcon :class:`Component` object or a subclass
-        of that object. An error will be raised if the component's
-        identifier conflicts with any of the identifiers within
-        the glyph.
-
-        This will post a *Glyph.Changed* notification.
-        """
-        assert component not in self._components
-        if component.identifier is not None:
-            identifiers = self._identifiers
-            assert component.identifier not in identifiers
-            if component.identifier is not None:
-                identifiers.add(component.identifier)
-        if component.glyph != self:
-            self._setParentDataInComponent(component)
-        self._components.insert(index, component)
-        self._destroyBoundsCache()
-        self.postNotification(notification="Glyph.ComponentsChanged")
-        self.dirty = True
-
-    def insertAnchor(self, index, anchor):
-        """
-        Insert **anchor** into the glyph at index. The anchor
-        must be a defcon :class:`Anchor` object or a subclass
-        of that object. An error will be raised if the anchor's
-        identifier conflicts with any of the identifiers within
-        the glyph.
-
-        This will post a *Glyph.Changed* notification.
-        """
-        assert anchor not in self._anchors
-        if not isinstance(anchor, self._anchorClass):
-            anchor = self._anchorClass(anchor)
-        if anchor.identifier is not None:
-            identifiers = self._identifiers
-            assert anchor.identifier not in identifiers
-            if anchor.identifier is not None:
-                identifiers.add(anchor.identifier)
-        if anchor.glyph != self:
-            self._setParentDataInAnchor(anchor)
-        self._anchors.insert(index, anchor)
-        self.postNotification(notification="Glyph.AnchorsChanged")
-        self.dirty = True
-
-    def insertGuideline(self, index, guideline):
-        """
-        Insert **guideline** into the glyph at index. The guideline
-        must be a defcon :class:`Guideline` object or a subclass
-        of that object. An error will be raised if the guideline's
-        identifier conflicts with any of the identifiers within
-        the glyph.
-
-        This will post a *Glyph.Changed* notification.
-        """
-        assert guideline not in self._guidelines
-        if not isinstance(guideline, self._guidelineClass):
-            guideline = self._guidelineClass(guideline)
-        if guideline.identifier is not None:
-            identifiers = self._identifiers
-            assert guideline.identifier not in identifiers
-            if guideline.identifier is not None:
-                identifiers.add(guideline.identifier)
-        if guideline.glyph != self:
-            self._setParentDataInGuideline(guideline)
-        self._guidelines.insert(index, guideline)
-        self.postNotification(notification="Glyph.GuidelinesChanged")
-        self.dirty = True
-
-    def removeContour(self, contour):
-        """
-        Remove **contour** from the glyph.
-
-        This will post a *Glyph.Changed* notification.
-        """
-        self.postNotification(notification="Glyph.ContourWillBeDeleted", data=dict(object=contour))
-        identifiers = self._identifiers
-        if contour.identifier is not None:
-            identifiers.remove(contour.identifier)
-        for point in contour:
-            if point.identifier is not None:
-                identifiers.remove(point.identifier)
-        self._contours.remove(contour)
-        self._removeParentDataInContour(contour)
-        self._destroyBoundsCache()
-        self.postNotification(notification="Glyph.ContoursChanged")
-        self.dirty = True
-
-    def removeComponent(self, component):
-        """
-        Remove **component** from the glyph.
-
-        This will post a *Glyph.Changed* notification.
-        """
-        self.postNotification(notification="Glyph.ComponentWillBeDeleted", data=dict(object=component))
-        if component.identifier is not None:
-            self._identifiers.remove(component.identifier)
-        self._components.remove(component)
-        self._removeParentDataInComponent(component)
-        self._destroyBoundsCache()
-        self.postNotification(notification="Glyph.ComponentsChanged")
-        self.dirty = True
-
-    def removeAnchor(self, anchor):
-        """
-        Remove **anchor** from the glyph.
-
-        This will post a *Glyph.Changed* notification.
-        """
-        self.postNotification(notification="Glyph.AnchorWillBeDeleted", data=dict(object=anchor))
-        if anchor.identifier is not None:
-            self._identifiers.remove(anchor.identifier)
-        self._anchors.remove(anchor)
-        self._removeParentDataInAnchor(anchor)
-        self.postNotification(notification="Glyph.AnchorsChanged")
-        self.dirty = True
-
-    def removeGuideline(self, guideline):
-        """
-        Remove **guideline** from the glyph.
-
-        This will post a *Glyph.Changed* notification.
-        """
-        self.postNotification(notification="Glyph.GuidelineWillBeDeleted", data=dict(object=guideline))
-        if guideline.identifier is not None:
-            self._identifiers.remove(guideline.identifier)
-        self._guidelines.remove(guideline)
-        self._removeParentDataInGuideline(guideline)
-        self.postNotification(notification="Glyph.GuidelinesChanged")
-        self.dirty = True
-
-    def contourIndex(self, contour):
-        """
-        Get the index for **contour**.
-        """
-        return self._contours.index(contour)
-
-    def componentIndex(self, component):
-        """
-        Get the index for **component**.
-        """
-        return self._components.index(component)
-
-    def anchorIndex(self, anchor):
-        """
-        Get the index for **anchor**.
-        """
-        return self._anchors.index(anchor)
-
-    def guidelineIndex(self, guideline):
-        """
-        Get the index for **guideline**.
-        """
-        return self._guidelines.index(guideline)
+    # -----
+    # Clear
+    # -----
 
     def clear(self):
         """
@@ -860,49 +984,9 @@ class Glyph(BaseObject):
         self.clearGuidelines()
         self.releaseHeldNotifications()
 
-    def clearContours(self):
-        """
-        Clear all contours from the glyph.
-
-        This posts a *Glyph.Changed* notification.
-        """
-        self.holdNotifications()
-        for contour in reversed(self._contours):
-            self.removeContour(contour)
-        self.releaseHeldNotifications()
-
-    def clearComponents(self):
-        """
-        Clear all components from the glyph.
-
-        This posts a *Glyph.Changed* notification.
-        """
-        self.holdNotifications()
-        for component in reversed(self._components):
-            self.removeComponent(component)
-        self.releaseHeldNotifications()
-
-    def clearAnchors(self):
-        """
-        Clear all anchors from the glyph.
-
-        This posts a *Glyph.Changed* notification.
-        """
-        self.holdNotifications()
-        for anchor in reversed(self._anchors):
-            self.removeAnchor(anchor)
-        self.releaseHeldNotifications()
-
-    def clearGuidelines(self):
-        """
-        Clear all guidelines from the glyph.
-
-        This posts a *Glyph.Changed* notification.
-        """
-        self.holdNotifications()
-        for guideline in reversed(self._guidelines):
-            self.removeGuideline(guideline)
-        self.releaseHeldNotifications()
+    # ----
+    # Move
+    # ----
 
     def move(self, (x, y)):
         """
@@ -934,6 +1018,10 @@ class Glyph(BaseObject):
             yMax += y
             self._controlPointBoundsCache = (xMin, yMin, xMax, yMax)
 
+    # ------------
+    # Point Inside
+    # ------------
+
     def pointInside(self, (x, y), evenOdd=False):
         """
         Returns a boolean indicating if **(x, y)** is in the
@@ -947,6 +1035,22 @@ class Glyph(BaseObject):
     # ----------------------
     # Notification Callbacks
     # ----------------------
+
+    def endSelfNotificationObservation(self):
+        if self.dispatcher is None:
+            return
+        for contour in self:
+            self.endSelfContourNotificationObservation(contour)
+        for component in self.components:
+            self.endSelfComponentNotificationObservation(component)
+        for anchor in self.anchors:
+            self.endSelfAnchorNotificationObservation(anchor)
+        for guideline in self.guidelines:
+            self.endSelfGuidelinesNotificationObservation(guideline)
+        self.endSelfLibNotificationObservation()
+        self.endSelfImageNotificationObservation()
+        super(Glyph, self).endSelfNotificationObservation()
+        self._font = None
 
     def _imageChanged(self, notification):
         self.postNotification(notification="Glyph.ImageChanged")
@@ -1040,6 +1144,7 @@ def _testBounds():
     >>> glyph = font['A']
     >>> glyph.bounds
     (0, 0, 700, 700)
+
     >>> glyph = font['B']
     >>> glyph.bounds
     (0, 0, 700, 700)
@@ -1570,18 +1675,18 @@ def _testIdentifiers():
     'component 2'
 
     >>> pointPen.beginPath(identifier="contour 1")
-    >>> pointPen.endPath()
     Traceback (most recent call last):
         ...
     AssertionError
+    >>> pointPen.endPath()
 
     >>> pointPen.beginPath()
     >>> pointPen.addPoint((0, 0))
     >>> pointPen.addPoint((0, 0), identifier="point 1")
-    >>> pointPen.endPath()
     Traceback (most recent call last):
         ...
     AssertionError
+    >>> pointPen.endPath()
 
     >>> pointPen.addComponent("A", (1, 1, 1, 1, 1, 1), identifier="component 1")
     Traceback (most recent call last):

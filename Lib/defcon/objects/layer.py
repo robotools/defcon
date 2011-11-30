@@ -52,10 +52,15 @@ class Layer(BaseObject):
     changeNotificationName = "Layer.Changed"
     representationFactories = {}
 
-    def __init__(self, glyphSet=None, libClass=None, unicodeDataClass=None,
+    def __init__(self, layerSet=None, glyphSet=None, libClass=None, unicodeDataClass=None,
                 guidelineClass=None, glyphClass=None,
-                glyphContourClass=None, glyphPointClass=None, glyphComponentClass=None, glyphAnchorClass=None):
+                glyphContourClass=None, glyphPointClass=None, glyphComponentClass=None, glyphAnchorClass=None, glyphImageClass=None):
+
+        if layerSet is not None:
+            layerSet = weakref.ref(layerSet)
+        self._layerSet = layerSet
         super(Layer, self).__init__()
+        self.beginSelfNotificationObservation()
 
         self._name = None
 
@@ -65,20 +70,20 @@ class Layer(BaseObject):
             libClass = Lib
         if unicodeDataClass is None:
             unicodeDataClass = UnicodeData
-
         self._glyphClass = glyphClass
         self._glyphContourClass = glyphContourClass
         self._glyphPointClass = glyphPointClass
         self._glyphComponentClass = glyphComponentClass
         self._glyphAnchorClass = glyphAnchorClass
+        self._glyphImageClass = glyphImageClass
         self._libClass = libClass
         self._guidelineClass = guidelineClass
+        self._unicodeDataClass = unicodeDataClass
 
-        self._dispatcher = None
         self._color = None
         self._lib = None
-        self._unicodeData = unicodeDataClass()
-        self._unicodeData.setParent(self)
+        self._unicodeData = self.instantiateUnicodeData()
+        self.beginSelfUnicodeDataNotificationObservation()
 
         self._directory = None
 
@@ -90,6 +95,7 @@ class Layer(BaseObject):
         self._dirty = False
 
         if glyphSet is not None:
+            self._unicodeData.disableNotifications()
             self._keys = set(self._glyphSet.keys())
             cmap = {}
             for glyphName, unicodes in glyphSet.getUnicodes().items():
@@ -99,50 +105,83 @@ class Layer(BaseObject):
                     else:
                         cmap[code] = [glyphName]
             self._unicodeData.update(cmap)
+            self._unicodeData.enableNotifications()
 
-    # -------------
-    # Dict Behavior
-    # -------------
+    def __del__(self):
+        super(Layer, self).__del__()
+        self._glyphs = None
+        self._lib = None
+        self._unicodeData = None
 
-    def _instantiateGlyphObject(self):
+    # --------------
+    # Parent Objects
+    # --------------
+
+    def getParent(self):
+        return self.layerSet
+
+    def _get_font(self):
+        layerSet = self.layerSet
+        if layerSet is None:
+            return None
+        return layerSet.font
+
+    font = property(_get_font, doc="The :class:`Font` that this layer belongs to.")
+
+    def _get_layerSet(self):
+        if self._layerSet is None:
+            return None
+        return self._layerSet()
+
+    layerSet = property(_get_layerSet, doc="The :class:`LayerSet` that this layer belongs to.")
+
+    # --------------
+    # Glyph Creation
+    # --------------
+
+    def instantiateGlyphObject(self):
         glyph = self._glyphClass(
+            layer=self,
             contourClass=self._glyphContourClass,
             pointClass=self._glyphPointClass,
             componentClass=self._glyphComponentClass,
             anchorClass=self._glyphAnchorClass,
             guidelineClass=self._guidelineClass,
-            libClass=self._libClass
+            libClass=self._libClass,
+            imageClass=self._glyphImageClass
         )
         return glyph
 
-    def _loadGlyph(self, name):
-        if self._glyphSet is None or not self._glyphSet.has_key(name):
-            raise KeyError, "%s not in layer" % name
-        glyph = self._instantiateGlyphObject()
-        pointPen = glyph.getPointPen()
-        self._glyphSet.readGlyph(glyphName=name, glyphObject=glyph, pointPen=pointPen)
-        glyph.dirty = False
-        self._glyphs[name] = glyph
-        self._setParentDataInGlyph(glyph)
-        self._stampGlyphDataState(glyph)
-        return glyph
-
-    def _setParentDataInGlyph(self, glyph):
-        # the parent of a glyph is always the font, not the layer
-        font = self.font
-        if font is not None:
-            glyph.setParent(font)
-        glyph.layer = self
+    def beginSelfGlyphNotificationObservation(self, glyph):
         glyph.addObserver(observer=self, methodName="_glyphDirtyStateChange", notification="Glyph.Changed")
         glyph.addObserver(observer=self, methodName="_glyphNameChange", notification="Glyph.NameChanged")
         glyph.addObserver(observer=self, methodName="_glyphUnicodesChange", notification="Glyph.UnicodesChanged")
 
-    def _removeParentDataInGlyph(self, glyph):
+    def endSelfGlyphNotificationObservation(self, glyph):
+        if glyph.dispatcher is None:
+            return
         glyph.removeObserver(observer=self, notification="Glyph.Changed")
         glyph.removeObserver(observer=self, notification="Glyph.NameChanged")
         glyph.removeObserver(observer=self, notification="Glyph.UnicodesChanged")
-        glyph.layer = None
-        glyph.setParent(None)
+        glyph.endSelfNotificationObservation()
+
+    def loadGlyph(self, name):
+        """
+        Load a glyph from the glyph set. This should not be called
+        externally, but subclasses may overrode it for custom behavior.
+        """
+        if self._glyphSet is None or not self._glyphSet.has_key(name):
+            raise KeyError, "%s not in layer" % name
+        glyph = self.instantiateGlyphObject()
+        self.beginSelfGlyphNotificationObservation(glyph)
+        glyph.disableNotifications()
+        pointPen = glyph.getPointPen()
+        self._glyphSet.readGlyph(glyphName=name, glyphObject=glyph, pointPen=pointPen)
+        glyph.dirty = False
+        glyph.enableNotifications()
+        self._glyphs[name] = glyph
+        self._stampGlyphDataState(glyph)
+        return glyph
 
     def newGlyph(self, name):
         """
@@ -154,10 +193,12 @@ class Layer(BaseObject):
         """
         if name in self:
             self._unicodeData.removeGlyphData(name, self[name].unicodes)
-        glyph = self._instantiateGlyphObject()
+        glyph = self.instantiateGlyphObject()
+        self.beginSelfGlyphNotificationObservation(glyph)
+        glyph.disableNotifications()
         glyph.name = name
+        glyph.enableNotifications()
         self._glyphs[name] = glyph
-        self._setParentDataInGlyph(glyph)
         if name in self._scheduledForDeletion:
             del self._scheduledForDeletion[name]
         self._keys.add(name)
@@ -193,6 +234,10 @@ class Layer(BaseObject):
         self.releaseHeldNotifications()
         return dest
 
+    # -------------
+    # Dict Behavior
+    # -------------
+
     def __iter__(self):
         names = self.keys()
         while names:
@@ -202,7 +247,7 @@ class Layer(BaseObject):
 
     def __getitem__(self, name):
         if name not in self._glyphs:
-            self._loadGlyph(name)
+            self.loadGlyph(name)
         return self._glyphs[name]
 
     def __delitem__(self, name):
@@ -214,7 +259,7 @@ class Layer(BaseObject):
         dataOnDisk = None
         if name in self._glyphs:
             glyph = self._glyphs.pop(name)
-            self._removeParentDataInGlyph(glyph)
+            self.endSelfGlyphNotificationObservation(glyph)
             dataOnDiskTimeStamp = glyph._dataOnDiskTimeStamp
             dataOnDisk = glyph._dataOnDisk
         if name in self._keys:
@@ -244,18 +289,7 @@ class Layer(BaseObject):
     # Attributes
     # ----------
 
-    def _get_font(self):
-        layerSet = self.layerSet
-        if layerSet is None:
-            return None
-        return layerSet.font
-
-    font = property(_get_font, doc="The :class:`Font` that this layer belongs to.")
-
-    def _get_layerSet(self):
-        return self.getParent()
-
-    layerSet = property(_get_layerSet, doc="The :class:`LayerSet` that this layer belongs to.")
+    # name
 
     def _set_name(self, value):
         oldName = self._name
@@ -269,6 +303,8 @@ class Layer(BaseObject):
         return self._name
 
     name = property(_get_name, _set_name, doc="The name of the layer. Setting this posts *Layer.NameChanged* and *Layer.Changed* notifications.")
+
+    # color
 
     def _get_color(self):
         return self._color
@@ -286,6 +322,12 @@ class Layer(BaseObject):
             self.dirty = True
 
     color = property(_get_color, _set_color, doc="The layer's :class:`Color` object. When setting, the value can be a UFO color string, a sequence of (r, g, b, a) or a :class:`Color` object. Setting this posts *Layer.ColorChanged* and *Layer.Changed* notifications.")
+
+    # -------------
+    # Data Skimmers
+    # -------------
+
+    # outlines
 
     def _get_glyphsWithOutlines(self):
         found = []
@@ -307,6 +349,8 @@ class Layer(BaseObject):
         return found
 
     glyphsWithOutlines = property(_get_glyphsWithOutlines, doc="A list of glyphs containing outlines.")
+
+    # component references
 
     def _get_componentReferences(self):
         found = {}
@@ -333,6 +377,8 @@ class Layer(BaseObject):
 
     componentReferences = property(_get_componentReferences, doc="A dict of describing the component relationships in the layer. The dictionary is of form ``{base glyph : [references]}``.")
 
+    # image references
+
     def _get_imageReferences(self):
         found = {}
         # scan loaded glyphs
@@ -356,6 +402,8 @@ class Layer(BaseObject):
 
     imageReferences = property(_get_imageReferences, doc="A dict of describing the image file references in the layer. The dictionary is of form ``{image file name : [references]}``.")
 
+    # bounds
+
     def _get_bounds(self):
         fontRect = None
         for glyph in self:
@@ -369,6 +417,8 @@ class Layer(BaseObject):
         return fontRect
 
     bounds = property(_get_bounds, doc="The bounds of all glyphs in the layer. This can be an expensive operation.")
+
+    # control point bounds
 
     def _get_controlPointBounds(self):
         from fontTools.misc.transform import Transform
@@ -436,11 +486,29 @@ class Layer(BaseObject):
     # Sub-Objects
     # -----------
 
+    # lib
+
+    def instantiateLib(self):
+        lib = self._libClass(
+            layer=self
+        )
+        return lib
+
+    def beginSelfLibNotificationObservation(self):
+        self._lib.addObserver(observer=self, methodName="_libDirtyStateChange", notification="Lib.Changed")
+
+    def endSelfLibNotificationObservation(self):
+        if self._lib is None:
+            return
+        if self._lib.dispatcher is None:
+            return
+        self._lib.removeObserver(observer=self, notification="Lib.Changed")
+        self._lib.endSelfNotificationObservation()
+
     def _get_lib(self):
         if self._lib is None:
-            self._lib = self._libClass()
-            self._lib.setParent(self)
-            self._lib.addObserver(observer=self, methodName="_libDirtyStateChange", notification="Lib.Changed")
+            self._lib = self.instantiateLib()
+            self.beginSelfLibNotificationObservation()
         return self._lib
 
     def _set_lib(self, value):
@@ -450,14 +518,30 @@ class Layer(BaseObject):
 
     lib = property(_get_lib, _set_lib, doc="The layer's :class:`Lib` object.")
 
+    # unicode data
+
+    def instantiateUnicodeData(self):
+        unicodeData = self._unicodeDataClass(
+            layer=self
+        )
+        return unicodeData
+
+    def beginSelfUnicodeDataNotificationObservation(self):
+        pass
+
+    def endSelfUnicodeDataNotificationObservation(self):
+        if self._unicodeData.dispatcher is None:
+            return
+        self._unicodeData.endSelfNotificationObservation()
+
     def _get_unicodeData(self):
         return self._unicodeData
 
     unicodeData = property(_get_unicodeData, doc="The layer's :class:`UnicodeData` object.")
 
-    # -------
-    # Methods
-    # -------
+    # ----
+    # Save
+    # ----
 
     def getSaveProgressBarTickCount(self, formatVersion):
         """
@@ -565,7 +649,7 @@ class Layer(BaseObject):
         """
         for glyphName in glyphNames:
             if glyphName not in self._glyphs:
-                self._loadGlyph(glyphName)
+                self.loadGlyph(glyphName)
             else:
                 glyph = self._glyphs[glyphName]
                 glyph.destroyAllRepresentations(None)
@@ -594,9 +678,19 @@ class Layer(BaseObject):
                 glyph.postNotification(notification=glyph.changeNotificationName)
                 referenceChanges.add(reference)
 
-    # ----------------------
-    # Notification Callbacks
-    # ----------------------
+    # ------------------------
+    # Notification Observation
+    # ------------------------
+
+    def endSelfNotificationObservation(self):
+        if self.dispatcher is None:
+            return
+        for glyph in self._glyphs.values():
+            self.endSelfGlyphNotificationObservation(glyph)
+        self.endSelfLibNotificationObservation()
+        self.endSelfUnicodeDataNotificationObservation()
+        super(Layer, self).endSelfNotificationObservation()
+        self._layerSet = None
 
     def _glyphDirtyStateChange(self, notification):
         self.postNotification("Layer.GlyphChanged")
@@ -852,7 +946,6 @@ def _testDelitem():
     >>> layer = font.layers["public.default"]
     >>> glyph = layer['A']
     >>> del layer['A']
-    >>> glyph.getParent()
     >>> layer.dirty
     True
     >>> layer.newGlyph('NewGlyphTest')

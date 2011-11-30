@@ -1,3 +1,4 @@
+import weakref
 from defcon.objects.base import BaseDictObject
 
 
@@ -47,13 +48,41 @@ class Kerning(BaseDictObject):
     updateNotificationName = "Kerning.Updated"
     representationFactories = {}
 
+    def __init__(self, font=None):
+        self._font = None
+        if font is not None:
+            self._font = weakref.ref(font)
+        super(Kerning, self).__init__()
+        self.beginSelfNotificationObservation()
+
+    # --------------
+    # Parent Objects
+    # --------------
+
+    def getParent(self):
+        return self.font
+
     def _get_font(self):
-        return self.getParent()
+        if self._font is not None:
+            return self._font()
+        return None
 
     font = property(_get_font, doc="The :class:`Font` that this object belongs to.")
 
+    # -------------
+    # Pair Handling
+    # -------------
+
     def get(self, pair, default=0):
         return super(Kerning, self).get(pair, default)
+
+    # ------------------------
+    # Notification Observation
+    # ------------------------
+
+    def endSelfNotificationObservation(self):
+        super(Kerning, self).endSelfNotificationObservation()
+        self._font = None
 
 
 def _test():
