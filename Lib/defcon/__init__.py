@@ -25,13 +25,16 @@ from defcon.objects.uniData import UnicodeData
 from defcon.objects.color import Color
 from defcon.objects.guideline import Guideline
 
-def registerRepresentationFactory(cls, name, factory):
+def registerRepresentationFactory(cls, name, factory, destructiveNotifications=None):
     """
     Register **factory** as a representation factory
     for all instances of **cls** (a :class:`defcon.objects.base.BaseObject`)
     subclass under **name**.
     """
-    cls.representationFactories[name] = factory
+    if destructiveNotifications is None:
+        destructiveNotifications = [cls.changeNotificationName]
+    destructiveNotifications = set(destructiveNotifications)
+    cls.representationFactories[name] = dict(factory=factory, destructiveNotifications=destructiveNotifications)
 
 def unregisterRepresentationFactory(cls, name):
     """

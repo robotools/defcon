@@ -216,7 +216,7 @@ class BaseObject(object):
         self.removeObserver(self, notification=None)
 
     def selfNotificationCallback(self, notification):
-        pass
+        self._destroyRepresentationsForNotification(notification)
 
     # ---------------
     # Representations
@@ -234,7 +234,7 @@ class BaseObject(object):
         subKey = self._makeRepresentationSubKey(**kwargs)
         if subKey not in representations:
             factory = self.representationFactories[name]
-            representation = factory(self, **kwargs)
+            representation = factory["factory"](self, **kwargs)
             representations[subKey] = representation
         return representations[subKey]
 
@@ -261,6 +261,12 @@ class BaseObject(object):
         Destroy all representations.
         """
         self._representations.clear()
+
+    def _destroyRepresentationsForNotification(self, notification):
+        notificationName = notification.name
+        for name, dataDict in self.representationFactories.items():
+            if notificationName in dataDict["destructiveNotifications"]:
+                self.destroyRepresentation(name)
 
     def representationKeys(self):
         """
