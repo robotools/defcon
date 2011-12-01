@@ -304,7 +304,7 @@ handBuilt = """
         if self.dispatcher is None:
             return
         for guideline in self.guidelines:
-            self.endSelfGuidelinesNotificationObservation(guideline)
+            self.endSelfGuidelineNotificationObservation(guideline)
         super(Info, self).endSelfNotificationObservation()
         self._font = None
 

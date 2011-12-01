@@ -1048,7 +1048,7 @@ class Glyph(BaseObject):
         for anchor in self.anchors:
             self.endSelfAnchorNotificationObservation(anchor)
         for guideline in self.guidelines:
-            self.endSelfGuidelinesNotificationObservation(guideline)
+            self.endSelfGuidelineNotificationObservation(guideline)
         self.endSelfLibNotificationObservation()
         self.endSelfImageNotificationObservation()
         super(Glyph, self).endSelfNotificationObservation()
