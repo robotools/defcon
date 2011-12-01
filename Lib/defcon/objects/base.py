@@ -58,12 +58,15 @@ class BaseObject(object):
     # -------------
 
     def _get_dispatcher(self):
-        if not hasattr(self, "font"):
-            return
-        font = self.font
-        if font is None:
-            return None
-        return font.dispatcher
+        if self._dispatcher is not None:
+            return self._dispatcher()
+        else:
+            try:
+                dispatcher = self.font.dispatcher
+                self._dispatcher = weakref.ref(dispatcher)
+            except AttributeError:
+                dispatcher = None
+        return dispatcher
 
     dispatcher = property(_get_dispatcher, doc="The :class:`defcon.tools.notifications.NotificationCenter` assigned to the parent of this object.")
 
@@ -87,8 +90,10 @@ class BaseObject(object):
             dispatcher.addObserver(observer=observer, methodName=methodName,
                 notification=notification, observable=anObject)
         """
-        self.dispatcher.addObserver(observer=observer, methodName=methodName,
-            notification=notification, observable=self)
+        dispatcher = self.dispatcher
+        if dispatcher is not None:
+            self.dispatcher.addObserver(observer=observer, methodName=methodName,
+                notification=notification, observable=self)
 
     def removeObserver(self, observer, notification):
         """
@@ -104,7 +109,9 @@ class BaseObject(object):
             dispatcher.removeObserver(observer=observer,
                 notification=notification, observable=anObject)
         """
-        self.dispatcher.removeObserver(observer=observer, notification=notification, observable=self)
+        dispatcher = self.dispatcher
+        if dispatcher is not None:
+            self.dispatcher.removeObserver(observer=observer, notification=notification, observable=self)
 
     def hasObserver(self, observer, notification):
         """
@@ -116,7 +123,9 @@ class BaseObject(object):
             dispatcher.hasObserver(observer=observer,
                 notification=notification, observable=anObject)
         """
-        return self.dispatcher.hasObserver(observer=observer, notification=notification, observable=self)
+        dispatcher = self.dispatcher
+        if dispatcher is not None:
+            return self.dispatcher.hasObserver(observer=observer, notification=notification, observable=self)
 
     def holdNotifications(self, notification=None):
         """
@@ -206,14 +215,11 @@ class BaseObject(object):
     # ------------------------
 
     def beginSelfNotificationObservation(self):
-        if self.dispatcher is None:
-            return
         self.addObserver(self, "selfNotificationCallback", notification=None)
 
     def endSelfNotificationObservation(self):
-        if self.dispatcher is None:
-            return
         self.removeObserver(self, notification=None)
+        self._dispatcher = None
 
     def selfNotificationCallback(self, notification):
         self._destroyRepresentationsForNotification(notification)
@@ -307,8 +313,9 @@ class BaseObject(object):
 
     def _set_dirty(self, value):
         self._dirty = value
-        if self.dispatcher is not None:
-            self.dispatcher.postNotification(notification=self.changeNotificationName, observable=self)
+        dispatcher = self.dispatcher
+        if dispatcher is not None:
+            dispatcher.postNotification(notification=self.changeNotificationName, observable=self)
 
     def _get_dirty(self):
         return self._dirty
@@ -395,7 +402,7 @@ def _representationTestFactory(obj, **kwargs):
 def _testRepresentations():
     """
     >>> obj = BaseObject()
-    >>> obj.representationFactories = dict(test=_representationTestFactory)
+    >>> obj.representationFactories = dict(test=dict(factory=_representationTestFactory, destructiveNotifications=["BaseObject.Changed"]))
 
     >>> obj.getRepresentation("test")
     '()'
@@ -414,7 +421,7 @@ def _testRepresentations():
     >>> obj.representationKeys()
     []
 
-    >>> obj.representationFactories["foo"] = _representationTestFactory
+    >>> obj.representationFactories["foo"] =  dict(factory=_representationTestFactory, destructiveNotifications=["BaseObject.Changed"])
     >>> obj.getRepresentation("test")
     '()'
     >>> obj.getRepresentation("test", attr1="foo", attr2="bar", attr3=1)
