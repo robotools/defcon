@@ -328,7 +328,7 @@ class LayerSet(BaseObject):
     def endSelfNotificationObservation(self):
         if self.dispatcher is None:
             return
-        for layer in self_layers.values():
+        for layer in self._layers.values():
             self.endSelfLayerNotificationObservation(layer)
         super(LayerSet, self).endSelfNotificationObservation()
         self._font = None
