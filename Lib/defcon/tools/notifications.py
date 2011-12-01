@@ -134,7 +134,6 @@ class NotificationCenter(object):
                 if key in self._disabled:
                     return
                 if key in self._holds:
-                    self._holds[key]
                     n = (notification, observableRef, data)
                     if not self._holds[key]["notifications"] or self._holds[key]["notifications"][-1] != n:
                         self._holds[key]["notifications"].append(n)
