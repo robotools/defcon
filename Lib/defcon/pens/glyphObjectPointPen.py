@@ -30,7 +30,7 @@ class GlyphObjectPointPen(AbstractPointPen):
     def addComponent(self, baseGlyphName, transformation, identifier=None, **kwargs):
         if self.skipConflictingIdentifiers and identifier in self._glyph.identifiers:
             identifier = None
-        component = self._glyph.componentClass()
+        component = self._glyph.instantiateComponent()
         component.baseGlyph = baseGlyphName
         component.transformation = transformation
         component.identifier = identifier
