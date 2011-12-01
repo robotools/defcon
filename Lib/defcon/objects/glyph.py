@@ -4,6 +4,7 @@ from defcon.objects.base import BaseObject
 from defcon.objects.contour import Contour
 from defcon.objects.point import Point
 from defcon.objects.component import Component
+from defcon.objects.component import _defaultTransformation as _defaultComponentTransformation
 from defcon.objects.anchor import Anchor
 from defcon.objects.lib import Lib
 from defcon.objects.guideline import Guideline
@@ -596,6 +597,56 @@ class Glyph(BaseObject):
         for component in reversed(self._components):
             self.removeComponent(component)
         self.releaseHeldNotifications()
+
+    def decomposeComponent(self, component):
+        """
+        Decompose **component**. This will preserve the identifiers
+        in the incoming contours and points unless there is a conflict.
+        In that case, the conflicting incoming identifier will be discarded.
+
+        This posts *Glyph.ComponentsChanged*, *Glyph.ContoursChanged*
+        and *Glyph.Changed* notifications.
+        """
+        self.holdNotifications()
+        layer = self.layer
+        pen = self.getPointPen()
+        pointPen = self.getPointPen()
+        self._decomposeComponent(component, layer, pointPen)
+        self.releaseHeldNotifications()
+        self.postNotification(notification="Glyph.ContoursChanged")
+
+    def decomposeAllComponents(self):
+        """
+        Decompose all components in this glyph. This will preserve the
+        identifiers in the incoming contours and points unless there is a
+        conflict. In that case, the conflicting incoming identifier will
+        be discarded.
+
+        This posts *Glyph.ComponentsChanged*, *Glyph.ContoursChanged*
+        and *Glyph.Changed* notifications.
+        """
+        if not self.components:
+            return
+        self.holdNotifications()
+        layer = self.layer
+        pointPen = self.getPointPen()
+        for component in self.components:
+            self._decomposeComponent(component, layer, pointPen)
+        self.releaseHeldNotifications()
+        self.postNotification(notification="Glyph.ContoursChanged")
+
+    def _decomposeComponent(self, component, layer, pointPen):
+        from robofab.pens.adapterPens import TransformPointPen
+        pointPen.skipConflictingIdentifiers = True
+        baseGlyph = component.baseGlyph
+        if baseGlyph in layer:
+            baseGlyph = layer[baseGlyph]
+            if component.transformation == _defaultComponentTransformation:
+                baseGlyph.drawPoints(pointPen)
+            else:
+                transformPointPen = TransformPointPen(pointPen, component.transformation)
+                baseGlyph.drawPoints(transformPointPen)
+        self.removeComponent(component)
 
     # -------
     # Anchors
@@ -1612,6 +1663,59 @@ def _testClearGuidelines():
     >>> glyph.clearGuidelines()
     >>> len(glyph.guidelines)
     0
+    """
+
+def _testDecomposeComponents():
+    """
+    >>> from defcon import Font
+    >>> font = Font()
+
+    >>> font.newGlyph("baseGlyph")
+    >>> baseGlyph = font["baseGlyph"]
+    >>> pointPen = baseGlyph.getPointPen()
+    >>> pointPen.beginPath(identifier="contour1")
+    >>> pointPen.addPoint((0, 0), "move", identifier="point1")
+    >>> pointPen.addPoint((0, 100), "line")
+    >>> pointPen.addPoint((100, 100), "line")
+    >>> pointPen.addPoint((100, 0), "line")
+    >>> pointPen.addPoint((0, 0), "line")
+    >>> pointPen.endPath()
+
+    >>> font.newGlyph("referenceGlyph")
+    >>> referenceGlyph = font["referenceGlyph"]
+    >>> pointPen = referenceGlyph.getPointPen()
+    >>> pointPen.addComponent("baseGlyph", (1, 0, 0, 1, 0, 0))
+    >>> len(referenceGlyph.components)
+    1
+    >>> len(referenceGlyph)
+    0
+    >>> referenceGlyph.decomposeAllComponents()
+    >>> len(referenceGlyph.components)
+    0
+    >>> len(referenceGlyph)
+    1
+    >>> referenceGlyph[0].identifier
+    'contour1'
+    >>> referenceGlyph[0][0].identifier
+    'point1'
+
+    >>> pointPen.addComponent("baseGlyph", (1, 0, 0, 1, 100, 100))
+    >>> len(referenceGlyph.components)
+    1
+    >>> len(referenceGlyph)
+    1
+    >>> component = referenceGlyph.components[0]
+    >>> referenceGlyph.decomposeComponent(component)
+    >>> len(referenceGlyph.components)
+    0
+    >>> len(referenceGlyph)
+    2
+    >>> referenceGlyph[0].identifier
+    'contour1'
+    >>> referenceGlyph[0][0].identifier
+    'point1'
+    >>> referenceGlyph[1].identifier
+    >>> referenceGlyph[1][0].identifier
     """
 
 def _testMove():
