@@ -365,7 +365,7 @@ class Font(BaseObject):
             return
         if self._kerning.dispatcher is None:
             return
-        self._kerning.addObserver(observer=self, notification="Kerning.Changed")
+        self._kerning.removeObserver(observer=self, notification="Kerning.Changed")
         self._kerning.endSelfNotificationObservation()
 
     def _get_kerning(self):
@@ -407,7 +407,7 @@ class Font(BaseObject):
             return
         if self._groups.dispatcher is None:
             return
-        self._groups.addObserver(observer=self, notification="Groups.Changed")
+        self._groups.removeObserver(observer=self, notification="Groups.Changed")
         self._groups.endSelfNotificationObservation()
 
     def _get_groups(self):
@@ -449,7 +449,7 @@ class Font(BaseObject):
             return
         if self._features.dispatcher is None:
             return
-        self._features.addObserver(observer=self, notification="Features.Changed")
+        self._features.removeObserver(observer=self, notification="Features.Changed")
         self._features.endSelfNotificationObservation()
 
     def _get_features(self):
@@ -810,13 +810,13 @@ class Font(BaseObject):
         if self.dispatcher is None:
             return
         self.endSelfLayerSetNotificationObservation()
-        #self.endSelfInfoSetNotificationObservation()
-        #self.endSelfKerningNotificationObservation()
-        #self.endSelfGroupsNotificationObservation()
-        #self.endSelfLibNotificationObservation()
-        #self.endSelfFeaturesNotificationObservation()
-        #self.endSelfImageSetNotificationObservation()
-        #self.endSelfDataSetNotificationObservation()
+        self.endSelfInfoSetNotificationObservation()
+        self.endSelfKerningNotificationObservation()
+        self.endSelfGroupsNotificationObservation()
+        self.endSelfLibNotificationObservation()
+        self.endSelfFeaturesNotificationObservation()
+        self.endSelfImageSetNotificationObservation()
+        self.endSelfDataSetNotificationObservation()
         super(Font, self).endSelfNotificationObservation()
 
     def _objectDirtyStateChange(self, notification):
