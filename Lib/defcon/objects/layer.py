@@ -24,6 +24,7 @@ class Layer(BaseObject):
     Layer.GlyphAdded
     Layer.GlyphDeleted
     Layer.GlyphWillBeDeleted
+    Layer.GlyphNameChanged
     Layer.NameChanged
     Layer.ColorChanged
     ========================
@@ -705,11 +706,14 @@ class Layer(BaseObject):
         oldName = data["oldValue"]
         newName = data["newValue"]
         glyph = self._glyphs[oldName]
-        del self[oldName]
+        self.disableNotifications()
+        del self[oldName] # use __del__ because *lots* of things have to be adjusted
+        self.enableNotifications()
         self._glyphs[newName] = glyph
         self._keys.add(newName)
         self._unicodeData.removeGlyphData(oldName, glyph.unicodes)
         self._unicodeData.addGlyphData(newName, glyph.unicodes)
+        self.postNotification("Layer.GlyphNameChanged", data=dict(oldValue=oldName, newValue=newName))
 
     def _glyphUnicodesChange(self, notification):
         glyphName = notification.object.name

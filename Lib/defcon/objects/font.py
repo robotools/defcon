@@ -828,12 +828,14 @@ class Font(BaseObject):
         layer = self.layers[name]
         layer.addObserver(self, "_glyphAddedNotificationCallback", "Layer.GlyphAdded")
         layer.addObserver(self, "_glyphDeletedNotificationCallback", "Layer.GlyphDeleted")
+        layer.addObserver(self, "_glyphRenamedNotificationCallback", "Layer.GlyphNameChanged")
 
     def _layerWillBeDeletedNotificationCallback(self, notification):
         name = notification.data["name"]
         layer = self.layers[name]
         layer.removeObserver(self, "Layer.GlyphAdded")
         layer.removeObserver(self, "Layer.GlyphDeleted")
+        layer.removeObserver(self, "Layer.GlyphNameChanged")
 
     def _glyphAddedNotificationCallback(self, notification):
         name = notification.data["name"]
@@ -848,6 +850,18 @@ class Font(BaseObject):
                 break
         if not stillExists:
             self.updateGlyphOrder(removedGlyph=name)
+
+    def _glyphRenamedNotificationCallback(self, notification):
+        oldName = notification.data["oldValue"]
+        newName = notification.data["newValue"]
+        oldStillExists = False
+        for layer in self.layers:
+            if oldName in layer:
+                oldStillExists = True
+                break
+        if not oldStillExists:
+            self.updateGlyphOrder(removedGlyph=oldName)
+        self.updateGlyphOrder(addedGlyph=newName)
 
     # ---------------------
     # External Edit Support
