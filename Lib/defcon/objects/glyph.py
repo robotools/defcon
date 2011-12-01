@@ -186,8 +186,8 @@ class Glyph(BaseObject):
         oldName = self._name
         if oldName != value:
             self._name = value
-            self.dirty = True
             self.postNotification(notification="Glyph.NameChanged", data=dict(oldValue=oldName, newValue=value))
+            self.dirty = True
 
     def _get_name(self):
         return self._name
@@ -203,8 +203,8 @@ class Glyph(BaseObject):
         oldValue = self.unicodes
         if oldValue != value:
             self._unicodes = value
-            self.dirty = True
             self.postNotification(notification="Glyph.UnicodesChanged", data=dict(oldValue=oldValue, newValue=value))
+            self.dirty = True
 
     unicodes = property(_get_unicodes, _set_unicodes, doc="The list of unicode values assigned to the glyph. Setting this posts *Glyph.UnicodesChanged* and *Glyph.Changed* notifications.")
 
