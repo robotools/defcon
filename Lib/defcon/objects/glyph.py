@@ -34,6 +34,7 @@ class Glyph(BaseObject):
     Name
     ============================
     Glyph.Changed
+    Glyph.NameWillChange
     Glyph.NameChanged
     Glyph.UnicodesChanged
     Glyph.WidthChanged
@@ -185,6 +186,7 @@ class Glyph(BaseObject):
     def _set_name(self, value):
         oldName = self._name
         if oldName != value:
+            self.postNotification(notification="Glyph.NameWillChange", data=dict(oldValue=oldName, newValue=value))
             self._name = value
             self.postNotification(notification="Glyph.NameChanged", data=dict(oldValue=oldName, newValue=value))
             self.dirty = True
