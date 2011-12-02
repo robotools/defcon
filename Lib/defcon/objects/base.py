@@ -126,6 +126,7 @@ class BaseObject(object):
         dispatcher = self.dispatcher
         if dispatcher is not None:
             return self.dispatcher.hasObserver(observer=observer, notification=notification, observable=self)
+        return False
 
     def holdNotifications(self, notification=None):
         """
