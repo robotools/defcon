@@ -21,9 +21,10 @@ class Layer(BaseObject):
     Layer.Changed
     Layer.GlyphsChanged
     Layer.GlyphChanged
+    Layer.GlyphWillBeAdded
     Layer.GlyphAdded
-    Layer.GlyphDeleted
     Layer.GlyphWillBeDeleted
+    Layer.GlyphDeleted
     Layer.GlyphNameChanged
     Layer.NameChanged
     Layer.ColorChanged
@@ -174,13 +175,13 @@ class Layer(BaseObject):
         if self._glyphSet is None or not self._glyphSet.has_key(name):
             raise KeyError, "%s not in layer" % name
         glyph = self.instantiateGlyphObject()
-        self.beginSelfGlyphNotificationObservation(glyph)
         glyph.disableNotifications()
+        glyph.name = name
+        self._insertGlyph(glyph)
         pointPen = glyph.getPointPen()
         self._glyphSet.readGlyph(glyphName=name, glyphObject=glyph, pointPen=pointPen)
         glyph.dirty = False
         glyph.enableNotifications()
-        self._glyphs[name] = glyph
         self._stampGlyphDataState(glyph)
         return glyph
 
@@ -190,19 +191,17 @@ class Layer(BaseObject):
         name already exists, the existing glyph will be replaced
         with the new glyph.
 
-        This posts *Layer.GlyphAdded* and *Layer.Changed* notifications.
+        This posts *Layer.GlyphWillBeAdded*, *Layer.GlyphAdded*
+        and *Layer.Changed* notifications.
         """
+        self.postNotification("Layer.GlyphWillBeAdded", data=(dict(name=name)))
         if name in self:
             self._unicodeData.removeGlyphData(name, self[name].unicodes)
         glyph = self.instantiateGlyphObject()
-        self.beginSelfGlyphNotificationObservation(glyph)
         glyph.disableNotifications()
         glyph.name = name
+        self._insertGlyph(glyph)
         glyph.enableNotifications()
-        self._glyphs[name] = glyph
-        if name in self._scheduledForDeletion:
-            del self._scheduledForDeletion[name]
-        self._keys.add(name)
         self.postNotification("Layer.GlyphAdded", data=(dict(name=name)))
         self.dirty = True
 
@@ -214,7 +213,8 @@ class Layer(BaseObject):
         as **name**, already exists, the existing glyph will
         be replaced with the new glyph.
 
-        This posts *Layer.GlyphAdded* and *Layer.Changed* notifications.
+        This posts *Layer.GlyphWillBeAdded*, *Layer.GlyphAdded*
+        and *Layer.Changed* notifications.
         """
         # DO NOT ACTUALLY INSERT THE GLYPH!
         # it is crucially important that the data be reconstructed
@@ -224,16 +224,24 @@ class Layer(BaseObject):
         source = glyph
         if name is None:
             name = source.name
+        self.postNotification("Layer.GlyphWillBeAdded", data=(dict(name=name)))
         self.holdNotifications()
         self.newGlyph(name)
         dest = self[name]
-        dest.disableNotifications()
         dest.copyDataFromGlyph(glyph)
-        dest.enableNotifications()
-        if dest.unicodes:
-            self._unicodeData.addGlyphData(name, dest.unicodes)
         self.releaseHeldNotifications()
         return dest
+
+    def _insertGlyph(self, glyph, beginObservations=True):
+        name = glyph.name
+        self._glyphs[name] = glyph
+        if name in self._scheduledForDeletion:
+            del self._scheduledForDeletion[name]
+        self._keys.add(name)
+        if beginObservations:
+            self.beginSelfGlyphNotificationObservation(glyph)
+        if glyph.unicodes:
+            self._unicodeData.addGlyphData(name, glyph.unicodes)
 
     # -------------
     # Dict Behavior
@@ -255,20 +263,24 @@ class Layer(BaseObject):
         if name not in self:
             raise KeyError, "%s not in layer" % name
         self.postNotification("Layer.GlyphWillBeDeleted", data=dict(name=name))
+        self._deleteGlyph(name)
+        self.postNotification("Layer.GlyphDeleted", data=dict(name=name))
+        self.dirty = True
+
+    def _deleteGlyph(self, name, endObservations=True):
         self._unicodeData.removeGlyphData(name, self[name].unicodes)
         dataOnDiskTimeStamp = None
         dataOnDisk = None
         if name in self._glyphs:
             glyph = self._glyphs.pop(name)
-            self.endSelfGlyphNotificationObservation(glyph)
+            if endObservations:
+                self.endSelfGlyphNotificationObservation(glyph)
             dataOnDiskTimeStamp = glyph._dataOnDiskTimeStamp
             dataOnDisk = glyph._dataOnDisk
         if name in self._keys:
             self._keys.remove(name)
         if self._glyphSet is not None and name in self._glyphSet:
             self._scheduledForDeletion[name] = dict(dataOnDiskTimeStamp=dataOnDiskTimeStamp, dataOnDisk=dataOnDisk)
-        self.postNotification("Layer.GlyphDeleted", data=dict(name=name))
-        self.dirty = True
 
     def __len__(self):
         return len(self.keys())
@@ -706,13 +718,9 @@ class Layer(BaseObject):
         oldName = data["oldValue"]
         newName = data["newValue"]
         glyph = self._glyphs[oldName]
-        self.disableNotifications()
-        del self[oldName] # use __del__ because *lots* of things have to be adjusted
-        self.enableNotifications()
-        self._glyphs[newName] = glyph
-        self._keys.add(newName)
+        self._deleteGlyph(oldName, endObservations=False)
         self._unicodeData.removeGlyphData(oldName, glyph.unicodes)
-        self._unicodeData.addGlyphData(newName, glyph.unicodes)
+        self._insertGlyph(glyph, beginObservations=False)
         self.postNotification("Layer.GlyphNameChanged", data=dict(oldValue=oldName, newValue=newName))
 
     def _glyphUnicodesChange(self, notification):
