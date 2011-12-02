@@ -611,7 +611,6 @@ class Glyph(BaseObject):
         """
         self.holdNotifications()
         layer = self.layer
-        pen = self.getPointPen()
         pointPen = self.getPointPen()
         self._decomposeComponent(component, layer, pointPen)
         self.releaseHeldNotifications()
