@@ -18,6 +18,7 @@ class Component(BaseObject):
     ===============================
     Component.Changed
     Component.BaseGlyphChanged
+    Component.BaseGlyphDataChanged
     Component.TransformationChanged
     Component.IdentifierChanged
     ===============================
@@ -32,12 +33,14 @@ class Component(BaseObject):
         self._layer = None
         self._glyph = None
         self.glyph = glyph
-        super(Component, self).__init__()
-        self.beginSelfNotificationObservation()
+
         self._dirty = False
         self._baseGlyph = None
         self._transformation = tuple(_defaultTransformation)
         self._identifier = None
+
+        super(Component, self).__init__()
+        self.beginSelfNotificationObservation()
 
     # ----------
     # Attributes
@@ -139,11 +142,14 @@ class Component(BaseObject):
     # base glyph
 
     def _set_baseGlyph(self, value):
-        oldValue = self._baseGlyph
-        if value == oldValue:
+        newBaseGlyph = value
+        oldBaseGlyph = self._baseGlyph
+        if newBaseGlyph == oldBaseGlyph:
             return
-        self._baseGlyph = value
-        self.postNotification(notification="Component.BaseGlyphChanged", data=dict(oldValue=oldValue, newValue=value))
+        self.endSelfBaseGlyphObservations()
+        self._baseGlyph = newBaseGlyph
+        self.beginSelfBaseGlyphObservations()
+        self.postNotification(notification="Component.BaseGlyphChanged", data=dict(oldValue=oldBaseGlyph, newValue=newBaseGlyph))
         self.dirty = True
 
     def _get_baseGlyph(self):
@@ -273,12 +279,104 @@ class Component(BaseObject):
     # Notification Observation
     # ------------------------
 
+    def beginSelfNotificationObservation(self):
+        super(Component, self).beginSelfNotificationObservation()
+        self.beginSelfBaseGlyphObservations()
+
     def endSelfNotificationObservation(self):
+        self.endSelfBaseGlyphObservations()
         super(Component, self).endSelfNotificationObservation()
         self._font = None
         self._layerSet = None
         self._layer = None
         self._glyph = None
+
+    def beginSelfBaseGlyphObservations(self):
+        baseGlyph = self.baseGlyph
+        if baseGlyph is None:
+            return
+        dispatcher = self.dispatcher
+        if dispatcher is None:
+            return
+        layer = self.layer
+        # base glyph is available
+        if baseGlyph in layer:
+            self._beginBaseGlyphObservations()
+        # base glyph is not available
+        else:
+            self._beginLayerObservations()
+
+    def endSelfBaseGlyphObservations(self):
+        dispatcher = self.dispatcher
+        if dispatcher is None:
+            return
+        self._endBaseGlyphObservations()
+        self._endLayerObservations()
+
+    def _beginBaseGlyphObservations(self, baseGlyph=None):
+        layer = self.layer
+        if baseGlyph is None:
+            baseGlyph = layer[self.baseGlyph]
+        baseGlyph.addObserver(self, "baseGlyphNameChangedNotificationCallback", "Glyph.NameChanged")
+        baseGlyph.addObserver(self, "baseGlyphDataChangedNotificationCallback", "Glyph.ContoursChanged")
+        baseGlyph.addObserver(self, "baseGlyphDataChangedNotificationCallback", "Glyph.ComponentsChanged")
+        layer.addObserver(self, "layerGlyphWillBeDeletedNotificationCallback", "Layer.GlyphWillBeDeleted")
+
+    def _endBaseGlyphObservations(self, baseGlyph=None):
+        layer = self.layer
+        if baseGlyph is None:
+            baseGlyph = self.baseGlyph
+            if baseGlyph is None:
+                return
+            baseGlyph = layer[baseGlyph]
+        if not baseGlyph.hasObserver(self, "Glyph.NameChanged"):
+            return
+        baseGlyph.removeObserver(self, "Glyph.NameChanged")
+        baseGlyph.removeObserver(self, "Glyph.ContoursChanged")
+        baseGlyph.removeObserver(self, "Glyph.ComponentsChanged")
+        layer.removeObserver(self, "Layer.GlyphWillBeDeleted")
+
+    def _beginLayerObservations(self):
+        layer = self.layer
+        layer.addObserver(self, "layerGlyphNameChangedNotificationCallback", "Layer.GlyphNameChanged")
+        layer.addObserver(self, "layerGlyphAddedNotificationCallback", "Layer.GlyphAdded")
+
+    def _endLayerObservations(self):
+        layer = self.layer
+        if not layer.hasObserver(self, "Layer.GlyphNameChanged"):
+            return
+        layer.removeObserver(self, "Layer.GlyphNameChanged")
+        layer.removeObserver(self, "Layer.GlyphAdded")
+
+    def baseGlyphNameChangedNotificationCallback(self, notification):
+        oldName = notification.data["oldValue"]
+        newName = notification.data["newValue"]
+        layer = self.layer
+        notBaseGlyph = layer[newName]
+        self._endBaseGlyphObservations(notBaseGlyph)
+        self._beginLayerObservations()
+
+    def layerGlyphNameChangedNotificationCallback(self, notification):
+        newName = notification.data["newValue"]
+        baseGlyph = self.baseGlyph
+        if newName != baseGlyph:
+            return
+        self._endLayerObservations()
+        self._beginBaseGlyphObservations()
+
+    def layerGlyphWillBeDeletedNotificationCallback(self, notification):
+        name = notification.data["name"]
+        if name != self.baseGlyph:
+            return
+        self._endBaseGlyphObservations()
+        self._beginLayerObservations()
+
+    def layerGlyphAddedNotificationCallback(self, notification):
+        self._endLayerObservations()
+        self._beginBaseGlyphObservations()
+
+    def baseGlyphDataChangedNotificationCallback(self, notification):
+        self.postNotification("Component.BaseGlyphDataChanged")
 
 
 def _testIdentifier():
