@@ -26,6 +26,7 @@ class Image(BaseDictObject):
     Image.FileNameChanged
     Image.TransformationChanged
     Image.ColorChanged
+    Image.ImageDataChanged
     ===========================
 
     During initialization an image dictionary, following the format defined
@@ -183,12 +184,56 @@ class Image(BaseDictObject):
     # Notification Observation
     # ------------------------
 
+    def beginSelfNotificationObservation(self):
+        super(Image, self).beginSelfNotificationObservation()
+        self.beginSelfImageSetNotificationObservation()
+
     def endSelfNotificationObservation(self):
+        self.endImageSetNotificationObservation()
         super(Image, self).endSelfNotificationObservation()
         self._font = None
         self._layerSet = None
         self._layer = None
         self._glyph = None
+
+    def beginSelfImageSetNotificationObservation(self):
+        font = self.font
+        if font is None:
+            return
+        imageSet = font.images
+        imageSet.addObserver(self, "imageSetImageAddedNotificationCallback", "ImageSet.ImageAdded")
+        imageSet.addObserver(self, "imageSetImageDeletedNotificationCallback", "ImageSet.ImageDeleted")
+        imageSet.addObserver(self, "imageSetImageChangedNotificationCallback", "ImageSet.ImageChanged")
+
+    def endImageSetNotificationObservation(self):
+        font = self.font
+        if font is None:
+            return
+        imageSet = font.images
+        imageSet.removeObserver(self, "ImageSet.ImageAdded")
+        imageSet.removeObserver(self, "ImageSet.ImageDeleted")
+        imageSet.removeObserver(self, "ImageSet.ImageChanged")
+
+    def imageSetImageAddedNotificationCallback(self, notification):
+        print "imageSetImageAddedNotificationCallback"
+        name = notification.data["name"]
+        if name != self.fileName:
+            return
+        self.postNotification("Image.ImageDataChanged")
+
+    def imageSetImageDeletedNotificationCallback(self, notification):
+        print "imageSetImageDeletedNotificationCallback"
+        name = notification.data["name"]
+        if name != self.fileName:
+            return
+        self.postNotification("Image.ImageDataChanged")
+
+    def imageSetImageChangedNotificationCallback(self, notification):
+        print "imageSetImageChangedNotificationCallback"
+        name = notification.data["name"]
+        if name != self.fileName:
+            return
+        self.postNotification("Image.ImageDataChanged")
 
 
 def _testAttributes():
