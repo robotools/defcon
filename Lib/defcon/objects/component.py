@@ -146,9 +146,9 @@ class Component(BaseObject):
         oldBaseGlyph = self._baseGlyph
         if newBaseGlyph == oldBaseGlyph:
             return
-        self.endSelfBaseGlyphObservations()
+        self.endSelfBaseGlyphNotificationObservation()
         self._baseGlyph = newBaseGlyph
-        self.beginSelfBaseGlyphObservations()
+        self.beginSelfBaseGlyphNotificationObservation()
         self.postNotification(notification="Component.BaseGlyphChanged", data=dict(oldValue=oldBaseGlyph, newValue=newBaseGlyph))
         self.dirty = True
 
@@ -281,17 +281,17 @@ class Component(BaseObject):
 
     def beginSelfNotificationObservation(self):
         super(Component, self).beginSelfNotificationObservation()
-        self.beginSelfBaseGlyphObservations()
+        self.beginSelfBaseGlyphNotificationObservation()
 
     def endSelfNotificationObservation(self):
-        self.endSelfBaseGlyphObservations()
+        self.endSelfBaseGlyphNotificationObservation()
         super(Component, self).endSelfNotificationObservation()
         self._font = None
         self._layerSet = None
         self._layer = None
         self._glyph = None
 
-    def beginSelfBaseGlyphObservations(self):
+    def beginSelfBaseGlyphNotificationObservation(self):
         baseGlyph = self.baseGlyph
         if baseGlyph is None:
             return
@@ -306,7 +306,7 @@ class Component(BaseObject):
         else:
             self._beginLayerObservations()
 
-    def endSelfBaseGlyphObservations(self):
+    def endSelfBaseGlyphNotificationObservation(self):
         dispatcher = self.dispatcher
         if dispatcher is None:
             return
