@@ -21,6 +21,8 @@ class ImageSet(BaseObject):
     ImageSet.Changed
     ImageSet.FileNamesChanged
     ImageSet.ImageChanged
+    ImageSet.ImageWillBeAdded
+    ImageSet.ImageAdded
     ImageSet.ImageWillBeDeleted
     ImageSet.ImageDeleted
     ===========================
@@ -123,19 +125,28 @@ class ImageSet(BaseObject):
         if fileName not in self._data:
             assert fileName == self.makeFileName(fileName)
         assert data.startswith(pngSignature)
-        # preserve exsiting stamping
+        isNewImage = fileName not in self._data
         onDisk = False
         onDiskModTime = None
         if fileName in self._scheduledForDeletion:
+            # preserve exsiting stamping
             assert fileName not in self._data
             self._data[fileName] = self._scheduledForDeletion.pop(fileName)
+        digest = _makeDigest(data)
         if fileName in self._data:
             n = self[fileName] # force it to load so that the stamping is correct
+            if self._data[fileName]["digest"] == digest:
+                return
             onDisk = self._data[fileName]["onDisk"]
             onDiskModTime = self._data[fileName]["onDiskModTime"]
             del self._data[fileName] # now remove it
-        self._data[fileName] = _imageDict(data=data, dirty=True, digest=_makeDigest(data), onDisk=onDisk, onDiskModTime=onDiskModTime)
-        self.postNotification("ImageSet.ImageChanged", data=dict(name=fileName))
+        if isNewImage:
+            self.postNotification("ImageSet.ImageWillBeAdded", data=dict(name=fileName))
+        self._data[fileName] = _imageDict(data=data, dirty=True, digest=digest, onDisk=onDisk, onDiskModTime=onDiskModTime)
+        if isNewImage:
+            self.postNotification("ImageSet.ImageAdded", data=dict(name=fileName))
+        else:
+            self.postNotification("ImageSet.ImageChanged", data=dict(name=fileName))
         self.dirty = True
 
     def __delitem__(self, fileName):
