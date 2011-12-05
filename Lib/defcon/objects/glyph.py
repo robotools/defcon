@@ -931,6 +931,9 @@ class Glyph(BaseObject):
         return image
 
     def _get_image(self):
+        if self._image is None:
+            self._image = self.instantiateImage()
+            self.beginSelfImageNotificationObservation()
         return self._image
 
     def _set_image(self, image):
@@ -945,9 +948,9 @@ class Glyph(BaseObject):
         # adding image
         else:
             if self._image is None:
-                self._image = self.instantiateImage()
-                self.beginSelfImageNotificationObservation()
-            if set(self.image.items()) != set(image.items()):
+                # create the image object
+                i = self.image
+            if set(self._image.items()) != set(image.items()):
                 for key in self._image.keys():
                     self._image[key] = image.get(key)
                 self.postNotification(notification="Glyph.ImageChanged")

@@ -54,6 +54,16 @@ class Image(BaseDictObject):
                 self[key] = value
         self._dirty = False
 
+    def __len__(self):
+        # this is a little hack for glifLib writing.
+        # when a GLIF is written, glyph.image is chekced with:
+        #     if glyph.image:
+        # fileName is required, so if that isn't defined
+        # return 0. this tells glifLib to skip the image.
+        if self["fileName"] is None:
+            return 0
+        return super(Image, self).__len__()
+
     # --------------
     # Parent Objects
     # --------------
