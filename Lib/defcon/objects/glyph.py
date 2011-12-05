@@ -126,9 +126,6 @@ class Glyph(BaseObject):
         self._libClass = libClass
         self._imageClass = imageClass
 
-        self._lib = self.instantiateLib()
-        self.beginSelfLibNotificationObservation()
-
     def _destroyBoundsCache(self):
         self._boundsCache = None
         self._controlPointBoundsCache = None
@@ -897,11 +894,15 @@ class Glyph(BaseObject):
         return lib
 
     def _get_lib(self):
+        if self._lib is None:
+            self._lib = self.instantiateLib()
+            self.beginSelfLibNotificationObservation()
         return self._lib
 
     def _set_lib(self, value):
-        self._lib.clear()
-        self._lib.update(value)
+        lib = self.lib
+        lib.clear()
+        lib.update(value)
         self.dirty = True
 
     lib = property(_get_lib, _set_lib, doc="The glyph's :class:`Lib` object. Setting this will clear any existing lib data and post a *Glyph.Changed* notification if data was replaced.")
@@ -912,6 +913,8 @@ class Glyph(BaseObject):
         self._lib.addObserver(observer=self, methodName="_libContentChanged", notification="Lib.Changed")
 
     def endSelfLibNotificationObservation(self):
+        if self._lib is None:
+            return
         if self._lib.dispatcher is None:
             return
         self._lib.removeObserver(observer=self, notification="Lib.Changed")
