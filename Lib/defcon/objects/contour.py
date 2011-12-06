@@ -3,6 +3,8 @@ from warnings import warn
 from fontTools.misc import bezierTools
 from defcon.objects.base import BaseObject
 from defcon.tools import bezierMath
+from defcon.tools.representations import contourBoundsRepresentationFactory,\
+    contourControlPointBoundsRepresentationFactory, contourClockwiseRepresentationFactory
 
 
 class Contour(BaseObject):
@@ -39,7 +41,20 @@ class Contour(BaseObject):
     """
 
     changeNotificationName = "Contour.Changed"
-    representationFactories = {}
+    representationFactories = {
+        "defcon.contour.bounds" : dict(
+            factory=contourBoundsRepresentationFactory,
+            destructiveNotifications=("Contour.PointsChanged")
+        ),
+        "defcon.contour.controlPointBounds" : dict(
+            factory=contourControlPointBoundsRepresentationFactory,
+            destructiveNotifications=("Contour.PointsChanged")
+        ),
+        "defcon.contour.clockwise" : dict(
+            factory=contourClockwiseRepresentationFactory,
+            destructiveNotifications=("Contour.PointsChanged", "Contour.WindingDirectionChanged")
+        ),
+    }
 
     def __init__(self, glyph=None, pointClass=None):
         self._font = None
@@ -50,18 +65,11 @@ class Contour(BaseObject):
         super(Contour, self).__init__()
         self.beginSelfNotificationObservation()
         self._points = []
-        self._boundsCache = None
-        self._controlPointBoundsCache = None
-        self._clockwiseCache = None
         if pointClass is None:
             from point import Point
             pointClass = Point
         self._pointClass = pointClass
         self._identifier = None
-
-    def _destroyBoundsCache(self):
-        self._boundsCache = None
-        self._controlPointBoundsCache = None
 
     def __del__(self):
         super(Contour, self).__del__()
@@ -175,8 +183,6 @@ class Contour(BaseObject):
             if point.identifier is not None:
                 identifiers.add(point.identifier)
         self._points.insert(index, point)
-        self._destroyBoundsCache()
-        self._clockwiseCache = None
         self.postNotification("Contour.PointsChanged")
         self.dirty = True
 
@@ -231,7 +237,6 @@ class Contour(BaseObject):
         # clear the internal storage
         self._points = []
         # reset the clockwise cache
-        self._clockwiseCache = None
         # post a dirty notification
         if postNotification:
             self.postNotification("Contour.PointsChanged")
@@ -381,7 +386,6 @@ class Contour(BaseObject):
                 nextSegment[1].x = result[1][0]
                 nextSegment[1].y = result[1][1]
         # mark the contour as dirty
-        self._destroyBoundsCache()
         self.dirty = True
 
     # ----------------
@@ -391,12 +395,7 @@ class Contour(BaseObject):
     # clockwise
 
     def _get_clockwise(self):
-        from defcon.pens.clockwiseTestPointPen import ClockwiseTestPointPen
-        if self._clockwiseCache is None:
-            pen = ClockwiseTestPointPen()
-            self.drawPoints(pen)
-            self._clockwiseCache = pen.getIsClockwise()
-        return self._clockwiseCache
+        return self.getRepresentation("defcon.contour.clockwise")
 
     def _set_clockwise(self, value):
         if self.clockwise != value:
@@ -419,22 +418,12 @@ class Contour(BaseObject):
     # ------
 
     def _get_bounds(self):
-        from robofab.pens.boundsPen import BoundsPen
-        if self._boundsCache is None:
-            pen = BoundsPen(None)
-            self.draw(pen)
-            self._boundsCache = pen.bounds
-        return self._boundsCache
+        return self.getRepresentation("defcon.contour.bounds")
 
     bounds = property(_get_bounds, doc="The bounds of the contour's outline expressed as a tuple of form (xMin, yMin, xMax, yMax).")
 
     def _get_controlPointBounds(self):
-        from fontTools.pens.boundsPen import ControlBoundsPen
-        if self._controlPointBoundsCache is None:
-            pen = ControlBoundsPen(None)
-            self.draw(pen)
-            self._controlPointBoundsCache = pen.bounds
-        return self._controlPointBoundsCache
+        return self.getRepresentation("defcon.contour.controlPointBounds")
 
     controlPointBounds = property(_get_controlPointBounds, doc="The control bounds of all points in the contour. This only measures the point positions, it does not measure curves. So, curves without points at the extrema will not be properly measured.")
 
@@ -450,22 +439,34 @@ class Contour(BaseObject):
         """
         for point in self._points:
             point.move((x, y))
-        # update the bounds cache
-        if self._boundsCache:
-            xMin, yMin, xMax, yMax = self._boundsCache
-            xMin += x
-            yMin += y
-            xMax += x
-            yMax += y
-            self._boundsCache = (xMin, yMin, xMax, yMax)
-        if self._controlPointBoundsCache:
-            xMin, yMin, xMax, yMax = self._controlPointBoundsCache
-            xMin += x
-            yMin += y
-            xMax += x
-            yMax += y
-            self._controlPointBoundsCache = (xMin, yMin, xMax, yMax)
+        # update the representations
+        # XXX this is strictly against the rules.
+        # XXX subclasses should never, ever do
+        # XXX anything like this. this is a *very*
+        # XXX special case.
+        if "defcon.contour.bounds" in self._representations:
+            bounds = self._representations["defcon.contour.bounds"][None]
+            if bounds is not None:
+                xMin, yMin, xMax, yMax = bounds
+                xMin += x
+                yMin += y
+                xMax += x
+                yMax += y
+                bounds = (xMin, yMin, xMax, yMax)
+            self._representations["defcon.contour.bounds"][None] = bounds
+        if "defcon.contour.controlPointBounds" in self._representations:
+            bounds = self._representations["defcon.contour.controlPointBounds"][None]
+            if bounds is not None:
+                xMin, yMin, xMax, yMax = bounds
+                xMin += x
+                yMin += y
+                xMax += x
+                yMax += y
+                bounds = (xMin, yMin, xMax, yMax)
+            self._representations["defcon.contour.controlPointBounds"][None] = bounds
+        self.disableNotifications(observer=self)
         self.postNotification("Contour.PointsChanged")
+        self.enableNotifications(observer=self)
         self.dirty = True
 
     # ------------

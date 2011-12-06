@@ -10,6 +10,7 @@ from defcon.objects.lib import Lib
 from defcon.objects.guideline import Guideline
 from defcon.objects.image import Image
 from defcon.objects.color import Color
+from defcon.tools.representations import glyphBoundsRepresentationFactory, glyphControlPointBoundsRepresentationFactory
 
 def addRepresentationFactory(name, factory):
     from warnings import warn
@@ -72,7 +73,16 @@ class Glyph(BaseObject):
     """
 
     changeNotificationName = "Glyph.Changed"
-    representationFactories = {}
+    representationFactories = {
+        "defcon.glyph.bounds" : dict(
+            factory=glyphBoundsRepresentationFactory,
+            destructiveNotifications=("Glyph.ContoursChanged", "Glyph.ComponentsChanged")
+        ),
+        "defcon.glyph.controlPointBounds" : dict(
+            factory=glyphControlPointBoundsRepresentationFactory,
+            destructiveNotifications=("Glyph.ContoursChanged", "Glyph.ComponentsChanged")
+        )
+    }
 
     def __init__(self, layer=None,
         contourClass=None, pointClass=None, componentClass=None, anchorClass=None,
@@ -101,8 +111,6 @@ class Glyph(BaseObject):
         self._anchors = []
         self._guidelines = []
         self._lib = None
-        self._boundsCache = None
-        self._controlPointBoundsCache = None
 
         if contourClass is None:
             contourClass = Contour
@@ -125,10 +133,6 @@ class Glyph(BaseObject):
         self._guidelineClass = Guideline
         self._libClass = libClass
         self._imageClass = imageClass
-
-    def _destroyBoundsCache(self):
-        self._boundsCache = None
-        self._controlPointBoundsCache = None
 
     def __del__(self):
         super(Glyph, self).__del__()
@@ -231,22 +235,12 @@ class Glyph(BaseObject):
     # bounds
 
     def _get_bounds(self):
-        from robofab.pens.boundsPen import BoundsPen
-        if self._boundsCache is None:
-            pen = BoundsPen(self.layer)
-            self.draw(pen)
-            self._boundsCache = pen.bounds
-        return self._boundsCache
+        return self.getRepresentation("defcon.glyph.bounds")
 
     bounds = property(_get_bounds, doc="The bounds of the glyph's outline expressed as a tuple of form (xMin, yMin, xMax, yMax).")
 
     def _get_controlPointBounds(self):
-        from fontTools.pens.boundsPen import ControlBoundsPen
-        if self._controlPointBoundsCache is None:
-            pen = ControlBoundsPen(self.layer)
-            self.draw(pen)
-            self._controlPointBoundsCache = pen.bounds
-        return self._controlPointBoundsCache
+        return self.getRepresentation("defcon.glyph.controlPointBounds")
 
     controlPointBounds = property(_get_controlPointBounds, doc="The control bounds of all points in the glyph. This only measures the point positions, it does not measure curves. So, curves without points at the extrema will not be properly measured.")
 
@@ -457,7 +451,6 @@ class Glyph(BaseObject):
             contour.beginSelfNotificationObservation()
         self.beginSelfContourNotificationObservation(contour)
         self._contours.insert(index, contour)
-        self._destroyBoundsCache()
         self.postNotification(notification="Glyph.ContoursChanged")
         self.dirty = True
 
@@ -476,7 +469,6 @@ class Glyph(BaseObject):
                 identifiers.remove(point.identifier)
         self._contours.remove(contour)
         self.endSelfContourNotificationObservation(contour)
-        self._destroyBoundsCache()
         self.postNotification(notification="Glyph.ContoursChanged")
         self.dirty = True
 
@@ -561,7 +553,6 @@ class Glyph(BaseObject):
             component.beginSelfNotificationObservation()
         self.beginSelfComponentNotificationObservation(component)
         self._components.insert(index, component)
-        self._destroyBoundsCache()
         self.postNotification(notification="Glyph.ComponentsChanged")
         self.dirty = True
 
@@ -576,7 +567,6 @@ class Glyph(BaseObject):
             self._identifiers.remove(component.identifier)
         self._components.remove(component)
         self.endSelfComponentNotificationObservation(component)
-        self._destroyBoundsCache()
         self.postNotification(notification="Glyph.ComponentsChanged")
         self.dirty = True
 
@@ -1055,28 +1045,12 @@ class Glyph(BaseObject):
 
         This posts a *Glyph.Changed* notification.
         """
-        oldBounds = self._boundsCache
-        oldControlPointBounds = self._controlPointBoundsCache
         for contour in self._contours:
             contour.move((x, y))
         for component in self._components:
             component.move((x, y))
         for anchor in self._anchors:
             anchor.move((x, y))
-        if oldBounds:
-            xMin, yMin, xMax, yMax = oldBounds
-            xMin += x
-            yMin += y
-            xMax += x
-            yMax += y
-            self._boundsCache = (xMin, yMin, xMax, yMax)
-        if oldControlPointBounds:
-            xMin, yMin, xMax, yMax = oldControlPointBounds
-            xMin += x
-            yMin += y
-            xMax += x
-            yMax += y
-            self._controlPointBoundsCache = (xMin, yMin, xMax, yMax)
 
     # ------------
     # Point Inside
@@ -1119,17 +1093,14 @@ class Glyph(BaseObject):
         self.dirty = True
 
     def _contourChanged(self, notification):
-        self._destroyBoundsCache()
         self.postNotification(notification="Glyph.ContoursChanged")
         self.dirty = True
 
     def _componentChanged(self, notification):
-        self._destroyBoundsCache()
         self.postNotification(notification="Glyph.ComponentsChanged")
         self.dirty = True
 
     def _anchorChanged(self, notification):
-        self._destroyBoundsCache()
         self.postNotification(notification="Glyph.AnchorsChanged")
         self.dirty = True
 
