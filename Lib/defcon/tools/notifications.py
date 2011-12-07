@@ -4,7 +4,6 @@ of the Observer Pattern.
 """
 
 import weakref
-from defcon.tools.future import *
 
 """
 
@@ -15,7 +14,7 @@ Internal Documentation
 Storage Structures:
 
 registry : {
-        (notification, observable) : OrderedDict(
+        (notification, observable) : ObserverDict(
             observer : method name
         )
     }
@@ -74,7 +73,7 @@ class NotificationCenter(object):
         observer = weakref.ref(observer)
         key = (notification, observable)
         if key not in self._registry:
-            self._registry[key] = OrderedDict()
+            self._registry[key] = ObserverDict()
         assert observer not in self._registry[key], "An observer is only allowed to have one callback for a given notification + observable combination."
         self._registry[key][observer] = methodName
 
@@ -134,7 +133,6 @@ class NotificationCenter(object):
                 if key in self._disabled:
                     return
                 if key in self._holds:
-                    self._holds[key]
                     n = (notification, observableRef, data)
                     if not self._holds[key]["notifications"] or self._holds[key]["notifications"][-1] != n:
                         self._holds[key]["notifications"].append(n)
@@ -365,6 +363,50 @@ class Notification(object):
 
     data = property(_get_data, doc="Arbitrary data passed along with the notification. There is no set format for this data and there is not requirement that any data be present. Refer to the documentation for methods that are responsible for generating notifications for information about this data.")
 
+
+class ObserverDict(dict):
+
+    """An object for storing ordered observers."""
+
+    def __init__(self):
+        super(ObserverDict, self).__init__()
+        self._order = []
+
+    def keys(self):
+        return list(self._order)
+
+    def values(self):
+        return [self[key] for key in self]
+
+    def items(self):
+        return [(key, self[key]) for key in self]
+
+    def __iter__(self):
+        order = self._order
+        while order:
+            yield order[0]
+            order = order[1:]
+
+    def iterkeys(self):
+        return iter(self)
+
+    def itervalues(self):
+        for key in self:
+            yield self[key]
+
+    def iteritems(self):
+        for key in self:
+            yield (key, self[key])
+
+    def __delitem__(self, key):
+        super(ObserverDict, self).__delitem__(key)
+        self._order.remove(key)
+
+    def __setitem__(self, key, value):
+        if key in self:
+            del self[key]
+        super(ObserverDict, self).__setitem__(key, value)
+        self._order.append(key)
 
 # -----
 # Tests
