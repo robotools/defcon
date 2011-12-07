@@ -661,6 +661,10 @@ class Font(BaseObject):
         assert self.layers.defaultLayer is not None
         if self.layers.defaultLayer.name != "public.default":
             assert "public.default" not in self.layers.layerOrder
+        # validate kerning and groups before doing anything destructive
+        if self._kerning is not None and self._groups is not None:
+            if not kerningValidator(self._kerning, self._groups):
+                raise DefconError("The kerning data is not valid.")
         ## work out the format version
         # if None is given, fallback to the one that
         # came in when the UFO was loaded
