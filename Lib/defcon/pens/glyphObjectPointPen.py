@@ -1,4 +1,4 @@
-from robofab.pens.pointPen import AbstractPointPen
+from ufoLib.pointPen import AbstractPointPen
 
 class GlyphObjectPointPen(AbstractPointPen):
 
