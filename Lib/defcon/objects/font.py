@@ -1086,14 +1086,21 @@ class Font(BaseObject):
         """
         Reload the data in the :class:`Kerning` object from the
         kerning.plist file in the UFO.
+
+        This validates the kerning against the groups loaded into the
+        font. If groups are being reloaded in the same pass, the groups
+        should always be reloaded before reloading the kerning.
         """
         if self._kerning is None:
             obj = self.kerning
         else:
             reader = UFOReader(self._path)
-            d = reader.readKerning()
+            kerning = reader.readKerning()
+            if self._groups is not None:
+                if not kerningValidator(kerning, self._groups):
+                    raise DefconError("The kerning data is not valid.")
             self._kerning.clear()
-            self._kerning.update(d)
+            self._kerning.update(kerning)
             self._stampKerningDataState(reader)
 
     def reloadGroups(self):
