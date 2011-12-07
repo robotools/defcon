@@ -6,6 +6,7 @@ import tempfile
 import shutil
 from fontTools.misc.arrayTools import unionRect
 from ufoLib import UFOReader, UFOWriter
+from ufoLib.validators import kerningValidator
 from defcon.errors import DefconError
 from defcon.objects.base import BaseObject
 from defcon.objects.layerSet import LayerSet
@@ -350,6 +351,34 @@ class Font(BaseObject):
 
     # kerning
 
+    def _loadKerningAndGroups(self):
+        # read
+        if hasattr(self, "_reader"):
+            reader = self._reader
+        else:
+            reader = UFOReader(self._path)
+        kerning = reader.readKerning()
+        groups = reader.readGroups()
+        # validate
+        if not kerningValidator(kerning, groups):
+            raise DefconError("The kerning data is not valid.")
+        # store kerning
+        self._kerning = self.instantiateKerning()
+        self.beginSelfKerningNotificationObservation()
+        self._kerning.disableNotifications()
+        self._kerning.update(kerning)
+        self._kerning.dirty = False
+        self._kerning.enableNotifications()
+        self._stampKerningDataState(reader)
+        # store groups
+        self._groups = self.instantiateGroups()
+        self.beginSelfGroupsNotificationObservation()
+        self._groups.disableNotifications()
+        self._groups.update(groups)
+        self._groups.dirty = False
+        self._groups.enableNotifications()
+        self._stampGroupsDataState(reader)
+
     def instantiateKerning(self):
         kerning = self._kerningClass(
             font=self
@@ -370,22 +399,12 @@ class Font(BaseObject):
 
     def _get_kerning(self):
         if self._kerning is None:
-            self._kerning = self.instantiateKerning()
-            self.beginSelfKerningNotificationObservation()
-            reader = None
-            if self._path is not None:
-                self._kerning.disableNotifications()
-                # the _reader attribute may be present during __init__
-                # but only under certain conditions.
-                if hasattr(self, "_reader"):
-                    reader = self._reader
-                else:
-                    reader = UFOReader(self._path)
-                d = reader.readKerning()
-                self._kerning.update(d)
-                self._kerning.dirty = False
-                self._kerning.enableNotifications()
-            self._stampKerningDataState(reader)
+            if self._path is None:
+                self._kerning = self.instantiateKerning()
+                self.beginSelfKerningNotificationObservation()
+                self._stampKerningDataState(reader)
+            else:
+                self._loadKerningAndGroups()
         return self._kerning
 
     kerning = property(_get_kerning, doc="The font's :class:`Kerning` object.")
@@ -412,22 +431,12 @@ class Font(BaseObject):
 
     def _get_groups(self):
         if self._groups is None:
-            self._groups = self.instantiateGroups()
-            self.beginSelfGroupsNotificationObservation()
-            reader = None
-            if self._path is not None:
-                self._groups.disableNotifications()
-                # the _reader attribute may be present during __init__
-                # but only under certain conditions.
-                if hasattr(self, "_reader"):
-                    reader = self._reader
-                else:
-                    reader = UFOReader(self._path)
-                d = reader.readGroups()
-                self._groups.update(d)
-                self._groups.dirty = False
-                self._groups.enableNotifications()
-            self._stampGroupsDataState(reader)
+            if self._path is None:
+                self._groups = self.instantiateGroups()
+                self.beginSelfGroupsNotificationObservation()
+                self._stampGroupsDataState(reader)
+            else:
+                self._loadKerningAndGroups()
         return self._groups
 
     groups = property(_get_groups, doc="The font's :class:`Groups` object.")
