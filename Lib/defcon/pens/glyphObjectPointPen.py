@@ -35,3 +35,38 @@ class GlyphObjectPointPen(AbstractPointPen):
         component.transformation = transformation
         component.identifier = identifier
         self._glyph.appendComponent(component)
+
+
+class GlyphObjectLoadingPointPen(GlyphObjectPointPen):
+
+    def __init__(self, glyph):
+        super(GlyphObjectLoadingPointPen, self).__init__(glyph)
+        self._contours = glyph._shallowLoadedContours
+
+    def beginPath(self, identifier=None, **kwargs):
+        contour = dict(points=[])
+        if identifier is not None and self.skipConflictingIdentifiers and identifier in self._glyph.identifiers:
+            identifier = None
+        if identifier is not None:
+            if identifier in self._glyph.identifiers:
+                raise DefconError("The contour identifier (%s) is already used." % identifier)
+            contour["identifier"] = identifier
+        self._contours.append(contour)
+
+    def endPath(self):
+        pass
+
+    def addPoint(self, pt, segmentType=None, smooth=False, name=None, identifier=None, **kwargs):
+        args = (pt,)
+        kwargs = dict(
+            segmentType=segmentType,
+            smooth=smooth,
+            name=name
+        )
+        if identifier is not None and self.skipConflictingIdentifiers and identifier in self._glyph.identifiers:
+            identifier = None
+        if identifier is not None:
+            if identifier in self._glyph.identifiers:
+                raise DefconError("The contour identifier (%s) is already used." % identifier)
+            kwargs["identifier"] = identifier
+        self._contours[-1]["points"].append((args, kwargs))

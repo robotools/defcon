@@ -1,4 +1,5 @@
 import weakref
+from warnings import warn
 from fontTools.misc import arrayTools
 from defcon.objects.base import BaseObject
 from defcon.objects.contour import Contour
@@ -13,12 +14,10 @@ from defcon.objects.color import Color
 from defcon.tools.representations import glyphBoundsRepresentationFactory, glyphControlPointBoundsRepresentationFactory
 
 def addRepresentationFactory(name, factory):
-    from warnings import warn
     warn("addRepresentationFactory is deprecated. Use the functions in defcon.__init__.", DeprecationWarning)
     Glyph.representationFactories[name] = factory
 
 def removeRepresentationFactory(name):
-    from warnings import warn
     warn("removeRepresentationFactory is deprecated. Use the functions in defcon.__init__.", DeprecationWarning)
     del Glyph.representationFactories[name]
 
@@ -98,6 +97,7 @@ class Glyph(BaseObject):
         super(Glyph, self).__init__()
         self.beginSelfNotificationObservation()
 
+        self._isLoading = False
         self._dirty = False
         self._name = None
         self._unicodes = []
@@ -106,6 +106,7 @@ class Glyph(BaseObject):
         self._note = None
         self._image = None
         self._identifiers = set()
+        self._shallowLoadedContours = None
         self._contours = []
         self._components = []
         self._anchors = []
@@ -363,10 +364,24 @@ class Glyph(BaseObject):
         """
         Draw the glyph with **pointPen**.
         """
-        for contour in self._contours:
-            contour.drawPoints(pointPen)
+        if self._shallowLoadedContours:
+            self._drawShallowLoadedContours(pointPen, self._shallowLoadedContours)
+        else:
+            for contour in self._contours:
+                contour.drawPoints(pointPen)
         for component in self._components:
             component.drawPoints(pointPen)
+
+    def _drawShallowLoadedContours(self, pointPen, contours):
+        for contour in contours:
+            try:
+                pointPen.beginPath(identifier=contour.get("identifier"))
+            except TypeError:
+                pointPen.beginPath()
+                warn("The beginPath method needs an identifier kwarg. The contour's identifier value has been discarded.", DeprecationWarning)
+            for args, kwargs in contour["points"]:
+                pointPen.addPoint(*args, **kwargs)
+            pointPen.endPath()
 
     def getPen(self):
         """
@@ -379,8 +394,12 @@ class Glyph(BaseObject):
         """
         Get the point pen used to draw into this glyph.
         """
-        from defcon.pens.glyphObjectPointPen import GlyphObjectPointPen
-        return GlyphObjectPointPen(self)
+        from defcon.pens.glyphObjectPointPen import GlyphObjectPointPen, GlyphObjectLoadingPointPen
+        if self._isLoading:
+            self._shallowLoadedContours = []
+            return GlyphObjectLoadingPointPen(self)
+        else:
+            return GlyphObjectPointPen(self)
 
     # --------
     # Contours
@@ -395,6 +414,19 @@ class Glyph(BaseObject):
         return self._pointClass
 
     pointClass = property(_get_pointClass, doc="The class used for points.")
+
+    def _fullyLoadShallowLoadedContours(self):
+        if not self._shallowLoadedContours:
+            self._shallowLoadedContours = None
+            return
+        self.disableNotifications()
+        contours = list(self._shallowLoadedContours)
+        self._shallowLoadedContours = None
+        dirty = self.dirty
+        pointPen = self.getPointPen()
+        self._drawShallowLoadedContours(pointPen, contours)
+        self.dirty = dirty
+        self.enableNotifications()
 
     def instantiateContour(self):
         contour = self._contourClass(
@@ -423,8 +455,8 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
-        assert contour not in self._contours
-        self.insertContour(len(self._contours), contour)
+        assert contour not in self
+        self.insertContour(len(self), contour)
 
     def insertContour(self, index, contour):
         """
@@ -436,7 +468,7 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
-        assert contour not in self._contours
+        assert contour not in self
         assert contour.glyph in (self, None), "This contour belongs to another glyph."
         if contour.glyph is None:
             identifiers = self._identifiers
@@ -460,6 +492,8 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
+        if contour not in self:
+            raise IndexError("contour not in glyph")
         self.postNotification(notification="Glyph.ContourWillBeDeleted", data=dict(object=contour))
         identifiers = self._identifiers
         if contour.identifier is not None:
@@ -476,7 +510,7 @@ class Glyph(BaseObject):
         """
         Get the index for **contour**.
         """
-        return self._contours.index(contour)
+        return self._getContourIndex(contour)
 
     def clearContours(self):
         """
@@ -485,7 +519,7 @@ class Glyph(BaseObject):
         This posts a *Glyph.Changed* notification.
         """
         self.holdNotifications()
-        for contour in reversed(self._contours):
+        for contour in reversed(self):
             self.removeContour(contour)
         self.releaseHeldNotifications()
 
@@ -965,10 +999,19 @@ class Glyph(BaseObject):
     # List Behavior
     # -------------
 
+    def __contains__(self, contour):
+        if self._shallowLoadedContours is not None:
+            self._fullyLoadShallowLoadedContours()
+        return contour in self._contours
+
     def __len__(self):
+        if self._shallowLoadedContours is not None:
+            self._fullyLoadShallowLoadedContours()
         return len(self._contours)
 
     def __iter__(self):
+        if self._shallowLoadedContours is not None:
+            self._fullyLoadShallowLoadedContours()
         contourCount = len(self)
         index = 0
         while index < contourCount:
@@ -977,9 +1020,13 @@ class Glyph(BaseObject):
             index += 1
 
     def __getitem__(self, index):
+        if self._shallowLoadedContours is not None:
+            self._fullyLoadShallowLoadedContours()
         return self._contours[index]
 
     def _getContourIndex(self, contour):
+        if self._shallowLoadedContours is not None:
+            self._fullyLoadShallowLoadedContours()
         return self._contours.index(contour)
 
     # ----------------
@@ -1045,7 +1092,7 @@ class Glyph(BaseObject):
 
         This posts a *Glyph.Changed* notification.
         """
-        for contour in self._contours:
+        for contour in self:
             contour.move((x, y))
         for component in self._components:
             component.move((x, y))
@@ -1073,8 +1120,9 @@ class Glyph(BaseObject):
     def endSelfNotificationObservation(self):
         if self.dispatcher is None:
             return
-        for contour in self:
-            self.endSelfContourNotificationObservation(contour)
+        if self._contours:
+            for contour in self:
+                self.endSelfContourNotificationObservation(contour)
         for component in self.components:
             self.endSelfComponentNotificationObservation(component)
         for anchor in self.anchors:
