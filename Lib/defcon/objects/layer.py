@@ -178,13 +178,13 @@ class Layer(BaseObject):
         glyph.disableNotifications()
         glyph._isLoading = True
         glyph.name = name
+        self._stampGlyphDataState(glyph)
         self._insertGlyph(glyph)
         pointPen = glyph.getPointPen()
         self._glyphSet.readGlyph(glyphName=name, glyphObject=glyph, pointPen=pointPen)
         glyph.dirty = False
         glyph._isLoading = False
         glyph.enableNotifications()
-        self._stampGlyphDataState(glyph)
         return glyph
 
     def newGlyph(self, name):
