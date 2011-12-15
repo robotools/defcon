@@ -560,7 +560,7 @@ class Font(BaseObject):
     # unicode data (legacy)
 
     def _get_unicodeData(self):
-        return self._glyphSet._unicodeData
+        return self._glyphSet.unicodeData
 
     unicodeData = property(_get_unicodeData, doc="The font's :class:`UnicodeData` object.")
 
@@ -1622,7 +1622,7 @@ def _testGlyphUnicodesChanged():
     >>> glyph = font["test"]
     >>> glyph.unicodes = [65]
     >>> font.unicodeData[65]
-    ['A', 'test']
+    ['test', 'A']
     """
 
 def _testTestForExternalChanges():

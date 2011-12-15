@@ -84,8 +84,7 @@ class Layer(BaseObject):
 
         self._color = None
         self._lib = None
-        self._unicodeData = self.instantiateUnicodeData()
-        self.beginSelfUnicodeDataNotificationObservation()
+        self._unicodeData = None
 
         self._directory = None
 
@@ -97,17 +96,7 @@ class Layer(BaseObject):
         self._dirty = False
 
         if glyphSet is not None:
-            self._unicodeData.disableNotifications()
             self._keys = set(self._glyphSet.keys())
-            cmap = {}
-            for glyphName, unicodes in glyphSet.getUnicodes().items():
-                for code in unicodes:
-                    if code in cmap:
-                        cmap[code].append(glyphName)
-                    else:
-                        cmap[code] = [glyphName]
-            self._unicodeData.update(cmap)
-            self._unicodeData.enableNotifications()
 
     def __del__(self):
         super(Layer, self).__del__()
@@ -242,7 +231,7 @@ class Layer(BaseObject):
         self._keys.add(name)
         if beginObservations:
             self.beginSelfGlyphNotificationObservation(glyph)
-        if glyph.unicodes:
+        if glyph.unicodes and self._unicodeData is not None:
             self._unicodeData.addGlyphData(name, glyph.unicodes)
 
     # -------------
@@ -270,7 +259,8 @@ class Layer(BaseObject):
         self.dirty = True
 
     def _deleteGlyph(self, name, endObservations=True):
-        self._unicodeData.removeGlyphData(name, self[name].unicodes)
+        if self._unicodeData is not None:
+            self._unicodeData.removeGlyphData(name, self[name].unicodes)
         dataOnDiskTimeStamp = None
         dataOnDisk = None
         if name in self._glyphs:
@@ -545,11 +535,37 @@ class Layer(BaseObject):
         pass
 
     def endSelfUnicodeDataNotificationObservation(self):
-        if self._unicodeData.dispatcher is None:
+        if self._unicodeData is None or self._unicodeData.dispatcher is None:
             return
         self._unicodeData.endSelfNotificationObservation()
 
     def _get_unicodeData(self):
+        if self._unicodeData is None:
+            cmap = {}
+            for glyphName, glyph in self._glyphs.items():
+                if glyphName in self._scheduledForDeletion:
+                    continue
+                if not glyph.unicodes:
+                    continue
+                for code in glyph.unicodes:
+                    if code in cmap:
+                        cmap[code].append(glyphName)
+                    else:
+                        cmap[code] = [glyphName]
+            if self._glyphSet is not None:
+                glyphNames = set(self._glyphSet.keys()) - set(self._glyphs.keys())
+                for glyphName, unicodes in self._glyphSet.getUnicodes(glyphNames=glyphNames).items():
+                    for code in unicodes:
+                        if code in cmap:
+                            cmap[code].append(glyphName)
+                        else:
+                            cmap[code] = [glyphName]
+
+            self._unicodeData = self.instantiateUnicodeData()
+            self._unicodeData.disableNotifications()        
+            self._unicodeData.update(cmap)
+            self._unicodeData.enableNotifications()
+            self.beginSelfUnicodeDataNotificationObservation()
         return self._unicodeData
 
     unicodeData = property(_get_unicodeData, doc="The layer's :class:`UnicodeData` object.")
@@ -721,7 +737,8 @@ class Layer(BaseObject):
         newName = data["newValue"]
         glyph = self._glyphs[oldName]
         self._deleteGlyph(oldName, endObservations=False)
-        self._unicodeData.removeGlyphData(oldName, glyph.unicodes)
+        if self._unicodeData is not None:
+            self._unicodeData.removeGlyphData(oldName, glyph.unicodes)
         self._insertGlyph(glyph, beginObservations=False)
         self.postNotification("Layer.GlyphNameChanged", data=dict(oldValue=oldName, newValue=newName))
 
@@ -730,8 +747,9 @@ class Layer(BaseObject):
         data = notification.data
         oldValues = data["oldValue"]
         newValues = data["newValue"]
-        self._unicodeData.removeGlyphData(glyphName, oldValues)
-        self._unicodeData.addGlyphData(glyphName, newValues)
+        if self._unicodeData is not None:
+            self._unicodeData.removeGlyphData(glyphName, oldValues)
+            self._unicodeData.addGlyphData(glyphName, newValues)
 
 
 # ------------
@@ -1223,7 +1241,7 @@ def _testGlyphUnicodesChanged():
     >>> glyph = layer["test"]
     >>> glyph.unicodes = [65]
     >>> layer.unicodeData[65]
-    ['A', 'test']
+    ['test', 'A']
     """
 
 def _testGlyphDispatcher():
