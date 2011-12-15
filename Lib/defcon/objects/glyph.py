@@ -75,11 +75,11 @@ class Glyph(BaseObject):
     representationFactories = {
         "defcon.glyph.bounds" : dict(
             factory=glyphBoundsRepresentationFactory,
-            destructiveNotifications=("Glyph.ContoursChanged", "Glyph.ComponentsChanged")
+            destructiveNotifications=("Glyph.ContoursChanged", "Glyph.ComponentsChanged", "Glyph.ComponentBaseGlyphDataChanged")
         ),
         "defcon.glyph.controlPointBounds" : dict(
             factory=glyphControlPointBoundsRepresentationFactory,
-            destructiveNotifications=("Glyph.ContoursChanged", "Glyph.ComponentsChanged")
+            destructiveNotifications=("Glyph.ContoursChanged", "Glyph.ComponentsChanged", "Glyph.ComponentBaseGlyphDataChanged")
         )
     }
 
@@ -547,6 +547,7 @@ class Glyph(BaseObject):
         if component.dispatcher is None:
             return
         component.addObserver(observer=self, methodName="_componentChanged", notification="Component.Changed")
+        component.addObserver(observer=self, methodName="_componentBaseGlyphDataChanged", notification="Component.BaseGlyphDataChanged")
 
     def endSelfComponentNotificationObservation(self, component):
         if component.dispatcher is None:
@@ -1147,6 +1148,10 @@ class Glyph(BaseObject):
     def _componentChanged(self, notification):
         self.postNotification(notification="Glyph.ComponentsChanged")
         self.dirty = True
+
+    def _componentBaseGlyphDataChanged(self, notification):
+        self.postNotification(notification="Glyph.ComponentsChanged")
+        self.postNotification(notification=self.changeNotificationName)
 
     def _anchorChanged(self, notification):
         self.postNotification(notification="Glyph.AnchorsChanged")
