@@ -225,21 +225,18 @@ class Image(BaseDictObject):
         imageSet.removeObserver(self, "ImageSet.ImageChanged")
 
     def imageSetImageAddedNotificationCallback(self, notification):
-        print "imageSetImageAddedNotificationCallback"
         name = notification.data["name"]
         if name != self.fileName:
             return
         self.postNotification("Image.ImageDataChanged")
 
     def imageSetImageDeletedNotificationCallback(self, notification):
-        print "imageSetImageDeletedNotificationCallback"
         name = notification.data["name"]
         if name != self.fileName:
             return
         self.postNotification("Image.ImageDataChanged")
 
     def imageSetImageChangedNotificationCallback(self, notification):
-        print "imageSetImageChangedNotificationCallback"
         name = notification.data["name"]
         if name != self.fileName:
             return
