@@ -987,6 +987,7 @@ class Glyph(BaseObject):
         if self._image.dispatcher is None:
             return
         self._image.addObserver(observer=self, methodName="_imageChanged", notification="Image.Changed")
+        self._image.addObserver(observer=self, methodName="_imageDataChanged", notification="Image.ImageDataChanged")
 
     def endSelfImageNotificationObservation(self):
         if self._image is None:
@@ -994,6 +995,7 @@ class Glyph(BaseObject):
         if self._image.dispatcher is None:
             return
         self._image.removeObserver(observer=self, notification="Image.Changed")
+        self._image.removeObserver(observer=self, notification="Image.ImageDataChanged")
         self._image.endSelfNotificationObservation()
 
     # -------------
@@ -1136,6 +1138,10 @@ class Glyph(BaseObject):
         self._font = None
         self._layerSet = None
         self._layer = None
+
+    def _imageDataChanged(self, notification):
+        self.postNotification(notification="Glyph.ImageChanged")
+        self.postNotification(notification=self.changeNotificationName)
 
     def _imageChanged(self, notification):
         self.postNotification(notification="Glyph.ImageChanged")
