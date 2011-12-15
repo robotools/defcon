@@ -5,13 +5,13 @@ from defcon.objects.base import BaseObject
 from defcon.objects.contour import Contour
 from defcon.objects.point import Point
 from defcon.objects.component import Component
-from defcon.objects.component import _defaultTransformation as _defaultComponentTransformation
 from defcon.objects.anchor import Anchor
 from defcon.objects.lib import Lib
 from defcon.objects.guideline import Guideline
 from defcon.objects.image import Image
 from defcon.objects.color import Color
 from defcon.tools.representations import glyphBoundsRepresentationFactory, glyphControlPointBoundsRepresentationFactory
+from defcon.pens.decomposeComponentPointPen import DecomposeComponentPointPen
 
 def addRepresentationFactory(name, factory):
     warn("addRepresentationFactory is deprecated. Use the functions in defcon.__init__.", DeprecationWarning)
@@ -633,7 +633,7 @@ class Glyph(BaseObject):
         """
         self.holdNotifications()
         layer = self.layer
-        pointPen = self.getPointPen()
+        pointPen = DecomposeComponentPointPen(self, layer)
         self._decomposeComponent(component, layer, pointPen)
         self.releaseHeldNotifications()
         self.postNotification(notification="Glyph.ContoursChanged")
@@ -652,23 +652,15 @@ class Glyph(BaseObject):
             return
         self.holdNotifications()
         layer = self.layer
-        pointPen = self.getPointPen()
+        pointPen = DecomposeComponentPointPen(self, layer)
         for component in self.components:
             self._decomposeComponent(component, layer, pointPen)
         self.releaseHeldNotifications()
         self.postNotification(notification="Glyph.ContoursChanged")
 
     def _decomposeComponent(self, component, layer, pointPen):
-        from robofab.pens.adapterPens import TransformPointPen
         pointPen.skipConflictingIdentifiers = True
-        baseGlyph = component.baseGlyph
-        if baseGlyph in layer:
-            baseGlyph = layer[baseGlyph]
-            if component.transformation == _defaultComponentTransformation:
-                baseGlyph.drawPoints(pointPen)
-            else:
-                transformPointPen = TransformPointPen(pointPen, component.transformation)
-                baseGlyph.drawPoints(transformPointPen)
+        component.drawPoints(pointPen)
         self.removeComponent(component)
 
     # -------
@@ -1753,6 +1745,40 @@ def _testDecomposeComponents():
     'point1'
     >>> referenceGlyph[1].identifier
     >>> referenceGlyph[1][0].identifier
+
+    >>> from defcon import Font
+    >>> font = Font()
+
+    # nested components
+
+    >>> font.newGlyph("baseGlyph")
+    >>> baseGlyph = font["baseGlyph"]
+    >>> pointPen = baseGlyph.getPointPen()
+    >>> pointPen.beginPath(identifier="contour1")
+    >>> pointPen.addPoint((0, 0), "move", identifier="point1")
+    >>> pointPen.addPoint((0, 100), "line")
+    >>> pointPen.addPoint((100, 100), "line")
+    >>> pointPen.addPoint((100, 0), "line")
+    >>> pointPen.addPoint((0, 0), "line")
+    >>> pointPen.endPath()
+
+    >>> font.newGlyph("referenceGlyph1")
+    >>> referenceGlyph1 = font["referenceGlyph1"]
+    >>> pointPen = referenceGlyph1.getPointPen()
+    >>> pointPen.addComponent("baseGlyph", (1, 0, 0, 1, 3, 6))
+    >>> font.newGlyph("referenceGlyph2")
+    >>> referenceGlyph2 = font["referenceGlyph2"]
+    >>> pointPen = referenceGlyph2.getPointPen()
+    >>> pointPen.addComponent("referenceGlyph1", (1, 0, 0, 1, 10, 20)) 
+    >>> referenceGlyph2.decomposeAllComponents()
+    >>> len(referenceGlyph2.components)
+    0
+    >>> len(referenceGlyph1.components)
+    1
+    >>> len(referenceGlyph2)
+    1
+    >>> referenceGlyph2.bounds
+    (13, 26, 113, 126)
     """
 
 def _testMove():
