@@ -186,6 +186,16 @@ class Contour(BaseObject):
         self.postNotification("Contour.PointsChanged")
         self.dirty = True
 
+    def removePoint(self, point):
+        """
+        Remove **point** from the contour.
+
+        This will post *Contour.PointsChanged* and *Contour.Changed* notifications.
+        """
+        self._points.remove(point)
+        self.postNotification("Contour.PointsChanged")
+        self.dirty = True
+
     def setStartPoint(self, index):
         """
         Set the point at **index** as the first point in the contour.
