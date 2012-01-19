@@ -15,7 +15,7 @@ from defcon.pens.decomposeComponentPointPen import DecomposeComponentPointPen
 
 def addRepresentationFactory(name, factory):
     warn("addRepresentationFactory is deprecated. Use the functions in defcon.__init__.", DeprecationWarning)
-    Glyph.representationFactories[name] = factory
+    Glyph.representationFactories[name] = dict(factory=factory, destructiveNotifications=["Glyph.Changed"])
 
 def removeRepresentationFactory(name):
     warn("removeRepresentationFactory is deprecated. Use the functions in defcon.__init__.", DeprecationWarning)
