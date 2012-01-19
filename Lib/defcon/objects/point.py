@@ -77,7 +77,7 @@ class Point(object):
         return self._identifier
 
     def _set_identifier(self, value):
-        self._identifier = valie
+        self._identifier = value
 
     identifier = property(_get_identifier, _set_identifier, doc="The identifier.")
 
