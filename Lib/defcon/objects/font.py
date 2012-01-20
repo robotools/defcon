@@ -402,7 +402,7 @@ class Font(BaseObject):
             if self._path is None:
                 self._kerning = self.instantiateKerning()
                 self.beginSelfKerningNotificationObservation()
-                self._stampKerningDataState(reader)
+                self._stampKerningDataState(None)
             else:
                 self._loadKerningAndGroups()
         return self._kerning
@@ -434,7 +434,7 @@ class Font(BaseObject):
             if self._path is None:
                 self._groups = self.instantiateGroups()
                 self.beginSelfGroupsNotificationObservation()
-                self._stampGroupsDataState(reader)
+                self._stampGroupsDataState(None)
             else:
                 self._loadKerningAndGroups()
         return self._groups
