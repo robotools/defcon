@@ -316,7 +316,7 @@ class BaseObject(object):
         self._dirty = value
         dispatcher = self.dispatcher
         if dispatcher is not None:
-            dispatcher.postNotification(notification=self.changeNotificationName, observable=self)
+            self.postNotification(self.changeNotificationName)
 
     def _get_dirty(self):
         return self._dirty
