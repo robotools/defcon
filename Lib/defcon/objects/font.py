@@ -362,6 +362,14 @@ class Font(BaseObject):
         # validate
         if not kerningValidator(kerning, groups):
             raise DefconError("The kerning data is not valid.")
+        ## store groups
+        self._groups = self.instantiateGroups()
+        self.beginSelfGroupsNotificationObservation()
+        self._groups.disableNotifications()
+        self._groups.update(groups)
+        self._groups.dirty = False
+        self._groups.enableNotifications()
+        self._stampGroupsDataState(reader)
         # store kerning
         self._kerning = self.instantiateKerning()
         self.beginSelfKerningNotificationObservation()
@@ -370,14 +378,6 @@ class Font(BaseObject):
         self._kerning.dirty = False
         self._kerning.enableNotifications()
         self._stampKerningDataState(reader)
-        # store groups
-        self._groups = self.instantiateGroups()
-        self.beginSelfGroupsNotificationObservation()
-        self._groups.disableNotifications()
-        self._groups.update(groups)
-        self._groups.dirty = False
-        self._groups.enableNotifications()
-        self._stampGroupsDataState(reader)
 
     def instantiateKerning(self):
         kerning = self._kerningClass(
@@ -691,12 +691,12 @@ class Font(BaseObject):
                 if formatVersion > 1:
                     self.features.dirty = True
             # save the objects
-            self.saveInfo(writer=writer, saveAs=saveAs, progressBar=progressBar)
-            self.saveGroups(writer=writer, saveAs=saveAs, progressBar=progressBar)
-            self.saveKerning(writer=writer, saveAs=saveAs, progressBar=progressBar)
-            self.saveLib(writer=writer, saveAs=saveAs, progressBar=progressBar)
+            self._saveInfo(writer=writer, saveAs=saveAs, progressBar=progressBar)
+            self._saveGroups(writer=writer, saveAs=saveAs, progressBar=progressBar)
+            self._saveKerning(writer=writer, saveAs=saveAs, progressBar=progressBar)
+            self._saveLib(writer=writer, saveAs=saveAs, progressBar=progressBar)
             if formatVersion >= 2:
-                self.saveFeatures(writer=writer, saveAs=saveAs, progressBar=progressBar)
+                self._saveFeatures(writer=writer, saveAs=saveAs, progressBar=progressBar)
             if formatVersion >= 3:
                 self.saveImages(writer=writer, removeUnreferencedImages=removeUnreferencedImages, saveAs=saveAs, progressBar=progressBar)
                 self.saveData(writer=writer, saveAs=saveAs, progressBar=progressBar)
@@ -715,59 +715,81 @@ class Font(BaseObject):
         self._ufoFormatVersion = formatVersion
         self.dirty = False
 
-    def saveInfo(self, writer, saveAs=False, progressBar=None):
-        """
-        Save info. This method should not be called externally.
-        Subclasses may override this method to implement custom saving behavior.
-        """
+    def _saveInfo(self, writer, saveAs=False, progressBar=None):
         # info should always be saved
         if progressBar is not None:
             progressBar.update(text="Saving info...", increment=0)
-        writer.writeInfo(self.info)
+        self.saveInfo(writer)
         self.info.dirty = False
         self._stampInfoDataState(UFOReader(writer.path))
         if progressBar is not None:
             progressBar.update()
 
-    def saveGroups(self, writer, saveAs=False, progressBar=None):
+    def saveInfo(self, writer):
         """
-        Save groups. This method should not be called externally.
+        Save info. This method should not be called externally.
         Subclasses may override this method to implement custom saving behavior.
         """
+        writer.writeInfo(self.info)
+
+    def _saveGroups(self, writer, saveAs=False, progressBar=None):
         # groups should always be saved
         if progressBar is not None:
             progressBar.update(text="Saving groups...", increment=0)
-        writer.writeGroups(self.groups)
+        self.saveGroups(writer)
         self.groups.dirty = False
         self._stampGroupsDataState(UFOReader(writer.path))
         if progressBar is not None:
             progressBar.update()
 
-    def saveKerning(self, writer, saveAs=False, progressBar=None):
+    def saveGroups(self, writer):
         """
-        Save kerning. This method should not be called externally.
+        Save groups. This method should not be called externally.
         Subclasses may override this method to implement custom saving behavior.
         """
-        if progressBar is not None:
-            progressBar.update(text="Saving kerning...", increment=0)
+        writer.writeGroups(self.groups)
+
+    def _saveKerning(self, writer, saveAs=False, progressBar=None):
         if self.kerning.dirty or saveAs:
-            writer.writeKerning(self.kerning)
+            if progressBar is not None:
+                progressBar.update(text="Saving kerning...", increment=0)
+            self.saveKerning(writer)
             self.kerning.dirty = False
             self._stampKerningDataState(UFOReader(writer.path))
         if progressBar is not None:
             progressBar.update()
 
-    def saveFeatures(self, writer, saveAs=False, progressBar=None):
+    def saveKerning(self, writer):
+        """
+        Save kerning. This method should not be called externally.
+        Subclasses may override this method to implement custom saving behavior.
+        """
+        writer.writeKerning(self.kerning)
+
+    def _saveFeatures(self, writer, saveAs=False, progressBar=None):
+        if self.features.dirty or saveAs:
+            if progressBar is not None:
+                progressBar.update(text="Saving features...", increment=0)
+            self.saveFeatures(writer)
+            self.features.dirty = False
+            self._stampFeaturesDataState(UFOReader(writer.path))
+        if progressBar is not None:
+            progressBar.update()
+
+    def saveFeatures(self, writer):
         """
         Save features. This method should not be called externally.
         Subclasses may override this method to implement custom saving behavior.
         """
+        writer.writeFeatures(self.features.text)
+
+    def _saveLib(self, writer, saveAs=False, progressBar=None):
+        # lib should always be saved
         if progressBar is not None:
-            progressBar.update(text="Saving features...", increment=0)
-        if self.features.dirty or saveAs:
-            writer.writeFeatures(self.features.text)
-            self.features.dirty = False
-            self._stampFeaturesDataState(UFOReader(writer.path))
+            progressBar.update(text="Saving lib...", increment=0)
+        self.saveLib(writer)
+        self.lib.dirty = False
+        self._stampLibDataState(UFOReader(writer.path))
         if progressBar is not None:
             progressBar.update()
 
@@ -776,9 +798,6 @@ class Font(BaseObject):
         Save lib. This method should not be called externally.
         Subclasses may override this method to implement custom saving behavior.
         """
-        # lib should always be saved
-        if progressBar is not None:
-            progressBar.update(text="Saving lib...", increment=0)
         # if making format version 1, do some
         # temporary down conversion before
         # passing the lib to the writer
@@ -786,10 +805,6 @@ class Font(BaseObject):
         if writer.formatVersion == 1:
             self._convertToFormatVersion1RoboFabData(libCopy)
         writer.writeLib(libCopy)
-        self.lib.dirty = False
-        self._stampLibDataState(UFOReader(writer.path))
-        if progressBar is not None:
-            progressBar.update()
 
     def saveImages(self, writer, removeUnreferencedImages=False, saveAs=False, progressBar=None):
         """
