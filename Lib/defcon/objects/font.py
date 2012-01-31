@@ -644,7 +644,7 @@ class Font(BaseObject):
         The UFO will be saved using the format found at ``ufoFormatVersion``.
         This value is either the format version from the exising UFO or
         the format version specified in a previous save. If neither of
-        these is available, the UFO will be written as format version 2.
+        these is available, the UFO will be written as format version 3.
         If you wish to specifiy the format version for saving, pass
         the desired number as the **formatVersion** argument.
 
