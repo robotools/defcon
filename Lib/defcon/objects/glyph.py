@@ -969,7 +969,7 @@ class Glyph(BaseObject):
                 i = self.image
             if set(self._image.items()) != set(image.items()):
                 for key in self._image.keys():
-                    self._image[key] = image.get(key)
+                    setattr(self._image, key, image.get(key))
                 self.postNotification(notification="Glyph.ImageChanged")
                 self.dirty = True
 
