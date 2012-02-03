@@ -968,8 +968,9 @@ class Glyph(BaseObject):
                 # create the image object
                 i = self.image
             if set(self._image.items()) != set(image.items()):
-                for key in self._image.keys():
-                    setattr(self._image, key, image.get(key))
+                self._image.fileName = image["fileName"]
+                self._image.transformation = (image["xScale"], image["xyScale"], image["yxScale"], image["yScale"], image["xOffset"], image["yOffset"])
+                self._image.color = image.get("color")
                 self.postNotification(notification="Glyph.ImageChanged")
                 self.dirty = True
 
