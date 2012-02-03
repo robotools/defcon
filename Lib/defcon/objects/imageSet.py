@@ -109,6 +109,9 @@ class ImageSet(BaseObject):
     # Dict Behavior
     # -------------
 
+    def __contains__(self, fileName):
+        return fileName in self._data
+
     def __getitem__(self, fileName):
         d = self._data[fileName]
         if d["data"] is None:
