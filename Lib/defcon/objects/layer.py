@@ -186,7 +186,7 @@ class Layer(BaseObject):
         and *Layer.Changed* notifications.
         """
         self.postNotification("Layer.GlyphWillBeAdded", data=(dict(name=name)))
-        if name in self:
+        if name in self and self._unicodeData is not None:
             self._unicodeData.removeGlyphData(name, self[name].unicodes)
         glyph = self.instantiateGlyphObject()
         glyph.disableNotifications()
