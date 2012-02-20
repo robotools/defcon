@@ -770,7 +770,8 @@ class Font(BaseObject):
         if self.features.dirty or saveAs:
             if progressBar is not None:
                 progressBar.update(text="Saving features...", increment=0)
-            self.saveFeatures(writer)
+            if self.features.text is not None:
+                self.saveFeatures(writer)
             self.features.dirty = False
             self._stampFeaturesDataState(UFOReader(writer.path))
         if progressBar is not None:
