@@ -214,6 +214,8 @@ class Image(BaseDictObject):
         imageSet.addObserver(self, "imageSetImageAddedNotificationCallback", "ImageSet.ImageAdded")
         imageSet.addObserver(self, "imageSetImageDeletedNotificationCallback", "ImageSet.ImageDeleted")
         imageSet.addObserver(self, "imageSetImageChangedNotificationCallback", "ImageSet.ImageChanged")
+        layer = self.layer
+        layer.addObserver(self, "layerColorChangedNotificationCallback", "Layer.ColorChanged")
 
     def endImageSetNotificationObservation(self):
         font = self.font
@@ -223,6 +225,8 @@ class Image(BaseDictObject):
         imageSet.removeObserver(self, "ImageSet.ImageAdded")
         imageSet.removeObserver(self, "ImageSet.ImageDeleted")
         imageSet.removeObserver(self, "ImageSet.ImageChanged")
+        layer = self.layer
+        layer.removeObserver(self, "Layer.ColorChanged")
 
     def imageSetImageAddedNotificationCallback(self, notification):
         name = notification.data["name"]
@@ -241,6 +245,10 @@ class Image(BaseDictObject):
         if name != self.fileName:
             return
         self.postNotification("Image.ImageDataChanged")
+
+    def layerColorChangedNotificationCallback(self, notification):
+        if self.color is not None:
+            self.postNotification("Image.ColorChanged", data=notification.data)
 
 
 def _testAttributes():
