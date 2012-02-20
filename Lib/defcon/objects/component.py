@@ -372,6 +372,9 @@ class Component(BaseObject):
         self._beginLayerObservations()
 
     def layerGlyphAddedNotificationCallback(self, notification):
+        name = notification.data["name"]
+        if name != self.baseGlyph:
+            return
         self._endLayerObservations()
         self._beginBaseGlyphObservations()
 
