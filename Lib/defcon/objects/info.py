@@ -407,7 +407,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeHeadFlags", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeHeadFlags = property(_get_openTypeHeadFlags, _set_openTypeHeadFlags, doc="A list of bit numbers indicating the flags. The bit numbers are listed in the OpenType head specification. Corresponds to the OpenType head table <code>flags</code> field. This should be a number list. Setting this will post an *Info.Changed* notification.")
+    openTypeHeadFlags = property(_get_openTypeHeadFlags, _set_openTypeHeadFlags, doc="A list of bit numbers indicating the flags. The bit numbers are listed in the OpenType head specification. Corresponds to the OpenType head table <code>flags</code> field. This should be a list. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeHeadLowestRecPPEM(self):
         return self._openTypeHeadLowestRecPPEM
@@ -427,7 +427,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeHeadLowestRecPPEM", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeHeadLowestRecPPEM = property(_get_openTypeHeadLowestRecPPEM, _set_openTypeHeadLowestRecPPEM, doc="Smallest readable size in pixels. Corresponds to the OpenType head table <code>lowestRecPPEM</code> field. This should be a non-negative integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeHeadLowestRecPPEM = property(_get_openTypeHeadLowestRecPPEM, _set_openTypeHeadLowestRecPPEM, doc="Smallest readable size in pixels. Corresponds to the OpenType head table <code>lowestRecPPEM</code> field. This should be a non-negative integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeHheaAscender(self):
         return self._openTypeHheaAscender
@@ -447,7 +447,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeHheaAscender", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeHheaAscender = property(_get_openTypeHheaAscender, _set_openTypeHheaAscender, doc="Ascender value. Corresponds to the OpenType hhea table <code>Ascender</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeHheaAscender = property(_get_openTypeHheaAscender, _set_openTypeHheaAscender, doc="Ascender value. Corresponds to the OpenType hhea table <code>Ascender</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeHheaCaretOffset(self):
         return self._openTypeHheaCaretOffset
@@ -467,7 +467,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeHheaCaretOffset", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeHheaCaretOffset = property(_get_openTypeHheaCaretOffset, _set_openTypeHheaCaretOffset, doc="Caret offset value. Corresponds to the OpenType hhea table <code>caretOffset</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeHheaCaretOffset = property(_get_openTypeHheaCaretOffset, _set_openTypeHheaCaretOffset, doc="Caret offset value. Corresponds to the OpenType hhea table <code>caretOffset</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeHheaCaretSlopeRise(self):
         return self._openTypeHheaCaretSlopeRise
@@ -527,7 +527,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeHheaDescender", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeHheaDescender = property(_get_openTypeHheaDescender, _set_openTypeHheaDescender, doc="Descender value. Corresponds to the OpenType hhea table <code>Descender</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeHheaDescender = property(_get_openTypeHheaDescender, _set_openTypeHheaDescender, doc="Descender value. Corresponds to the OpenType hhea table <code>Descender</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeHheaLineGap(self):
         return self._openTypeHheaLineGap
@@ -547,7 +547,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeHheaLineGap", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeHheaLineGap = property(_get_openTypeHheaLineGap, _set_openTypeHheaLineGap, doc="Line gap value. Corresponds to the OpenType hhea table <code>LineGap</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeHheaLineGap = property(_get_openTypeHheaLineGap, _set_openTypeHheaLineGap, doc="Line gap value. Corresponds to the OpenType hhea table <code>LineGap</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeNameCompatibleFullName(self):
         return self._openTypeNameCompatibleFullName
@@ -887,7 +887,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2CodePageRanges", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeOS2CodePageRanges = property(_get_openTypeOS2CodePageRanges, _set_openTypeOS2CodePageRanges, doc="A list of bit numbers that are supported code page ranges in the font. The bit numbers are listed in the OpenType OS/2 specification. Corresponds to the OpenType OS/2 table <code>ulCodePageRange1</code> and <code>ulCodePageRange2</code> fields. This should be a number list. Setting this will post an *Info.Changed* notification.")
+    openTypeOS2CodePageRanges = property(_get_openTypeOS2CodePageRanges, _set_openTypeOS2CodePageRanges, doc="A list of bit numbers that are supported code page ranges in the font. The bit numbers are listed in the OpenType OS/2 specification. Corresponds to the OpenType OS/2 table <code>ulCodePageRange1</code> and <code>ulCodePageRange2</code> fields. This should be a list. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeOS2FamilyClass(self):
         return self._openTypeOS2FamilyClass
@@ -907,7 +907,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2FamilyClass", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeOS2FamilyClass = property(_get_openTypeOS2FamilyClass, _set_openTypeOS2FamilyClass, doc="Two integers representing the IBM font class and font subclass of the font. The first number, representing the class ID, must be in the range 0-14. The second number, representing the subclass, must be in the range 0-15. The numbers are listed in the OpenType OS/2 specification. Corresponds to the OpenType OS/2 table <code>sFamilyClass</code> field. This should be a number list. Setting this will post an *Info.Changed* notification.")
+    openTypeOS2FamilyClass = property(_get_openTypeOS2FamilyClass, _set_openTypeOS2FamilyClass, doc="Two integers representing the IBM font class and font subclass of the font. The first number, representing the class ID, must be in the range 0-14. The second number, representing the subclass, must be in the range 0-15. The numbers are listed in the OpenType OS/2 specification. Corresponds to the OpenType OS/2 table <code>sFamilyClass</code> field. This should be a list. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeOS2Panose(self):
         return self._openTypeOS2Panose
@@ -927,7 +927,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2Panose", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeOS2Panose = property(_get_openTypeOS2Panose, _set_openTypeOS2Panose, doc="The list must contain 10 non-negative integers that represent the setting for each category in the Panose specification. The integers correspond with the option numbers in each of the Panose categories. This corresponds to the OpenType OS/2 table <code>Panose</code> field. This should be a number list. Setting this will post an *Info.Changed* notification.")
+    openTypeOS2Panose = property(_get_openTypeOS2Panose, _set_openTypeOS2Panose, doc="The list must contain 10 non-negative integers that represent the setting for each category in the Panose specification. The integers correspond with the option numbers in each of the Panose categories. This corresponds to the OpenType OS/2 table <code>Panose</code> field. This should be a list. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeOS2Selection(self):
         return self._openTypeOS2Selection
@@ -947,7 +947,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2Selection", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeOS2Selection = property(_get_openTypeOS2Selection, _set_openTypeOS2Selection, doc="A list of bit numbers indicating the bits that should be set in fsSelection. The bit numbers are listed in the OpenType OS/2 specification. Corresponds to the OpenType OS/2 table <code>selection</code> field. Note: Bits 0 (italic), 5 (bold) and 6 (regular) must not be set here. These bits should be taken from the generic styleMapStyle attribute. This should be a number list. Setting this will post an *Info.Changed* notification.")
+    openTypeOS2Selection = property(_get_openTypeOS2Selection, _set_openTypeOS2Selection, doc="A list of bit numbers indicating the bits that should be set in fsSelection. The bit numbers are listed in the OpenType OS/2 specification. Corresponds to the OpenType OS/2 table <code>selection</code> field. Note: Bits 0 (italic), 5 (bold) and 6 (regular) must not be set here. These bits should be taken from the generic styleMapStyle attribute. This should be a list. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeOS2StrikeoutPosition(self):
         return self._openTypeOS2StrikeoutPosition
@@ -967,7 +967,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2StrikeoutPosition", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeOS2StrikeoutPosition = property(_get_openTypeOS2StrikeoutPosition, _set_openTypeOS2StrikeoutPosition, doc="Strikeout position. Corresponds to the OpenType OS/2 table <code>yStrikeoutPosition</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeOS2StrikeoutPosition = property(_get_openTypeOS2StrikeoutPosition, _set_openTypeOS2StrikeoutPosition, doc="Strikeout position. Corresponds to the OpenType OS/2 table <code>yStrikeoutPosition</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeOS2StrikeoutSize(self):
         return self._openTypeOS2StrikeoutSize
@@ -987,7 +987,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2StrikeoutSize", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeOS2StrikeoutSize = property(_get_openTypeOS2StrikeoutSize, _set_openTypeOS2StrikeoutSize, doc="Strikeout size. Corresponds to the OpenType OS/2 table <code>yStrikeoutSize</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeOS2StrikeoutSize = property(_get_openTypeOS2StrikeoutSize, _set_openTypeOS2StrikeoutSize, doc="Strikeout size. Corresponds to the OpenType OS/2 table <code>yStrikeoutSize</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeOS2SubscriptXOffset(self):
         return self._openTypeOS2SubscriptXOffset
@@ -1007,7 +1007,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2SubscriptXOffset", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeOS2SubscriptXOffset = property(_get_openTypeOS2SubscriptXOffset, _set_openTypeOS2SubscriptXOffset, doc="Subscript x offset. Corresponds to the OpenType OS/2 table <code>ySubscriptXOffset</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeOS2SubscriptXOffset = property(_get_openTypeOS2SubscriptXOffset, _set_openTypeOS2SubscriptXOffset, doc="Subscript x offset. Corresponds to the OpenType OS/2 table <code>ySubscriptXOffset</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeOS2SubscriptXSize(self):
         return self._openTypeOS2SubscriptXSize
@@ -1027,7 +1027,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2SubscriptXSize", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeOS2SubscriptXSize = property(_get_openTypeOS2SubscriptXSize, _set_openTypeOS2SubscriptXSize, doc="Subscript horizontal font size. Corresponds to the OpenType OS/2 table <code>ySubscriptXSize</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeOS2SubscriptXSize = property(_get_openTypeOS2SubscriptXSize, _set_openTypeOS2SubscriptXSize, doc="Subscript horizontal font size. Corresponds to the OpenType OS/2 table <code>ySubscriptXSize</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeOS2SubscriptYOffset(self):
         return self._openTypeOS2SubscriptYOffset
@@ -1047,7 +1047,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2SubscriptYOffset", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeOS2SubscriptYOffset = property(_get_openTypeOS2SubscriptYOffset, _set_openTypeOS2SubscriptYOffset, doc="Subscript y offset. Corresponds to the OpenType OS/2 table <code>ySubscriptYOffset</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeOS2SubscriptYOffset = property(_get_openTypeOS2SubscriptYOffset, _set_openTypeOS2SubscriptYOffset, doc="Subscript y offset. Corresponds to the OpenType OS/2 table <code>ySubscriptYOffset</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeOS2SubscriptYSize(self):
         return self._openTypeOS2SubscriptYSize
@@ -1067,7 +1067,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2SubscriptYSize", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeOS2SubscriptYSize = property(_get_openTypeOS2SubscriptYSize, _set_openTypeOS2SubscriptYSize, doc="Subscript vertical font size. Corresponds to the OpenType OS/2 table <code>ySubscriptYSize</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeOS2SubscriptYSize = property(_get_openTypeOS2SubscriptYSize, _set_openTypeOS2SubscriptYSize, doc="Subscript vertical font size. Corresponds to the OpenType OS/2 table <code>ySubscriptYSize</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeOS2SuperscriptXOffset(self):
         return self._openTypeOS2SuperscriptXOffset
@@ -1087,7 +1087,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2SuperscriptXOffset", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeOS2SuperscriptXOffset = property(_get_openTypeOS2SuperscriptXOffset, _set_openTypeOS2SuperscriptXOffset, doc="Superscript x offset. Corresponds to the OpenType OS/2 table <code>ySuperscriptXOffset</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeOS2SuperscriptXOffset = property(_get_openTypeOS2SuperscriptXOffset, _set_openTypeOS2SuperscriptXOffset, doc="Superscript x offset. Corresponds to the OpenType OS/2 table <code>ySuperscriptXOffset</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeOS2SuperscriptXSize(self):
         return self._openTypeOS2SuperscriptXSize
@@ -1107,7 +1107,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2SuperscriptXSize", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeOS2SuperscriptXSize = property(_get_openTypeOS2SuperscriptXSize, _set_openTypeOS2SuperscriptXSize, doc="Superscript horizontal font size. Corresponds to the OpenType OS/2 table <code>ySuperscriptXSize</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeOS2SuperscriptXSize = property(_get_openTypeOS2SuperscriptXSize, _set_openTypeOS2SuperscriptXSize, doc="Superscript horizontal font size. Corresponds to the OpenType OS/2 table <code>ySuperscriptXSize</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeOS2SuperscriptYOffset(self):
         return self._openTypeOS2SuperscriptYOffset
@@ -1127,7 +1127,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2SuperscriptYOffset", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeOS2SuperscriptYOffset = property(_get_openTypeOS2SuperscriptYOffset, _set_openTypeOS2SuperscriptYOffset, doc="Superscript y offset. Corresponds to the OpenType OS/2 table <code>ySuperscriptYOffset</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeOS2SuperscriptYOffset = property(_get_openTypeOS2SuperscriptYOffset, _set_openTypeOS2SuperscriptYOffset, doc="Superscript y offset. Corresponds to the OpenType OS/2 table <code>ySuperscriptYOffset</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeOS2SuperscriptYSize(self):
         return self._openTypeOS2SuperscriptYSize
@@ -1147,7 +1147,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2SuperscriptYSize", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeOS2SuperscriptYSize = property(_get_openTypeOS2SuperscriptYSize, _set_openTypeOS2SuperscriptYSize, doc="Superscript vertical font size. Corresponds to the OpenType OS/2 table <code>ySuperscriptYSize</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeOS2SuperscriptYSize = property(_get_openTypeOS2SuperscriptYSize, _set_openTypeOS2SuperscriptYSize, doc="Superscript vertical font size. Corresponds to the OpenType OS/2 table <code>ySuperscriptYSize</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeOS2Type(self):
         return self._openTypeOS2Type
@@ -1167,7 +1167,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2Type", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeOS2Type = property(_get_openTypeOS2Type, _set_openTypeOS2Type, doc="A list of bit numbers indicating the embedding type. The bit numbers are listed in the OpenType OS/2 specification. Corresponds to the OpenType OS/2 table <code>fsType</code> field. This should be a number list. Setting this will post an *Info.Changed* notification.")
+    openTypeOS2Type = property(_get_openTypeOS2Type, _set_openTypeOS2Type, doc="A list of bit numbers indicating the embedding type. The bit numbers are listed in the OpenType OS/2 specification. Corresponds to the OpenType OS/2 table <code>fsType</code> field. This should be a list. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeOS2TypoAscender(self):
         return self._openTypeOS2TypoAscender
@@ -1187,7 +1187,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2TypoAscender", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeOS2TypoAscender = property(_get_openTypeOS2TypoAscender, _set_openTypeOS2TypoAscender, doc="Ascender value. Corresponds to the OpenType OS/2 table <code>sTypoAscender</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeOS2TypoAscender = property(_get_openTypeOS2TypoAscender, _set_openTypeOS2TypoAscender, doc="Ascender value. Corresponds to the OpenType OS/2 table <code>sTypoAscender</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeOS2TypoDescender(self):
         return self._openTypeOS2TypoDescender
@@ -1207,7 +1207,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2TypoDescender", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeOS2TypoDescender = property(_get_openTypeOS2TypoDescender, _set_openTypeOS2TypoDescender, doc="Descender value. Corresponds to the OpenType OS/2 table <code>sTypoDescender</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeOS2TypoDescender = property(_get_openTypeOS2TypoDescender, _set_openTypeOS2TypoDescender, doc="Descender value. Corresponds to the OpenType OS/2 table <code>sTypoDescender</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeOS2TypoLineGap(self):
         return self._openTypeOS2TypoLineGap
@@ -1227,7 +1227,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2TypoLineGap", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeOS2TypoLineGap = property(_get_openTypeOS2TypoLineGap, _set_openTypeOS2TypoLineGap, doc="Line gap value. Corresponds to the OpenType OS/2 table <code>sTypoLineGap</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeOS2TypoLineGap = property(_get_openTypeOS2TypoLineGap, _set_openTypeOS2TypoLineGap, doc="Line gap value. Corresponds to the OpenType OS/2 table <code>sTypoLineGap</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeOS2UnicodeRanges(self):
         return self._openTypeOS2UnicodeRanges
@@ -1247,7 +1247,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2UnicodeRanges", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeOS2UnicodeRanges = property(_get_openTypeOS2UnicodeRanges, _set_openTypeOS2UnicodeRanges, doc="A list of bit numbers that are supported Unicode ranges in the font. The bit numbers are listed in the OpenType OS/2 specification. Corresponds to the OpenType OS/2 table <code>ulUnicodeRange1</code>, <code>ulUnicodeRange2</code>, <code>ulUnicodeRange3</code> and <code>ulUnicodeRange4</code> fields. This should be a number list. Setting this will post an *Info.Changed* notification.")
+    openTypeOS2UnicodeRanges = property(_get_openTypeOS2UnicodeRanges, _set_openTypeOS2UnicodeRanges, doc="A list of bit numbers that are supported Unicode ranges in the font. The bit numbers are listed in the OpenType OS/2 specification. Corresponds to the OpenType OS/2 table <code>ulUnicodeRange1</code>, <code>ulUnicodeRange2</code>, <code>ulUnicodeRange3</code> and <code>ulUnicodeRange4</code> fields. This should be a list. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeOS2VendorID(self):
         return self._openTypeOS2VendorID
@@ -1327,7 +1327,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2WinAscent", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeOS2WinAscent = property(_get_openTypeOS2WinAscent, _set_openTypeOS2WinAscent, doc="Ascender value. Corresponds to the OpenType OS/2 table <code>usWinAscent</code> field. This should be a non-negative integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeOS2WinAscent = property(_get_openTypeOS2WinAscent, _set_openTypeOS2WinAscent, doc="Ascender value. Corresponds to the OpenType OS/2 table <code>usWinAscent</code> field. This should be a non-negative integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeOS2WinDescent(self):
         return self._openTypeOS2WinDescent
@@ -1347,7 +1347,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeOS2WinDescent", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeOS2WinDescent = property(_get_openTypeOS2WinDescent, _set_openTypeOS2WinDescent, doc="Descender value. Corresponds to the OpenType OS/2 table <code>usWinDescent</code> field. This should be a non-negative integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeOS2WinDescent = property(_get_openTypeOS2WinDescent, _set_openTypeOS2WinDescent, doc="Descender value. Corresponds to the OpenType OS/2 table <code>usWinDescent</code> field. This should be a non-negative integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeVheaCaretOffset(self):
         return self._openTypeVheaCaretOffset
@@ -1367,7 +1367,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeVheaCaretOffset", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeVheaCaretOffset = property(_get_openTypeVheaCaretOffset, _set_openTypeVheaCaretOffset, doc="Caret offset value. Corresponds to the OpenType vhea table <code>caretOffset</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeVheaCaretOffset = property(_get_openTypeVheaCaretOffset, _set_openTypeVheaCaretOffset, doc="Caret offset value. Corresponds to the OpenType vhea table <code>caretOffset</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeVheaCaretSlopeRise(self):
         return self._openTypeVheaCaretSlopeRise
@@ -1427,7 +1427,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeVheaVertTypoAscender", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeVheaVertTypoAscender = property(_get_openTypeVheaVertTypoAscender, _set_openTypeVheaVertTypoAscender, doc="Ascender value. Corresponds to the OpenType vhea table <code>vertTypoAscender</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeVheaVertTypoAscender = property(_get_openTypeVheaVertTypoAscender, _set_openTypeVheaVertTypoAscender, doc="Ascender value. Corresponds to the OpenType vhea table <code>vertTypoAscender</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeVheaVertTypoDescender(self):
         return self._openTypeVheaVertTypoDescender
@@ -1447,7 +1447,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeVheaVertTypoDescender", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeVheaVertTypoDescender = property(_get_openTypeVheaVertTypoDescender, _set_openTypeVheaVertTypoDescender, doc="Descender value. Corresponds to the OpenType vhea table <code>vertTypoDescender</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeVheaVertTypoDescender = property(_get_openTypeVheaVertTypoDescender, _set_openTypeVheaVertTypoDescender, doc="Descender value. Corresponds to the OpenType vhea table <code>vertTypoDescender</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_openTypeVheaVertTypoLineGap(self):
         return self._openTypeVheaVertTypoLineGap
@@ -1467,7 +1467,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="openTypeVheaVertTypoLineGap", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    openTypeVheaVertTypoLineGap = property(_get_openTypeVheaVertTypoLineGap, _set_openTypeVheaVertTypoLineGap, doc="Line gap value. Corresponds to the OpenType vhea table <code>vertTypoLineGap</code> field. This should be a integer or float. Setting this will post an *Info.Changed* notification.")
+    openTypeVheaVertTypoLineGap = property(_get_openTypeVheaVertTypoLineGap, _set_openTypeVheaVertTypoLineGap, doc="Line gap value. Corresponds to the OpenType vhea table <code>vertTypoLineGap</code> field. This should be a integer. Setting this will post an *Info.Changed* notification.")
 
     def _get_postscriptBlueFuzz(self):
         return self._postscriptBlueFuzz
@@ -1547,7 +1547,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptBlueValues", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    postscriptBlueValues = property(_get_postscriptBlueValues, _set_postscriptBlueValues, doc="A list of up to 14 integers or floats specifying the values that should be in the Type 1/CFF BlueValues field. This list must contain an even number of integers following the rules defined in the Type 1/CFF specification. This should be a number list. Setting this will post an *Info.Changed* notification.")
+    postscriptBlueValues = property(_get_postscriptBlueValues, _set_postscriptBlueValues, doc="A list of up to 14 integers or floats specifying the values that should be in the Type 1/CFF BlueValues field. This list must contain an even number of integers following the rules defined in the Type 1/CFF specification. This should be a list. Setting this will post an *Info.Changed* notification.")
 
     def _get_postscriptDefaultCharacter(self):
         return self._postscriptDefaultCharacter
@@ -1607,7 +1607,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptFamilyBlues", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    postscriptFamilyBlues = property(_get_postscriptFamilyBlues, _set_postscriptFamilyBlues, doc="A list of up to 14 integers or floats specifying the values that should be in the Type 1/CFF FamilyBlues field. This list must contain an even number of integers following the rules defined in the Type 1/CFF specification. This should be a number list. Setting this will post an *Info.Changed* notification.")
+    postscriptFamilyBlues = property(_get_postscriptFamilyBlues, _set_postscriptFamilyBlues, doc="A list of up to 14 integers or floats specifying the values that should be in the Type 1/CFF FamilyBlues field. This list must contain an even number of integers following the rules defined in the Type 1/CFF specification. This should be a list. Setting this will post an *Info.Changed* notification.")
 
     def _get_postscriptFamilyOtherBlues(self):
         return self._postscriptFamilyOtherBlues
@@ -1627,7 +1627,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptFamilyOtherBlues", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    postscriptFamilyOtherBlues = property(_get_postscriptFamilyOtherBlues, _set_postscriptFamilyOtherBlues, doc="A list of up to 10 integers or floats specifying the values that should be in the Type 1/CFF FamilyOtherBlues field. This list must contain an even number of integers following the rules defined in the Type 1/CFF specification. This should be a number list. Setting this will post an *Info.Changed* notification.")
+    postscriptFamilyOtherBlues = property(_get_postscriptFamilyOtherBlues, _set_postscriptFamilyOtherBlues, doc="A list of up to 10 integers or floats specifying the values that should be in the Type 1/CFF FamilyOtherBlues field. This list must contain an even number of integers following the rules defined in the Type 1/CFF specification. This should be a list. Setting this will post an *Info.Changed* notification.")
 
     def _get_postscriptFontName(self):
         return self._postscriptFontName
@@ -1707,7 +1707,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptIsFixedPitch", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    postscriptIsFixedPitch = property(_get_postscriptIsFixedPitch, _set_postscriptIsFixedPitch, doc="Indicates if the font is monospaced. A compiler could calculate this automatically, but the designer may wish to override this setting. This corresponds to the Type 1/CFF <code>isFixedPitched</code> field This should be a boolean. Setting this will post an *Info.Changed* notification.")
+    postscriptIsFixedPitch = property(_get_postscriptIsFixedPitch, _set_postscriptIsFixedPitch, doc="Indicates if the font is monospaced. An authoring tool could calculate this automatically, but the designer may wish to override this setting. This corresponds to the Type 1/CFF <code>isFixedPitched</code> field This should be a boolean. Setting this will post an *Info.Changed* notification.")
 
     def _get_postscriptNominalWidthX(self):
         return self._postscriptNominalWidthX
@@ -1747,7 +1747,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptOtherBlues", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    postscriptOtherBlues = property(_get_postscriptOtherBlues, _set_postscriptOtherBlues, doc="A list of up to 10 integers or floats specifying the values that should be in the Type 1/CFF OtherBlues field. This list must contain an even number of integers following the rules defined in the Type 1/CFF specification. This should be a number list. Setting this will post an *Info.Changed* notification.")
+    postscriptOtherBlues = property(_get_postscriptOtherBlues, _set_postscriptOtherBlues, doc="A list of up to 10 integers or floats specifying the values that should be in the Type 1/CFF OtherBlues field. This list must contain an even number of integers following the rules defined in the Type 1/CFF specification. This should be a list. Setting this will post an *Info.Changed* notification.")
 
     def _get_postscriptSlantAngle(self):
         return self._postscriptSlantAngle
@@ -1787,7 +1787,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptStemSnapH", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    postscriptStemSnapH = property(_get_postscriptStemSnapH, _set_postscriptStemSnapH, doc="List of horizontal stems sorted in the order specified in the Type 1/CFF specification. Up to 12 integers or floats are possible. This corresponds to the Type 1/CFF <code>StemSnapH</code> field. This should be a number list. Setting this will post an *Info.Changed* notification.")
+    postscriptStemSnapH = property(_get_postscriptStemSnapH, _set_postscriptStemSnapH, doc="List of horizontal stems sorted in the order specified in the Type 1/CFF specification. Up to 12 integers or floats are possible. This corresponds to the Type 1/CFF <code>StemSnapH</code> field. This should be a list. Setting this will post an *Info.Changed* notification.")
 
     def _get_postscriptStemSnapV(self):
         return self._postscriptStemSnapV
@@ -1807,7 +1807,7 @@ class Info(BaseObject):
         self.postNotification("Info.ValueChanged", data=dict(attribute="postscriptStemSnapV", oldValue=oldValue, newValue=value))
         self.dirty = True
 
-    postscriptStemSnapV = property(_get_postscriptStemSnapV, _set_postscriptStemSnapV, doc="List of vertical stems sorted in the order specified in the Type 1/CFF specification. Up to 12 integers or floats are possible. This corresponds to the Type 1/CFF <code>StemSnapV</code> field. This should be a number list. Setting this will post an *Info.Changed* notification.")
+    postscriptStemSnapV = property(_get_postscriptStemSnapV, _set_postscriptStemSnapV, doc="List of vertical stems sorted in the order specified in the Type 1/CFF specification. Up to 12 integers or floats are possible. This corresponds to the Type 1/CFF <code>StemSnapV</code> field. This should be a list. Setting this will post an *Info.Changed* notification.")
 
     def _get_postscriptUnderlinePosition(self):
         return self._postscriptUnderlinePosition
@@ -2361,7 +2361,6 @@ class Info(BaseObject):
 
         This will post *Info.GuidelinesChanged* and *Info.Changed* notifications.
         """
-        assert guideline not in self._guidelines
         self.insertGuideline(len(self._guidelines), guideline)
 
     def insertGuideline(self, index, guideline):
@@ -2374,7 +2373,10 @@ class Info(BaseObject):
 
         This will post *Info.GuidelinesChanged* and *Info.Changed* notifications.
         """
-        assert guideline not in self._guidelines
+        try:
+            assert guideline.fontInfo != self
+        except AttributeError:
+            pass
         if not isinstance(guideline, self._guidelineClass):
             guideline = self.instantiateGuideline(guidelineDict=guideline)
         assert guideline.fontInfo in (self, None), "This guideline belongs to another font."

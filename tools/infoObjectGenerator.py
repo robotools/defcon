@@ -233,7 +233,6 @@ handBuilt = """
 
         This will post *Info.GuidelinesChanged* and *Info.Changed* notifications.
         \"\"\"
-        assert guideline not in self._guidelines
         self.insertGuideline(len(self._guidelines), guideline)
 
     def insertGuideline(self, index, guideline):
@@ -246,7 +245,10 @@ handBuilt = """
 
         This will post *Info.GuidelinesChanged* and *Info.Changed* notifications.
         \"\"\"
-        assert guideline not in self._guidelines
+        try:
+            assert guideline.fontInfo != self
+        except AttributeError:
+            pass
         if not isinstance(guideline, self._guidelineClass):
             guideline = self.instantiateGuideline(guidelineDict=guideline)
         assert guideline.fontInfo in (self, None), "This guideline belongs to another font."

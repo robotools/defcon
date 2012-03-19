@@ -455,7 +455,6 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
-        assert contour not in self
         self.insertContour(len(self), contour)
 
     def insertContour(self, index, contour):
@@ -564,7 +563,6 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
-        assert component not in self._components
         self.insertComponent(len(self._components), component)
 
     def insertComponent(self, index, component):
@@ -711,7 +709,6 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
-        assert anchor not in self._anchors
         self.insertAnchor(len(self._anchors), anchor)
 
     def insertAnchor(self, index, anchor):
@@ -724,7 +721,10 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
-        assert anchor not in self._anchors
+        try:
+            assert anchor.glyph != self
+        except AttributeError:
+            pass
         if not isinstance(anchor, self._anchorClass):
             anchor = self.instantiateAnchor(anchorDict=anchor)
         assert anchor.glyph in (self, None), "This anchor belongs to another glyph."
@@ -819,7 +819,6 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
-        assert guideline not in self._guidelines
         self.insertGuideline(len(self._guidelines), guideline)
 
     def insertGuideline(self, index, guideline):
@@ -832,7 +831,10 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
-        assert guideline not in self._guidelines
+        try:
+            assert guideline.glyph != self
+        except AttributeError:
+            pass
         if not isinstance(guideline, self._guidelineClass):
             guideline = self.instantiateGuideline(guidelineDict=guideline)
         assert guideline.glyph in (self, None), "This guideline belongs to another glyph."
