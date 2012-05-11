@@ -15,13 +15,18 @@ General Suggestions:
 
 class BooleanOperationManager(object):
 
-    def _performOperation(self, operation, contours, outPen):
+    def _performOperation(self, operation, subjectContours, clipContours, outPen):
         # prep the contours
-        inputContours = [InputContour(contour) for contour in contours]
+        subjectInputContours = [InputContour(contour) for contour in subjectContours if contour and len(contour) > 1]
+        clipInputContours = [InputContour(contour) for contour in clipContours if contour and len(contour) > 1]
+        inputContours = subjectInputContours + clipInputContours
         # XXX temporary
         clipperContours = []
-        for contour in inputContours:
-            clipperContours.append(dict(coordinates=contour.originalFlat))
+        for contour in subjectInputContours:
+            clipperContours.append(dict(coordinates=contour.originalFlat, role="subject"))
+        for contour in clipInputContours:
+            clipperContours.append(dict(coordinates=contour.originalFlat, role="clip"))
+        
         clipper = PolyClipper.alloc().init()
         resultContours = clipper.execute_operation_withOptions_(clipperContours, operation, dict(subjectFillType="noneZero", clipFillType="noneZero"))
         # the temporary Clipper wrapper is very, very slow
@@ -64,4 +69,14 @@ class BooleanOperationManager(object):
 
     def union(self, contours, outPen):
         # XXX return?
-        return self._performOperation("union", contours, outPen)
+        return self._performOperation("union", contours, [], outPen)
+    
+    def difference(self, subjectContours, clipContours, outPen):
+        return self._performOperation("difference", subjectContours, clipContours, outPen)
+    
+    def intersection(self, subjectContours, clipContours, outPen):
+        return self._performOperation("intersection", subjectContours, clipContours, outPen)
+    
+    def xor(self, subjectContours, clipContours, outPen):
+        return self._performOperation("xor", subjectContours, clipContours, outPen)
+    

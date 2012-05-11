@@ -173,6 +173,8 @@ class InputSegment(object):
                 flat.extend(_flattenSegment(convertedQuadPointToFlatten))
                 currentOnCurve = pt2
             self.flat = flat
+            # this shoudl be easy.
+            # copy the quad to cubic from fontTools.pens.basePen
         elif self.segmentType == "curve":
             pointsToFlatten = [previousOnCurve] + [point.coordinates for point in points]
         else:
@@ -589,7 +591,7 @@ class OutputContour(object):
     def reCurveSubSegments(self, inputContours):
         if not self.segments:
             # its all done
-            return
+            return 
         # the inputContours has some curved segments
         # if not it all the segments will be converted at the end
         if self.reCurveSubSegmentsCheckInputContoursOnHasCurve(inputContours):
@@ -616,6 +618,7 @@ class OutputContour(object):
                     for p in inputSegment.flat:
                         flatInputPointsSegmentDict[p] = inputSegment
                     flatIntputOncurves.add(inputSegment.scaledPreviousOnCurve)
+                    
                 for inputSegment in reversedSegments:
                     if inputSegment.used:
                         continue
@@ -680,6 +683,7 @@ class OutputContour(object):
                     segment.points = segment.points[index:] + segment.points[:index]
                 # split list based on oncurvepoints and intersection points
                 segmentedFlatPoints = [[]]
+                
                 for index, p in enumerate(segment.points):
                     segmentedFlatPoints[-1].append(p)
                     if p in possibleStartingPoints:
@@ -788,6 +792,7 @@ class OutputContour(object):
                         ]
                         convertedSegments.extend(newCurve)
                         previousIntersectionPoint = None
+                    
                     # if we found some tvalue, split the curve and get the requested parts of the splitted curves
                     if tValues is not None:
                         newCurve = inputSegment.split(tValues)
@@ -824,8 +829,11 @@ class OutputContour(object):
 
     def drawPoints(self, pointPen):
         pointPen.beginPath()
+        previousPointCoordinates = None
         for segment in self.segments:
             for point in segment.points:
+                if previousPointCoordinates is not None and point.segmentType and tuple(point.coordinates) == previousPointCoordinates:
+                    continue
                 kwargs = {}
                 if point.kwargs is not None:
                     kwargs = point.kwargs
@@ -836,6 +844,10 @@ class OutputContour(object):
                     name=point.name,
                     **kwargs
                 )
+                if point.segmentType:
+                    previousPointCoordinates = tuple(point.coordinates)
+                else:
+                    previousPointCoordinates = None
         pointPen.endPath()
 
 
@@ -954,7 +966,7 @@ The curve flattening code was forked and modified from RoboFab's FilterPen.
 That code was written by Erik van Blokland.
 """
 
-def _flattenSegment(segment, approximateSegmentLength=5):
+def _flattenSegment(segment, approximateSegmentLength=14.5):
     """
     Flatten the curve segment int a list of points.
     The first and last points in the segment must be
@@ -983,7 +995,7 @@ def _flattenSegment(segment, approximateSegmentLength=5):
 def _distance(pt1, pt2):
     return math.sqrt((pt1[0] - pt2[0]) ** 2 + (pt1[1] - pt2[1]) ** 2)
 
-def _estimateCubicCurveLength(pt0, pt1, pt2, pt3, precision=10):
+def _estimateCubicCurveLength(pt0, pt1, pt2, pt3, precision=5):
     """
     Estimate the length of this curve by iterating
     through it and averaging the length of the flat bits.
