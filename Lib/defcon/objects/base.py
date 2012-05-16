@@ -356,12 +356,14 @@ class BaseDictObject(dict, BaseObject):
         return id(self)
 
     def __setitem__(self, key, value):
-        oldValue = self.get(key)
-        if value is not None and oldValue == value:
-            # don't do this if the value is None since some
-            # subclasses establish their keys at startup with
-            # self[key] = None
-            return
+        oldValue = None
+        if key in self:
+            oldValue = self[key]
+            if value is not None and oldValue == value:
+                # don't do this if the value is None since some
+                # subclasses establish their keys at startup with
+                # self[key] = None
+                return
         super(BaseDictObject, self).__setitem__(key, value)
         if self.setItemNotificationName is not None:
             self.postNotification(self.setItemNotificationName, data=dict(key=key, oldValue=oldValue, newValue=value))
