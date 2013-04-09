@@ -671,7 +671,7 @@ class Font(BaseObject):
         if formatVersion is None and self._ufoFormatVersion is not None:
             formatVersion = self._ufoFormatVersion
         # otherwise fallback to 3
-        elif self._ufoFormatVersion is None:
+        elif formatVersion is None:
             formatVersion = 3
         # if down-converting, use a temp directory
         downConvertinginPlace = False
