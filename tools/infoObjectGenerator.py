@@ -1,20 +1,20 @@
 import os
 import urllib2
-from robofab import ufoLib
+import ufoLib
 
 # Extract documentation strings from the UFO specification site
 
 import urllib2
 
-url = "http://unifiedfontobject.org/filestructure/fontinfo.html"
+url = "http://unifiedfontobject.org/versions/ufo2/fontinfo.html"
 docsite = urllib2.urlopen(url)
 text = docsite.read()
 
 usableLines = None
 for line in text.splitlines():
-    if line.strip() == "<h2>Converting Version 1 to Version 2</h2>":
+    if line.strip() == "<h2>Converting fontinfo.plist in UFO 1 to fontinfo.plist in UFO 2</h2>":
         break
-    if line.strip() == "<h2>Version 2 (Draft)</h2>":
+    if line.strip() == "<h2>Specification</h2>":
         usableLines = []
     if usableLines is None:
         continue
