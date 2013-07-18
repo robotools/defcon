@@ -25,12 +25,16 @@ class Component(BaseObject):
         self._dirty = False
         self._baseGlyph = None
         self._transformation = tuple(_defaultTransformation)
+        
+        self._boundsCache = None
+        self._controlPointBoundsCache = None
+        
 
     # ----------
     # Attributes
     # ----------
 
-    def _getBounds(self, boundsAttr):
+    def _getBounds(self, boundsPen):
         glyph = self.getParent()
         if glyph is None:
             return None
@@ -39,31 +43,31 @@ class Component(BaseObject):
             return None
         if self.baseGlyph not in font:
             return None
-        glyph = font[self.baseGlyph]
-        bounds = getattr(glyph, boundsAttr)
-        if bounds is None:
-            return None
-        if self.transformation == _defaultTransformation:
-            return bounds
-        xMin, yMin, xMax, yMax = bounds
-        t = Transform(*self.transformation)
-        points = [(xMin, yMin), (xMax, yMax)]
-        (xMin, yMin), (xMax, yMax) = t.transformPoints(points)
-        return xMin, yMin, xMax, yMax
+        
+        pen = boundsPen(font)
+        self.draw(pen)
+        return pen.bounds
 
     def _get_bounds(self):
-        return self._getBounds("bounds")
+        from robofab.pens.boundsPen import BoundsPen
+        if self._boundsCache is None:
+            self._boundsCache = self._getBounds(BoundsPen)
+        return self._boundsCache 
 
     bounds = property(_get_bounds, doc="The bounds of the components's outline expressed as a tuple of form (xMin, yMin, xMax, yMax).")
 
     def _get_controlPointBounds(self):
-        return self._getBounds("controlPointBounds")
+        from fontTools.pens.boundsPen import ControlBoundsPen
+        if self._controlPointBoundsCache is None:
+            self._controlPointBoundsCache = self._getBounds(ControlBoundsPen)
+        return self._controlPointBoundsCache 
 
     controlPointBounds = property(_get_controlPointBounds, doc="The control bounds of all points in the components. This only measures the point positions, it does not measure curves. So, curves without points at the extrema will not be properly measured.")
 
     def _set_baseGlyph(self, value):
         oldValue = self._baseGlyph
         self._baseGlyph = value
+        self._destroyBoundsCache()
         self.dirty = True
         dispatcher = self.dispatcher
         if dispatcher is not None:
@@ -76,6 +80,7 @@ class Component(BaseObject):
 
     def _set_transformation(self, value):
         self._transformation = value
+        self._destroyBoundsCache()
         self.dirty = True
 
     def _get_transformation(self):
@@ -146,7 +151,11 @@ class Component(BaseObject):
     def loadDeserializedDataFromUndo(self, data):
         self.baseGlyph = data["baseGlyph"]
         self.transformation = data["transformation"]
-
+    
+    def _destroyBoundsCache(self):
+        self._boundsCache = None
+        self._controlPointBoundsCache = None
+    
 
 if __name__ == "__main__":
     import doctest
