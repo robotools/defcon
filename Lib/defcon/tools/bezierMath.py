@@ -3,7 +3,7 @@ Contributed by Frederik Berlaen.
 """
 
 from __future__ import division
-from math import sqrt
+from math import sqrt, atan2
 
 def _distance((x1, y1), (x2, y2)):
     return sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
@@ -59,6 +59,15 @@ def joinSegments((on1X, on1Y),
         off4X = off4X + (off3X - off4X) * .1
         off4Y = off4Y + (off3Y - off4Y) * .1
     
+    smooth = False
+    if (off2X, off2Y) != (on2X, on2Y) and (off3X, off3Y) != (on2X, on2Y):
+        dx1, dy1 = on2X - off2X, on2Y - off2Y
+        dx2, dy2 = off3X - on2X, off3Y - on2Y
+        a1 = atan2(dx1, dy1)
+        a2 = atan2(dx2, dy2)
+        if abs(a1 - a2) < 0.05:
+            smooth = True
+
     # first calculate an aproximaly t
     d1 = _distance((on2X, on2Y), (off2X, off2Y))
     d2 = d1 + _distance((off3X, off3Y), (on2X, on2Y))
@@ -70,6 +79,8 @@ def joinSegments((on1X, on1Y),
     
     # cut of the extreme t values
     error = .15
+    if smooth:
+        error = 0
     if t < error:
         t = error
     elif t > 1 - error:
