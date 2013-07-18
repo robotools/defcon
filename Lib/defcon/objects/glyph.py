@@ -204,7 +204,7 @@ class Glyph(BaseObject):
     bounds = property(_get_bounds, doc="The bounds of the glyph's outline expressed as a tuple of form (xMin, yMin, xMax, yMax).")
 
     def _get_controlPointBounds(self):
-        from fontTools.pens.boundsPen import ControlBoundsPen
+        from robofab.pens.boundsPen import ControlBoundsPen
         if self._controlPointBoundsCache is None:
             pen = ControlBoundsPen(self.getParent())
             self.draw(pen)
