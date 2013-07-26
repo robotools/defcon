@@ -328,7 +328,10 @@ class Component(BaseObject):
             baseGlyph = self.baseGlyph
             if baseGlyph is None:
                 return
-            baseGlyph = layer[baseGlyph]
+            if baseGlyph in layer:
+                baseGlyph = layer[baseGlyph]
+            else:
+                return
         if not baseGlyph.hasObserver(self, "Glyph.NameChanged"):
             return
         baseGlyph.removeObserver(self, "Glyph.NameChanged")
