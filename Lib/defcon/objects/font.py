@@ -360,24 +360,30 @@ class Font(BaseObject):
         kerning = reader.readKerning()
         groups = reader.readGroups()
         # validate
-        if not kerningValidator(kerning, groups):
-            raise DefconError("The kerning data is not valid.")
-        ## store groups
+        kerningValidity, kerningErrors = kerningValidator(kerning, groups)
+        # instantiate everything and store it if valid
         self._groups = self.instantiateGroups()
         self.beginSelfGroupsNotificationObservation()
-        self._groups.disableNotifications()
-        self._groups.update(groups)
-        self._groups.dirty = False
-        self._groups.enableNotifications()
-        self._stampGroupsDataState(reader)
-        # store kerning
         self._kerning = self.instantiateKerning()
         self.beginSelfKerningNotificationObservation()
-        self._kerning.disableNotifications()
-        self._kerning.update(kerning)
-        self._kerning.dirty = False
-        self._kerning.enableNotifications()
-        self._stampKerningDataState(reader)
+        if kerningValidity:
+            ## store groups
+            self._groups.disableNotifications()
+            self._groups.update(groups)
+            self._groups.dirty = False
+            self._groups.enableNotifications()
+            self._stampGroupsDataState(reader)
+            ## store kerning
+            self._kerning.disableNotifications()
+            self._kerning.update(kerning)
+            self._kerning.dirty = False
+            self._kerning.enableNotifications()
+            self._stampKerningDataState(reader)
+        # report the validity
+        if not kerningValidity:
+            error = DefconError("The kerning data is not valid.")
+            error.report = "\n".join(kerningErrors)
+            raise error
 
     def instantiateKerning(self):
         kerning = self._kerningClass(
@@ -663,8 +669,11 @@ class Font(BaseObject):
             assert "public.default" not in self.layers.layerOrder
         # validate kerning and groups before doing anything destructive
         if self._kerning is not None and self._groups is not None:
-            if not kerningValidator(self._kerning, self._groups):
-                raise DefconError("The kerning data is not valid.")
+            kerningValidity, kerningErrors = kerningValidator(self._kerning, self._groups)
+            if not kerningValidity:
+                error = DefconError("The kerning data is not valid.")
+                error.report = "\n".join(kerningErrors)
+                raise error
         ## work out the format version
         # if None is given, fallback to the one that
         # came in when the UFO was loaded
@@ -1113,8 +1122,11 @@ class Font(BaseObject):
             reader = UFOReader(self._path)
             kerning = reader.readKerning()
             if self._groups is not None:
-                if not kerningValidator(kerning, self._groups):
-                    raise DefconError("The kerning data is not valid.")
+                kerningValidity, kerningErrors = kerningValidator(self._kerning, self._groups)
+                if not kerningValidity:
+                    error = DefconError("The kerning data is not valid.")
+                    error.report = "\n".join(kerningErrors)
+                    raise error
             self._kerning.clear()
             self._kerning.update(kerning)
             self._stampKerningDataState(reader)
