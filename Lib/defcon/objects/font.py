@@ -118,6 +118,8 @@ class Font(BaseObject):
         self._groups = None
         self._features = None
         self._lib = None
+        self._kerningGroupConversionRenameMaps = None
+
 
         self._layers = self.instantiateLayerSet()
         self.beginSelfLayerSetNotificationObservation()
@@ -155,6 +157,7 @@ class Font(BaseObject):
             # that could create a data corruption within this object.
             if self._ufoFormatVersion < 3:
                 self._reader = reader
+                self._kerningGroupConversionRenameMaps = reader.getKerningGroupConversionRenameMaps()
                 k = self.kerning
                 g = self.groups
 
@@ -249,6 +252,14 @@ class Font(BaseObject):
         return self._ufoFormatVersion
 
     ufoFormatVersion = property(_get_ufoFormatVersion, doc="The UFO format version that will be used when saving. This is taken from a loaded UFO during __init__. If this font was not loaded from a UFO, this will return None until the font has been saved.")
+
+    def _get_kerningGroupConversionRenameMaps(self):
+        return self._kerningGroupConversionRenameMaps
+
+    def _set_kerningGroupConversionRenameMaps(self, value):
+        self._kerningGroupConversionRenameMaps = value
+
+    kerningGroupConversionRenameMaps = property(_get_kerningGroupConversionRenameMaps, _set_kerningGroupConversionRenameMaps, doc="The kerning group rename map that will be used when writing UFO 1 and UFO 2. This follows the format defined in UFOReader. This will only not be None if it has been set or this object was loaded from a UFO 1 or UFO 2 file.")
 
     def _get_glyphsWithOutlines(self):
         return self._glyphSet.glyphsWithOutlines
@@ -699,6 +710,9 @@ class Font(BaseObject):
                 self.lib.dirty = True
                 if formatVersion > 1:
                     self.features.dirty = True
+            # set the kerning group remap if necessary
+            if formatVersion < 3 and self._kerningGroupConversionRenameMaps is not None:
+                writer.setKerningGroupConversionRenameMaps(self._kerningGroupConversionRenameMaps)
             # save the objects
             self._saveInfo(writer=writer, saveAs=saveAs, progressBar=progressBar)
             self._saveGroups(writer=writer, saveAs=saveAs, progressBar=progressBar)
