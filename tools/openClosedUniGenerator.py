@@ -27,4 +27,4 @@ for line in text.splitlines():
                 result.append("")
                 openValue = None
 
-print "\n".join(result)
+print("\n".join(result))

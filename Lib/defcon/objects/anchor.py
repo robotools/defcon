@@ -49,12 +49,13 @@ class Anchor(BaseObject):
 
     name = property(_get_name, _set_name, doc="The name of the anchor. Setting this will post an *Anchor.Changed* notification.")
 
-    def move(self, (x, y)):
+    def move(self, xxx_todo_changeme):
         """
         Move the anchor by **(x, y)**.
 
         This will post an *Anchor.Changed* notification.
         """
+        (x, y) = xxx_todo_changeme
         self._x += x
         self._y += y
         self.dirty = True

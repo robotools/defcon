@@ -74,19 +74,19 @@ class Glyph(BaseObject):
         self._representations = {}
 
         if contourClass is None:
-            from contour import Contour
+            from .contour import Contour
             contourClass = Contour
         if pointClass is None:
-            from point import Point
+            from .point import Point
             pointClass = Point
         if componentClass is None:
-            from component import Component
+            from .component import Component
             componentClass = Component
         if anchorClass is None:
-            from anchor import Anchor
+            from .anchor import Anchor
             anchorClass = Anchor
         if libClass is None:
-            from lib import Lib
+            from .lib import Lib
             libClass = Lib
 
         self._contourClass = contourClass
@@ -273,7 +273,7 @@ class Glyph(BaseObject):
 
     def _set_note(self, value):
         if value is not None:
-            assert isinstance(value, basestring)
+            assert isinstance(value, str)
         self._note = value
         self.dirty = True
 
@@ -555,13 +555,14 @@ class Glyph(BaseObject):
             self.removeAnchor(anchor)
         self.releaseHeldNotifications()
 
-    def move(self, (x, y)):
+    def move(self, xxx_todo_changeme):
         """
         Move all contours, components and anchors in the glyph
         by **(x, y)**.
 
         This posts a *Glyph.Changed* notification.
         """
+        (x, y) = xxx_todo_changeme
         oldBounds = self._boundsCache
         oldControlPointBounds = self._controlPointBoundsCache
         for contour in self._contours:
@@ -585,11 +586,12 @@ class Glyph(BaseObject):
             yMax += y
             self._controlPointBoundsCache = (xMin, yMin, xMax, yMax)
 
-    def pointInside(self, (x, y), evenOdd=False):
+    def pointInside(self, xxx_todo_changeme1, evenOdd=False):
         """
         Returns a boolean indicating if **(x, y)** is in the
         "black" area of the glyph.
         """
+        (x, y) = xxx_todo_changeme1
         from fontTools.pens.pointInsidePen import PointInsidePen
         pen = PointInsidePen(glyphSet=None, testPoint=(x, y), evenOdd=evenOdd)
         self.draw(pen)
@@ -605,8 +607,8 @@ class Glyph(BaseObject):
         that have been called within this object.
         """
         representations = []
-        for key in self._representations.keys():
-            if isinstance(key, basestring):
+        for key in list(self._representations.keys()):
+            if isinstance(key, str):
                 name = key
                 kwargs = {}
             else:

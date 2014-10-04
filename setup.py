@@ -6,14 +6,14 @@ from distutils.core import setup
 try:
     import fontTools
 except:
-    print "*** Warning: defcon requires FontTools, see:"
-    print "    fonttools.sf.net"
+    print("*** Warning: defcon requires FontTools, see:")
+    print("    fonttools.sf.net")
 
 try:
     import robofab
 except:
-    print "*** Warning: defcon requires RoboFab, see:"
-    print "    robofab.com"
+    print("*** Warning: defcon requires RoboFab, see:")
+    print("    robofab.com")
 
 if "sdist" in sys.argv:
     import os
@@ -39,6 +39,13 @@ setup(name="defcon",
     author_email="tal@typesupply.com",
     url="http://code.typesupply.com",
     license="MIT",
-    packages=["defcon"],
+    packages=[
+        "defcon",
+        "defcon.objects",
+        "defcon.pens",
+        "defcon.test",
+        "defcon.tools",
+        "defcon.tools.booleanOperations",
+    ],
     package_dir={"":"Lib"}
 )

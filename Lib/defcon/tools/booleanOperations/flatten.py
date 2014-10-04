@@ -962,7 +962,7 @@ def _getClockwise(points):
     negative is clockwise.
     """
     # quickly make segments
-    segments = zip(points, points[1:] + [points[0]])
+    segments = list(zip(points, points[1:] + [points[0]]))
     # get the area
     area = sum([x0 * y1 - x1 * y0 for ((x0, y0), (x1, y1)) in segments])
     return area <= 0
@@ -971,12 +971,13 @@ def _getClockwise(points):
 # Misc. Math
 # ----------
 
-def _tValueForPointOnCubicCurve(point, (pt1, pt2, pt3, pt4), isHorizontal=0):
+def _tValueForPointOnCubicCurve(point, xxx_todo_changeme, isHorizontal=0):
     """
     Finds a t value on a curve from a point.
     The points must be originaly be a point on the curve.
     This will only back trace the t value, needed to split the curve in parts
     """
+    (pt1, pt2, pt3, pt4) = xxx_todo_changeme
     a, b, c, d = bezierTools.calcCubicParameters(pt1, pt2, pt3, pt4)
     solutions = bezierTools.solveCubic(a[isHorizontal], b[isHorizontal], c[isHorizontal],
         d[isHorizontal] - point[isHorizontal])
@@ -1005,7 +1006,7 @@ def _tValueForPointOnQuadCurve(point, pts, isHorizontal=0):
         for t in subSolutions:
             solutionsDict[(t, index)] = _getQuadPoint(t, previousOnCurve, pt1, pt2)
         previousOnCurve = pt2
-    solutions = solutionsDict.keys()
+    solutions = list(solutionsDict.keys())
     if not solutions and not isHorizontal:
         return _tValueForPointOnQuadCurve(point, pts, isHorizontal=1)
     if len(solutions) > 1:
@@ -1018,7 +1019,8 @@ def _tValueForPointOnQuadCurve(point, pts, isHorizontal=0):
         solutions = [intersectionLenghts[minDist]]
     return solutions
 
-def _tValueForPointOnLine(point, (pt1, pt2)):
+def _tValueForPointOnLine(point, xxx_todo_changeme1):
+    (pt1, pt2) = xxx_todo_changeme1
     dist = _distance(pt1, point)
     totalDist = _distance(pt1, pt2)
     return [dist / totalDist]
@@ -1075,7 +1077,7 @@ def _flattenSegment(segment, approximateSegmentLength=_approximateSegmentLength)
     # a usable curve
     flat = []
     step = 1.0 / maxSteps
-    factors = range(0, maxSteps + 1)
+    factors = list(range(0, maxSteps + 1))
     for i in factors[1:]:
         pt = _getCubicPoint(i * step, onCurve1, offCurve1, offCurve2, onCurve2)
         flat.append(pt)
@@ -1092,7 +1094,7 @@ def _estimateCubicCurveLength(pt0, pt1, pt2, pt3, precision=5):
     points = []
     length = 0
     step = 1.0 / precision
-    factors = range(0, precision + 1)
+    factors = list(range(0, precision + 1))
     for i in factors:
         points.append(_getCubicPoint(i * step, pt0, pt1, pt2, pt3))
     for i in range(len(points) - 1):
@@ -1101,11 +1103,13 @@ def _estimateCubicCurveLength(pt0, pt1, pt2, pt3, precision=5):
         length += _distance(pta, ptb)
     return length
 
-def _mid((x0, y0), (x1, y1)):
+def _mid(xxx_todo_changeme2, xxx_todo_changeme3):
     """
     (Point, Point) -> Point
     Return the point that lies in between the two input points.
     """
+    (x0, y0) = xxx_todo_changeme2
+    (x1, y1) = xxx_todo_changeme3
     return 0.5 * (x0 + x1), 0.5 * (y0 + y1)
 
 def _getCubicPoint(t, pt0, pt1, pt2, pt3):

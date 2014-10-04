@@ -150,7 +150,7 @@ class NotificationCenter(object):
         for key in registryPossibilities:
             if key not in self._registry:
                 continue
-            for observerRef, methodName in self._registry[key].items():
+            for observerRef, methodName in list(self._registry[key].items()):
                 # observer specific hold/disabled
                 # -------------------------------
                 if self._holds or self._disabled:
@@ -415,7 +415,7 @@ class ObserverDict(dict):
 class _TestObserver(object):
 
     def notificationCallback(self, notification):
-        print notification.name, notification.object.name
+        print(notification.name, notification.object.name)
 
 
 class _TestObservable(object):

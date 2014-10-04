@@ -2,15 +2,15 @@
 Contributed by Frederik Berlaen.
 """
 
-from __future__ import division
+
 from math import sqrt
 
-def _distance((x1, y1), (x2, y2)):
+def _distance(xxx_todo_changeme, xxx_todo_changeme1):
+    (x1, y1) = xxx_todo_changeme
+    (x2, y2) = xxx_todo_changeme1
     return sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
-def joinSegments((on1X, on1Y),
-    (off1X, off1Y), (off2X, off2Y), (on2X, on2Y),
-    (off3X, off3Y), (off4X, off4Y), (on3X, on3Y)):
+def joinSegments(xxx_todo_changeme2, xxx_todo_changeme3, xxx_todo_changeme4, xxx_todo_changeme5, xxx_todo_changeme6, xxx_todo_changeme7, xxx_todo_changeme8):
     """
     >>> joinSegments(
     ...    (0, 0),
@@ -20,6 +20,13 @@ def joinSegments((on1X, on1Y),
     ((0.0, 195.16147160748713), (500.0, 471.16147160748704), (500, 0))
     >>> print "need more tests!"
     """
+    (on1X, on1Y) = xxx_todo_changeme2
+    (off1X, off1Y) = xxx_todo_changeme3
+    (off2X, off2Y) = xxx_todo_changeme4
+    (on2X, on2Y) = xxx_todo_changeme5
+    (off3X, off3Y) = xxx_todo_changeme6
+    (off4X, off4Y) = xxx_todo_changeme7
+    (on3X, on3Y) = xxx_todo_changeme8
     if (on1X, on1Y) == (off1X, off1Y) and (off2X, off2Y) == (on2X, on2Y) == (off3X, off3Y) and  (off4X, off4Y) == (on3X, on3Y):
         ## a two line segments
         return (on1X, on1Y), (off4X, off4Y), (on3X, on3Y)
