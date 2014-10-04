@@ -28,7 +28,7 @@ class ClockwiseTestPointPen(AbstractPointPen):
             del points[-1]
         angles = []
         pointCount = len(points)
-        for index1 in xrange(pointCount):
+        for index1 in range(pointCount):
             index2 = (index1 + 1) % pointCount
             x1, y1 = points[index1]
             x2, y2 = points[index2]
@@ -36,7 +36,7 @@ class ClockwiseTestPointPen(AbstractPointPen):
         total = 0
         pi = math.pi
         pi2 = pi * 2
-        for index1 in xrange(pointCount):
+        for index1 in range(pointCount):
             index2 = (index1 + 1) % pointCount
             d = ((angles[index2] - angles[index1] + pi) % pi2) - pi
             total += d

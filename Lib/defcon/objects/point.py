@@ -6,7 +6,8 @@ class Point(object):
 
     __slots__ = ["_x", "_y", "_segmentType", "_smooth", "_name"]
 
-    def __init__(self, (x, y), segmentType=None, smooth=False, name=None):
+    def __init__(self, xxx_todo_changeme, segmentType=None, smooth=False, name=None):
+        (x, y) = xxx_todo_changeme
         self._x = x
         self._y = y
         self._segmentType = segmentType
@@ -56,10 +57,11 @@ class Point(object):
 
     name = property(_get_name, _set_name, doc="An arbitrary name for the point.")
 
-    def move(self, (x, y)):
+    def move(self, xxx_todo_changeme1):
         """
         Move the component by **(x, y)**.
         """
+        (x, y) = xxx_todo_changeme1
         self.x += x
         self.y += y
 

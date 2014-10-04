@@ -208,8 +208,10 @@ class Font(BaseObject):
         return glyph
 
     def _loadGlyph(self, name):
-        if self._glyphSet is None or not self._glyphSet.has_key(name):
-            raise KeyError, '%s not in font' % name
+        if self._glyphSet is None or name not in self._glyphSet:
+            for name in self._glyphSet:
+                print(name)
+            raise KeyError('%s not in font' % name)
         glyph = self._instantiateGlyphObject()
         pointPen = glyph.getPointPen()
         self._glyphSet.readGlyph(glyphName=name, glyphObject=glyph, pointPen=pointPen)
@@ -271,7 +273,7 @@ class Font(BaseObject):
         return dest
 
     def __iter__(self):
-        names = self.keys()
+        names = list(self.keys())
         while names:
             name = names[0]
             yield self[name]
@@ -284,7 +286,7 @@ class Font(BaseObject):
 
     def __delitem__(self, name):
         if name not in self:
-            raise KeyError, '%s not in font' % name
+            raise KeyError('%s not in font' % name)
         self._unicodeData.removeGlyphData(name, self[name].unicodes)
         if name in self._glyphs:
             del self._glyphs[name]
@@ -295,7 +297,7 @@ class Font(BaseObject):
         self.dirty = True
 
     def __len__(self):
-        return len(self.keys())
+        return len(list(self.keys()))
 
     def __contains__(self, name):
         return name in self._keys
@@ -339,14 +341,14 @@ class Font(BaseObject):
     def _get_glyphsWithOutlines(self):
         found = []
         # scan loaded glyphs
-        for glyphName, glyph in self._glyphs.items():
+        for glyphName, glyph in list(self._glyphs.items()):
             if glyphName in self._scheduledForDeletion:
                 continue
             if len(glyph):
                 found.append(glyphName)
         # scan glyphs that have not been loaded
         glyphsPath = os.path.join(self.path, "glyphs")
-        for glyphName, fileName in self._glyphSet.contents.items():
+        for glyphName, fileName in list(self._glyphSet.contents.items()):
             if glyphName in self._glyphs or glyphName in self._scheduledForDeletion:
                 continue
             glyphPath = os.path.join(glyphsPath, fileName)
@@ -372,7 +374,7 @@ class Font(BaseObject):
     def _get_componentReferences(self):
         found = {}
         # scan loaded glyphs
-        for glyphName, glyph in self._glyphs.items():
+        for glyphName, glyph in list(self._glyphs.items()):
             if glyphName in self._scheduledForDeletion:
                 continue
             if not glyph.components:
@@ -385,7 +387,7 @@ class Font(BaseObject):
         # scan glyphs that have not been loaded
         if self.path is not None:
             glyphsPath = os.path.join(self.path, "glyphs")
-            for glyphName, fileName in self._glyphSet.contents.items():
+            for glyphName, fileName in list(self._glyphSet.contents.items()):
                 if glyphName in self._glyphs or glyphName in self._scheduledForDeletion:
                     continue
                 glyphPath = os.path.join(glyphsPath, fileName)
@@ -421,7 +423,7 @@ class Font(BaseObject):
         glyphRects = {}
         componentReferences = {}
         # scan loaded glyphs
-        for glyphName, glyph in self._glyphs.items():
+        for glyphName, glyph in list(self._glyphs.items()):
             if glyphName in self._scheduledForDeletion:
                 continue
             glyphRect = glyph.controlPointBounds
@@ -430,7 +432,7 @@ class Font(BaseObject):
         # scan glyphs that have not been loaded
         if self.path is not None:
             glyphsPath = os.path.join(self.path, "glyphs")
-            for glyphName, fileName in self._glyphSet.contents.items():
+            for glyphName, fileName in list(self._glyphSet.contents.items()):
                 if glyphName in self._glyphs or glyphName in self._scheduledForDeletion:
                     continue
                 # get the GLIF text
@@ -507,7 +509,7 @@ class Font(BaseObject):
                         componentReferences[glyphName] = []
                     componentReferences[glyphName].append((base, xScale, xyScale, yxScale, yScale, xOffset, yOffset))
         # get the transformed component bounding boxes and update the glyphs
-        for glyphName, components in componentReferences.items():
+        for glyphName, components in list(componentReferences.items()):
             glyphRect = glyphRects.get(glyphName, (None, None, None, None))
             # XXX this doesn't handle nested components
             for base, xScale, xyScale, yxScale, yScale, xOffset, yOffset in components:
@@ -532,7 +534,7 @@ class Font(BaseObject):
             glyphRects[glyphName] = glyphRect
         # work out the unified rect
         fontRect = None
-        for glyphRect in glyphRects.values():
+        for glyphRect in list(glyphRects.values()):
             if fontRect is None:
                 fontRect = glyphRect
             elif glyphRect is not None:
@@ -725,7 +727,7 @@ class Font(BaseObject):
             for glyph in self:
                 glyph.dirty = True
         glyphSet = ufoWriter.getGlyphSet()
-        for glyphName, glyphObject in self._glyphs.items():
+        for glyphName, glyphObject in list(self._glyphs.items()):
             if glyphObject.dirty:
                 glyphSet.writeGlyph(glyphName, glyphObject, glyphObject.drawPoints)
                 self._stampGlyphDataState(glyphObject)
@@ -927,7 +929,7 @@ class Font(BaseObject):
         deletedGlyphs = list(self._keys - set(self._glyphSet.keys()))
         # glyphs modified since loading
         modifiedGlyphs = []
-        for glyphName, glyph in self._glyphs.items():
+        for glyphName, glyph in list(self._glyphs.items()):
             # deleted glyph. skip.
             if glyphName not in glyphSet.contents:
                 continue
@@ -1088,7 +1090,7 @@ class Font(BaseObject):
         if splitFeatures is not None:
             order = self.lib.get("org.robofab.opentype.featureorder")
             if order is None:
-                order = splitFeatures.keys()
+                order = list(splitFeatures.keys())
                 order.sort()
             else:
                 del self.lib["org.robofab.opentype.featureorder"]
@@ -1175,7 +1177,7 @@ class Font(BaseObject):
                         finalValues.append([])
                     finalValues[-1].append(value)
                 hintData[libKey] = finalValues
-        for key, value in hintData.items():
+        for key, value in list(hintData.items()):
             if value is None:
                 del hintData[key]
         libCopy["org.robofab.postScriptHintData"] = hintData

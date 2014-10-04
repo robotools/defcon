@@ -42,7 +42,7 @@ class Contour(BaseObject):
         self._controlPointBoundsCache = None
         self._clockwiseCache = None
         if pointClass is None:
-            from point import Point
+            from .point import Point
             pointClass = Point
         self._pointClass = pointClass
 
@@ -184,12 +184,13 @@ class Contour(BaseObject):
         # post a notification
         self.dirty = True
 
-    def move(self, (x, y)):
+    def move(self, xxx_todo_changeme):
         """
         Move all points in the contour by **(x, y)**.
 
         This posts a *Contour.Changed* notification.
         """
+        (x, y) = xxx_todo_changeme
         for point in self._points:
             point.move((x, y))
         # update the bounds cache
@@ -209,11 +210,12 @@ class Contour(BaseObject):
             self._controlPointBoundsCache = (xMin, yMin, xMax, yMax)
         self.dirty = True
 
-    def pointInside(self, (x, y), evenOdd=False):
+    def pointInside(self, xxx_todo_changeme1, evenOdd=False):
         """
         Returns a boolean indicating if **(x, y)** is in the
         "black" area of the contour.
         """
+        (x, y) = xxx_todo_changeme1
         from fontTools.pens.pointInsidePen import PointInsidePen
         pen = PointInsidePen(glyphSet=None, testPoint=(x, y), evenOdd=evenOdd)
         self.draw(pen)
@@ -402,11 +404,12 @@ class Contour(BaseObject):
         """
         pass
 
-    def addPoint(self, (x, y), segmentType=None, smooth=False, name=None):
+    def addPoint(self, xxx_todo_changeme2, segmentType=None, smooth=False, name=None):
         """
         Standard point pen *addPoint* method.
         This should not be used externally.
         """
+        (x, y) = xxx_todo_changeme2
         point = self._pointClass((x, y), segmentType=segmentType, smooth=smooth, name=name)
         self._addPoint(point)
 

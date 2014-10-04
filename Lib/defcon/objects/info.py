@@ -1968,12 +1968,12 @@ class Info(BaseObject):
 
     def getDataToSerializeForUndo(self):
         data = dict.fromkeys(ufoLib.fontInfoAttributesVersion2)
-        for attr in data.keys():
+        for attr in list(data.keys()):
             data[attr] = getattr(self, attr)
         return data
 
     def loadDeserializedDataFromUndo(self, data):
-        for attr, value in data.items():
+        for attr, value in list(data.items()):
             if getattr(self, attr) == value:
                 continue
             setattr(self, attr, value)

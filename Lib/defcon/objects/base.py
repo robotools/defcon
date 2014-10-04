@@ -306,7 +306,7 @@ class BaseObject(object):
     # serialization
 
     def serializeForUndo(self, pack=True):
-        from cPickle import dumps
+        from pickle import dumps
         import zlib
         # make the data dict
         data = dict(
@@ -329,7 +329,7 @@ class BaseObject(object):
     # deserealization
 
     def deserializeFromUndo(self, data):
-        from cPickle import loads
+        from pickle import loads
         import zlib
         packed = data["packed"]
         data = data["data"]
@@ -410,13 +410,13 @@ class BaseDictObject(BaseObject):
         self.dirty = True
 
     def keys(self):
-        return self._dict.keys()
+        return list(self._dict.keys())
 
     def values(self):
-        return self._dict.values()
+        return list(self._dict.values())
 
     def items(self):
-        return self._dict.items()
+        return list(self._dict.items())
 
     # ----
     # Undo
