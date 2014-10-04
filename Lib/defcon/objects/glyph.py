@@ -97,9 +97,6 @@ class Glyph(BaseObject):
         self._lib = libClass()
         self._lib.setParent(self)
 
-    def __del__(self):
-        self.destroyAllRepresentations()
-
     def _set_dispatcher(self, dispatcher):
         super(Glyph, self)._set_dispatcher(dispatcher)
         if dispatcher is not None:
