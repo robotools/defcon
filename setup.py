@@ -39,6 +39,13 @@ setup(name="defcon",
     author_email="tal@typesupply.com",
     url="http://code.typesupply.com",
     license="MIT",
-    packages=["defcon"],
+    packages=[
+        "defcon",
+        "defcon.objects",
+        "defcon.pens",
+        "defcon.test",
+        "defcon.tools",
+        "defcon.tools.booleanOperations",
+    ],
     package_dir={"":"Lib"}
 )
