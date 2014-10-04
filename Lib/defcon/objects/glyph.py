@@ -227,7 +227,7 @@ class Glyph(BaseObject):
             existing.insert(0, value)
             self.unicodes = existing
 
-    str = property(_get_unicode, _set_unicode, doc="The primary unicode value for the glyph. This is the equivalent of ``glyph.unicodes[0]``. This is a convenience attribute that works with the ``unicodes`` attribute.")
+    unicode = property(_get_unicode, _set_unicode, doc="The primary unicode value for the glyph. This is the equivalent of ``glyph.unicodes[0]``. This is a convenience attribute that works with the ``unicodes`` attribute.")
 
     # -------
     # Metrics

@@ -530,7 +530,7 @@ class UnicodeData(BaseDictObject):
         typeToMethod = dict(
             # simple
             alphabetical=self._sortByAlphabet,
-            str=self._sortByUnicode,
+            unicode=self._sortByUnicode,
             category=self._sortByCategory,
             block=self._sortByBlock,
             script=self._sortByScript,
