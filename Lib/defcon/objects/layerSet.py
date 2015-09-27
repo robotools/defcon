@@ -456,7 +456,7 @@ class _StaticLayerInfoMaker(object):
         self.color = None
 
     def pack(self):
-        from plistlib import writePlistToString
+        from ufoLib.plistlib import writePlistToString
         data = {}
         if self.lib:
             data["lib"] = self.lib
