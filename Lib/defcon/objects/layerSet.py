@@ -92,7 +92,7 @@ class LayerSet(BaseObject):
 
     def _get_defaultLayerName(self):
         defaultLayer = self.defaultLayer
-        for name, layer in self._layers.items():
+        for name, layer in list(self._layers.items()):
             if layer == defaultLayer:
                 return name
 
@@ -328,7 +328,7 @@ class LayerSet(BaseObject):
     def endSelfNotificationObservation(self):
         if self.dispatcher is None:
             return
-        for layer in self._layers.values():
+        for layer in list(self._layers.values()):
             self.endSelfLayerNotificationObservation(layer)
         super(LayerSet, self).endSelfNotificationObservation()
         self._font = None
@@ -419,7 +419,7 @@ class LayerSet(BaseObject):
         reader = UFOReader(self.font.path)
         # handle the layers
         currentLayerOrder = self.layerOrder
-        for layerName, l in layerData.get("layers", {}).items():
+        for layerName, l in list(layerData.get("layers", {}).items()):
             # new layer
             if layerName not in currentLayerOrder:
                 glyphSet = reader.getGlyphSet(layerName)

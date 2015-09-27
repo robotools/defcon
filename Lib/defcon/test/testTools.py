@@ -27,4 +27,4 @@ def tearDownTestFontCopy(testFontPath=None):
 class NotificationTestObject(object):
     
     def testCallback(self, notification):
-        print notification.name, notification.data
+        print(notification.name, notification.data)

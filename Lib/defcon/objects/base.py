@@ -271,7 +271,7 @@ class BaseObject(object):
 
     def _destroyRepresentationsForNotification(self, notification):
         notificationName = notification.name
-        for name, dataDict in self.representationFactories.items():
+        for name, dataDict in list(self.representationFactories.items()):
             if notificationName in dataDict["destructiveNotifications"]:
                 self.destroyRepresentation(name)
 
@@ -281,8 +281,8 @@ class BaseObject(object):
         currently cached.
         """
         representations = []
-        for name, subDict in self._representations.items():
-            for subKey in subDict.keys():
+        for name, subDict in list(self._representations.items()):
+            for subKey in list(subDict.keys()):
                 kwargs = {}
                 if subKey is not None:
                     for k, v in subKey:
@@ -378,7 +378,7 @@ class BaseDictObject(dict, BaseObject):
     def __deepcopy__(self, memo={}):
         import copy
         obj = self.__class__()
-        for k, v in self.items():
+        for k, v in list(self.items()):
             k = copy.deepcopy(k)
             v = copy.deepcopy(v)
             obj[k] = v

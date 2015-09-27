@@ -1,5 +1,5 @@
 from fontTools.pens.basePen import BasePen
-from flatten import InputContour, OutputContour
+from .flatten import InputContour, OutputContour
 from pyClipper import PolyClipper # XXX this isn't the real thing
 
 

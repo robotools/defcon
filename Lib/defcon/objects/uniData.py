@@ -165,7 +165,7 @@ class UnicodeData(BaseDictObject):
 
         This should never be called directly.
         """
-        for value, glyphList in other.items():
+        for value, glyphList in list(other.items()):
             for glyphName in glyphList:
                 if glyphName in self._glyphNameToForcedUnicode:
                     forcedValue = self._glyphNameToForcedUnicode[glyphName]
@@ -179,7 +179,7 @@ class UnicodeData(BaseDictObject):
     # -------
 
     def _setupForcedValueDict(self):
-        for value, glyphList in self.values():
+        for value, glyphList in list(self.values()):
             if not glyphList:
                 glyphName = None
             else:
@@ -199,7 +199,7 @@ class UnicodeData(BaseDictObject):
         if self.unicodeForGlyphName(glyphName) is not None:
             return
         # start at the highest point, falling back to the bottom of the PUA
-        startPoint = max(self._forcedUnicodeToGlyphName.keys() + [_privateUse1Min])
+        startPoint = max(list(self._forcedUnicodeToGlyphName.keys()) + [_privateUse1Min])
         # find the value and store it
         value = _findAvailablePUACode(self._forcedUnicodeToGlyphName)
         self._forcedUnicodeToGlyphName[value] = glyphName
@@ -530,7 +530,7 @@ class UnicodeData(BaseDictObject):
         typeToMethod = dict(
             # simple
             alphabetical=self._sortByAlphabet,
-            unicode=self._sortByUnicode,
+            str=self._sortByUnicode,
             category=self._sortByCategory,
             block=self._sortByBlock,
             script=self._sortByScript,
@@ -576,7 +576,7 @@ class UnicodeData(BaseDictObject):
     def _sortRecurse(self, blocks, sortMethod, ascending, allowPseudoUnicode, function):
         if not blocks:
             return []
-        if not isinstance(list(blocks)[0], basestring):
+        if not isinstance(list(blocks)[0], str):
             sortedBlocks = []
             for block in blocks:
                 block = self._sortRecurse(block, sortMethod, ascending, allowPseudoUnicode, function)
@@ -704,7 +704,7 @@ class UnicodeData(BaseDictObject):
             # the base could be in the list more than once.
             # if so, add the proper number of instances of the base.
             count = noBase.count(base)
-            r = [base for i in xrange(count)]
+            r = [base for i in range(count)]
             # add the referencing glyphs
             r += baseToGlyphNames.get(base, [])
             sortedResult.append(r)
@@ -772,7 +772,7 @@ class UnicodeData(BaseDictObject):
             magnets[toMatch] = [toMatchOriginal] + matches
         # make a flat mapping of suffix : magnet
         suffixToMagnet = {}
-        for magnet, suffixes in magnets.items():
+        for magnet, suffixes in list(magnets.items()):
             for suffix in suffixes:
                 suffixToMagnet[suffix] = magnet
         # gather data about the suffixes
@@ -803,7 +803,7 @@ class UnicodeData(BaseDictObject):
                 suffixData["space"] = True
         # rank the suffixes
         sorter = []
-        for suffix, suffixData in suffixMap.items():
+        for suffix, suffixData in list(suffixMap.items()):
             sortable = (
                 suffixData["letter"],
                 suffixData["number"],
@@ -965,7 +965,7 @@ class UnicodeData(BaseDictObject):
                     suffixes[suffix] = []
                 suffixes[suffix].append(glyphName)
             # wor through the suffixes
-            for matched in suffixes.values():
+            for matched in list(suffixes.values()):
                 # remove matched[1:] them after matched[0]
                 if len(matched) > 1:
                     for glyphName in matched[1:]:

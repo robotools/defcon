@@ -198,7 +198,7 @@ class Font(BaseObject):
         return self._glyphSet.insertGlyph(glyph, name=name)
 
     def __iter__(self):
-        names = self._glyphSet.keys()
+        names = list(self._glyphSet.keys())
         while names:
             name = names[0]
             yield self._glyphSet[name]
@@ -217,7 +217,7 @@ class Font(BaseObject):
         return name in self._glyphSet
 
     def keys(self):
-        return self._glyphSet.keys()
+        return list(self._glyphSet.keys())
 
     # ------
     # Layers
@@ -1261,7 +1261,7 @@ class Font(BaseObject):
         if splitFeatures is not None:
             order = self.lib.get("org.robofab.opentype.featureorder")
             if order is None:
-                order = splitFeatures.keys()
+                order = list(splitFeatures.keys())
                 order.sort()
             else:
                 del self.lib["org.robofab.opentype.featureorder"]
@@ -1348,7 +1348,7 @@ class Font(BaseObject):
                         finalValues.append([])
                     finalValues[-1].append(value)
                 hintData[libKey] = finalValues
-        for key, value in hintData.items():
+        for key, value in list(hintData.items()):
             if value is None:
                 del hintData[key]
         libCopy["org.robofab.postScriptHintData"] = hintData
