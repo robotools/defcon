@@ -570,12 +570,12 @@ class Contour(BaseObject):
     # Pen methods
     # -----------
 
-    def beginPath(self):
+    def beginPath(self, identifier=None):
         """
         Standard point pen *beginPath* method.
         This should not be used externally.
         """
-        pass
+        self.identifier = identifier
 
     def endPath(self):
         """
