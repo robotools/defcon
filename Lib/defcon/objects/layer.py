@@ -159,7 +159,7 @@ class Layer(BaseObject):
     def loadGlyph(self, name):
         """
         Load a glyph from the glyph set. This should not be called
-        externally, but subclasses may overrode it for custom behavior.
+        externally, but subclasses may override it for custom behavior.
         """
         if self._glyphSet is None or name not in self._glyphSet:
             raise KeyError("%s not in layer" % name)
@@ -211,7 +211,6 @@ class Layer(BaseObject):
         # it is crucially important that the data be reconstructed
         # in its entirety so that the parent data is properly set
         # in all of the various objects.
-        from copy import deepcopy
         source = glyph
         if name is None:
             name = source.name
@@ -562,7 +561,7 @@ class Layer(BaseObject):
                             cmap[code] = [glyphName]
 
             self._unicodeData = self.instantiateUnicodeData()
-            self._unicodeData.disableNotifications()        
+            self._unicodeData.disableNotifications()
             self._unicodeData.update(cmap)
             self._unicodeData.enableNotifications()
             self.beginSelfUnicodeDataNotificationObservation()
