@@ -327,15 +327,17 @@ class BaseObject(object):
     # Serialization/Deserialization
     # -----------------------------
 
-    def serialize(self):
-        data = self.getDataForSerialization()
-        return pickle.dumps(data)
+    def serialize(self, dumpFunc=None, whitelist=None, blacklist=None):
+        data = self.getDataForSerialization(whitelist=whitelist, blacklist=blacklist)
 
-    def deserialize(self, data):
-        data = pickle.loads(data)
-        self.setDataFromSerialization(data)
+        dump = dumpFunc if dumpFunc is not None else pickle.dumps
+        return dump(data)
 
-    def getDataForSerialization(self):
+    def deserialize(self, data, loadFunc=None):
+        load = loadFunc if loadFunc is not None else pickle.loads
+        self.setDataFromSerialization(load(data))
+
+    def getDataForSerialization(self, **kwargs):
         """
         Return a dict of data that can be pickled.
         """
@@ -346,6 +348,32 @@ class BaseObject(object):
         Restore state from the provided data-dict.
         """
         pass
+
+    def _serialize(self, getters, whitelist=None, blacklist=None, **kwargs):
+        """ A helper function for the defcon objects.
+
+        Return a dict where the keys are the keys in getters and the values
+        are the results of the getter functions
+
+        getters is a list of tuples:
+        [
+            (:str:key, :callable:getter_function)
+        ]
+
+        if a whitelist is not None: the key must be in whitelist
+        if a blacklist is not None: the key must not be in blacklist
+        """
+        data = {}
+        for key, getter in getters:
+            if whitelist is not None and key not in whitelist:
+                continue
+            if blacklist is not None and key in blacklist:
+                continue
+            data[key] = getter(key)
+        return data
+
+
+
 
 class BaseDictObject(dict, BaseObject):
 
@@ -425,14 +453,17 @@ class BaseDictObject(dict, BaseObject):
     # Serialization/Deserialization
     # -----------------------------
 
-    def getDataForSerialization(self):
+    def getDataForSerialization(self, **kwargs):
         from copy import deepcopy
-        data = {}
-        for k, v in list(self.items()):
-            k = deepcopy(k)
-            v = deepcopy(v)
-            data[k] = v
-        return data
+
+        deep_get = lambda k: deepcopy(self[k])
+
+        getters = []
+        for k in list(self.keys()):
+            k = deepcopy(k) # needed?
+            getters.append((k, deep_get))
+
+        return self._serialize(getters, **kwargs)
 
     def setDataFromSerialization(self, data):
         self.clear()

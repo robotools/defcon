@@ -1173,7 +1173,7 @@ class Glyph(BaseObject):
     # -----------------------------
 
 
-    def getDataForSerialization(self):
+    def getDataForSerialization(self, **kwargs):
         from functools import partial
 
         simple_get = partial(getattr, self)
@@ -1199,7 +1199,7 @@ class Glyph(BaseObject):
         else:
             getters.append( ('_contours', serialized_list_get) )
 
-        return {key: getter(key) for key, getter in getters}
+        return self._serialize(getters, **kwargs)
 
     def setDataFromSerialization(self, data):
         from functools import partial, wraps

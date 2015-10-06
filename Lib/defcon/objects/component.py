@@ -390,7 +390,7 @@ class Component(BaseObject):
     # Serialization/Deserialization
     # -----------------------------
 
-    def getDataForSerialization(self):
+    def getDataForSerialization(self, **kwargs):
         from functools import partial
 
         simple_set = partial(getattr, self)
@@ -399,7 +399,8 @@ class Component(BaseObject):
             ('transformation', simple_get),
             ('identifier', simple_get)
         )
-        return {key: getter(key) for key, getter in getters}
+
+        return self._serialize(getters, **kwargs)
 
     def setDataFromSerialization(self, data):
         from functools import partial

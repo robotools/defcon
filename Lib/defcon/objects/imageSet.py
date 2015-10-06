@@ -307,11 +307,14 @@ class ImageSet(BaseObject):
     # Serialization/Deserialization
     # -----------------------------
 
-    def getDataForSerialization(self):
-        data = {}
+    def getDataForSerialization(self, **kwargs):
+        simple_get = lambda key: getattr(self, key)
+
+        getters = []
         for k in self.fileNames:
-            data[k] = self[k]
-        return data
+            getters.append((k, simple_get))
+
+        return self._serialize(getters, **kwargs)
 
     def setDataFromSerialization(self, data):
         self._data = {}

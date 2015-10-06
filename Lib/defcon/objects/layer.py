@@ -755,7 +755,7 @@ class Layer(BaseObject):
     # Serialization/Deserialization
     # -----------------------------
 
-    def getDataForSerialization(self):
+    def getDataForSerialization(self, **kwargs):
         from functools import partial
         simple_get = partial(getattr, self)
         serialize = lambda item: item.getDataForSerialization();
@@ -766,7 +766,8 @@ class Layer(BaseObject):
             ('color', simple_get),
             ('glyphs', lambda _: {name:self[name].getDataForSerialization() for name in self.keys()})
         )
-        return {key: getter(key) for key, getter in getters}
+
+        return self._serialize(getters, **kwargs)
 
     def setDataFromSerialization(self, data):
         from functools import partial

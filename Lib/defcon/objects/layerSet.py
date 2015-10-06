@@ -452,15 +452,20 @@ class LayerSet(BaseObject):
     # Serialization/Deserialization
     # -----------------------------
 
-    def getDataForSerialization(self):
+    def getDataForSerialization(self, **kwargs):
         serialize = lambda item: item.getDataForSerialization();
-        layers = []
-        for name in self.layerOrder:
-            layer = self[name]
-            isDefaultLayer = layer == self.defaultLayer
-            layers.append((name, serialize(layer), isDefaultLayer))
 
-        return dict(layers=layers);
+        def get_layers(k):
+            layers = []
+            for name in self.layerOrder:
+                layer = self[name]
+                isDefaultLayer = layer == self.defaultLayer
+                layers.append((name, serialize(layer), isDefaultLayer))
+            return layers
+
+        getters = [('layers', get_layers)]
+
+        return self._serialize(getters, **kwargs)
 
     def setDataFromSerialization(self, data):
         from functools import partial

@@ -72,8 +72,9 @@ class Features(BaseObject):
     # Serialization/Deserialization
     # -----------------------------
 
-    def getDataForSerialization(self):
-        return dict(text=self.text)
+    def getDataForSerialization(self, **kwargs):
+        getters = [('text', lambda k: getattr(self, k))]
+        return self._serialize(getters, **kwargs)
 
     def setDataFromSerialization(self, data):
         if 'text' in data:

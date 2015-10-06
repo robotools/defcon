@@ -688,12 +688,16 @@ class Contour(BaseObject):
     # Serialization/Deserialization
     # -----------------------------
 
-    def getDataForSerialization(self):
-        data = dict(pen=[]);
-        # store the point pen protocol calls
-        # this will store the identifier and the point data
-        self.drawPoints(Recorder(data['pen']));
-        return data
+    def getDataForSerialization(self, **kwargs):
+        def get_points(key):
+            # store the point pen protocol calls
+            # this will store the identifier and the point data
+            pointData = []
+            self.drawPoints(Recorder(pointData));
+            return pointData;
+
+        getters = [('pen', get_points)]
+        return self._serialize(getters, **kwargs)
 
     def setDataFromSerialization(self, data):
         self.clear()
