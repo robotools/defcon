@@ -386,6 +386,35 @@ class Component(BaseObject):
     def baseGlyphDataChangedNotificationCallback(self, notification):
         self.postNotification("Component.BaseGlyphDataChanged")
 
+    # -----------------------------
+    # Serialization/Deserialization
+    # -----------------------------
+
+    def getDataForSerialization(self):
+        from functools import partial
+
+        simple_set = partial(getattr, self)
+        getters = (
+            ('baseGlyph', simple_get),
+            ('transformation', simple_get),
+            ('identifier', simple_get)
+        )
+        return {key: getter(key) for key, getter in getters}
+
+    def setDataFromSerialization(self, data):
+        from functools import partial
+
+        simple_set = partial(setattr, self)
+        setters = (
+            ('baseGlyph', simple_set),
+            ('transformation', simple_set),
+            ('identifier', simple_set)
+        )
+        for key, setter in setters:
+            if key not in data:
+                continue
+            setter(key, data[key])
+
 
 def _testIdentifier():
     """

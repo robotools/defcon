@@ -343,3 +343,49 @@ class Info(BaseObject):
     def _guidelineChanged(self, notification):
         self.postNotification("Info.GuidelinesChanged")
         self.dirty = True
+
+    # -----------------------------
+    # Serialization/Deserialization
+    # -----------------------------
+
+    def getDataForSerialization(self):
+        from functools import partial
+
+        simple_get = partial(getattr, self)
+        serialize = lambda item: item.getDataForSerialization();
+        serialized_get = lambda key: serialize(simple_get(key))
+        serialized_list_get = lambda key: [serialize(item) for item in simple_get(key)]
+
+        getters = [
+            ('guidelines', serialized_list_get)
+        ]
+        for name in self._properties:
+            if getattr(self, '_' + name) is None:
+                continue;
+            getters.append((name, simple_get))
+
+        return {key: getter(key) for key, getter in getters}
+
+    def setDataFromSerialization(self, data):
+        from functools import partial
+
+        simple_set = partial(setattr, self)
+
+        def set_guidelines(key, data):
+            guides = []
+            for d in data:
+                guide = self.instantiateGuideline()
+                guide.setDataFromSerialization(d)
+                guides.append(guide)
+            simple_set(key, guides)
+
+        setters = [(name, simple_set) for name in self._properties]
+        setters.append(('guidelines', set_guidelines))
+
+        self._identifiers = set()
+        for name, setter in setters:
+            if name not in data:
+                continue
+            setter(name, data[name])
+
+

@@ -684,6 +684,89 @@ class Contour(BaseObject):
         self._layer = None
         self._glyph = None
 
+    # -----------------------------
+    # Serialization/Deserialization
+    # -----------------------------
+
+    def getDataForSerialization(self):
+        data = dict(pen=[]);
+        # store the point pen protocol calls
+        # this will store the identifier and the point data
+        self.drawPoints(Recorder(data['pen']));
+        return data
+
+    def setDataFromSerialization(self, data):
+        self.clear()
+        self.identifier = None;
+        if 'pen' in data:
+            # play back
+            Recorder(data['pen'])._play(self)
+
+
+class Recorder(object):
+    """
+        Records all method calls it receives in a list of tuples in the form of
+        [(:str:command, :list:args, :dict: kwargd)]
+
+        Method calls to be recorded must not start with an underscore.
+
+        This class defines a public method with a private(!) attribute name:
+        "Recorder._play(self, target)" because that way calls to all methods
+        that don't start with underscores can be recorded.
+
+        This is useful to record the commands of both pen protocols
+        and it may become useful for other things as well, like recording
+        undo commands.
+
+        Example Session PointPen:
+
+        data_glyphA = []
+        recorderPointPen = new Recorder(data_glyphA)
+        glyphA.drawPoints(recorderPointPen)
+
+        # The point data of the glyph is now stored within data
+        # we can either replay it immediately or take it away and use it
+        # to replay it later
+
+        stored_data = pickle.dumps(data_glyphA)
+        restored_data_glyphA = pickle.loads(stored_data)
+
+        player = new Recorder(restored_data_glyphA)
+        # The recorder behaves like glyphA.drawPoints
+        player._play(glyphB)
+
+
+        Example Session SegmentPen:
+
+        data_glyphA = []
+        recorderPen = new Recorder(data_glyphA)
+        glyphA.draw(recorderPen)
+
+        # reuse it immediately
+        # The recorder behaves like glyphA.draw
+        recorderPen._play(glyphB)
+    """
+    def __init__(self, data=None):
+        self.__dict__['_data'] = data if data is not None else [];
+
+    def _play(self, target):
+        """ Replay all methof calls this Recorder to target.
+            Public Method(!)
+        """
+        for cmd, args, kwds in self._data:
+            getattr(target, cmd)(*args, **kwds);
+
+    def __setattr__(self, name, value):
+        raise AttributeError('It\'s not allowed to set attributes here.', name)
+
+    def __getattr__(self, name):
+        if name.startswith('_'):
+            raise AttributeError(name)
+        def command(*args, **kwds):
+            self._data.append((name, args, kwds))
+        # cache the method, don't use __setattr__
+        self.__dict__[name] = command
+        return command;
 
 # -----
 # Tests
@@ -802,7 +885,7 @@ def _testOnCurvePoints():
     4
     >>> [(point.x, point.y) for point in contour.onCurvePoints]
     [(0, 0), (700, 0), (700, 700), (0, 700)]
-    
+
     >>> glyph = font['B']
     >>> contour = glyph[0]
     >>> len(contour.onCurvePoints)

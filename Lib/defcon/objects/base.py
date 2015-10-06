@@ -1,6 +1,6 @@
 import weakref
 from defcon.tools.notifications import NotificationCenter
-
+import pickle
 
 class BaseObject(object):
 
@@ -323,6 +323,29 @@ class BaseObject(object):
 
     dirty = property(_get_dirty, _set_dirty, doc="The dirty state of the object. True if the object has been changed. False if not. Setting this to True will cause the base changed notification to be posted. The object will automatically maintain this attribute and update it as you change the object.")
 
+    # -----------------------------
+    # Serialization/Deserialization
+    # -----------------------------
+
+    def serialize(self):
+        data = self.getDataForSerialization()
+        return pickle.dumps(data)
+
+    def deserialize(self, data):
+        data = pickle.loads(data)
+        self.setDataFromSerialization(data)
+
+    def getDataForSerialization(self):
+        """
+        Return a dict of data that can be pickled.
+        """
+        return {}
+
+    def setDataFromSerialization(self, data):
+        """
+        Restore state from the provided data-dict.
+        """
+        pass
 
 class BaseDictObject(dict, BaseObject):
 
@@ -398,6 +421,22 @@ class BaseDictObject(dict, BaseObject):
             self.postNotification(self.updateNotificationName)
         self.dirty = True
 
+    # -----------------------------
+    # Serialization/Deserialization
+    # -----------------------------
+
+    def getDataForSerialization(self):
+        from copy import deepcopy
+        data = {}
+        for k, v in list(self.items()):
+            k = deepcopy(k)
+            v = deepcopy(v)
+            data[k] = v
+        return data
+
+    def setDataFromSerialization(self, data):
+        self.clear()
+        self.update(data)
 
 def _representationTestFactory(obj, **kwargs):
     return repr(tuple(sorted(kwargs.items())))

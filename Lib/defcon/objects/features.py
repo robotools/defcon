@@ -67,3 +67,14 @@ class Features(BaseObject):
     def endSelfNotificationObservation(self):
         super(Features, self).endSelfNotificationObservation()
         self._font = None
+
+    # -----------------------------
+    # Serialization/Deserialization
+    # -----------------------------
+
+    def getDataForSerialization(self):
+        return dict(text=self.text)
+
+    def setDataFromSerialization(self, data):
+        if 'text' in data:
+            self.text = data['text']

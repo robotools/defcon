@@ -38,7 +38,7 @@ class LayerSet(BaseObject):
     changeNotificationName = "LayerSet.Changed"
     representationFactories = {}
 
-    def __init__(self, font=None, layerClass=None, libClass=None, unicodeDataClass=None, 
+    def __init__(self, font=None, layerClass=None, libClass=None, unicodeDataClass=None,
             guidelineClass=None, glyphClass=None,
             glyphContourClass=None, glyphPointClass=None, glyphComponentClass=None, glyphAnchorClass=None,
             glyphImageClass=None):
@@ -448,6 +448,30 @@ class LayerSet(BaseObject):
             newDefaultLayerName = reader.getDefaultLayerName()
             self.defaultLayer = self[newDefaultLayerName]
 
+    # -----------------------------
+    # Serialization/Deserialization
+    # -----------------------------
+
+    def getDataForSerialization(self):
+        serialize = lambda item: item.getDataForSerialization();
+        layers = []
+        for name in self.layerOrder:
+            layer = self[name]
+            isDefaultLayer = layer == self.defaultLayer
+            layers.append((name, serialize(layer), isDefaultLayer))
+
+        return dict(layers=layers);
+
+    def setDataFromSerialization(self, data):
+        from functools import partial
+
+        if 'layers' not in data:
+            return;
+        for name, data, isDefault in data['layers']:
+            layer = self.newLayer(name)
+            layer.setDataFromSerialization(data)
+            if isDefault:
+                self.defaultLayer = layer;
 
 class _StaticLayerInfoMaker(object):
 

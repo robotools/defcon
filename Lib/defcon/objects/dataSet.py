@@ -196,6 +196,23 @@ class DataSet(BaseObject):
         super(DataSet, self).endSelfNotificationObservation()
         self._font = None
 
+    # -----------------------------
+    # Serialization/Deserialization
+    # -----------------------------
+
+    def getDataForSerialization(self):
+        data = {}
+        for k in self.fileNames:
+            data[k] = self[k]
+
+        return data
+
+    def setDataFromSerialization(self, data):
+        self._data = {}
+        self._scheduledForDeletion = {}
+        for k in data:
+            self[k] = data[k]
+
 
 def _dataDict(data=None, dirty=False, onDisk=True, onDiskModTime=None):
     return dict(data=data, dirty=dirty, onDisk=onDisk, onDiskModTime=onDiskModTime)

@@ -211,6 +211,7 @@ class Layer(BaseObject):
         # it is crucially important that the data be reconstructed
         # in its entirety so that the parent data is properly set
         # in all of the various objects.
+        # FIXME: Please Explain!!
         source = glyph
         if name is None:
             name = source.name
@@ -749,6 +750,52 @@ class Layer(BaseObject):
         if self._unicodeData is not None:
             self._unicodeData.removeGlyphData(glyphName, oldValues)
             self._unicodeData.addGlyphData(glyphName, newValues)
+
+    # -----------------------------
+    # Serialization/Deserialization
+    # -----------------------------
+
+    def getDataForSerialization(self):
+        from functools import partial
+        simple_get = partial(getattr, self)
+        serialize = lambda item: item.getDataForSerialization();
+        serialized_get = lambda key: serialize(simple_get(key));
+
+        getters = (
+            ('lib', serialized_get),
+            ('color', simple_get),
+            ('glyphs', lambda _: {name:self[name].getDataForSerialization() for name in self.keys()})
+        )
+        return {key: getter(key) for key, getter in getters}
+
+    def setDataFromSerialization(self, data):
+        from functools import partial
+
+        set_attr = partial(setattr, self) # key, data
+
+        def set_glyph(name, data):
+            glyph = self.instantiateGlyphObject()
+            glyph.setDataFromSerialization(data)
+            # there is a redundancy of of the glyph name. I decide here that
+            # the single source of truth is the dict key of the layer, not
+            # whatever the glyph brings with it.
+            glyph.name = name
+            self._insertGlyph(glyph)
+
+        def set_glyphs(key, glyphs):
+            for name in glyphs:
+                set_glyph(name, glyphs[name])
+
+        setters = (
+            ('lib', set_attr),
+            ('color', set_attr),
+            ('glyphs', set_glyphs)
+        )
+
+        for key, setter in setters:
+            if key not in data:
+                continue
+            setter(key, data[key])
 
 
 # ------------

@@ -1244,7 +1244,7 @@ class Font(BaseObject):
         self.layers.reloadLayers(layerData)
         self.postNotification(notification="Font.ReloadedLayers")
         self.postNotification(notification="Font.ReloadedGlyphs")
-        
+
 
     # -----------------------------
     # UFO Format Version Conversion
@@ -1352,6 +1352,84 @@ class Font(BaseObject):
             if value is None:
                 del hintData[key]
         libCopy["org.robofab.postScriptHintData"] = hintData
+
+    # -----------------------------
+    # Serialization/Deserialization
+    # -----------------------------
+
+    def getDataForSerialization(self):
+        from functools import partial
+
+        simple_get = partial(getattr, self)
+        serialize = lambda item: item.getDataForSerialization();
+        serialized_get = lambda key: serialize(simple_get(key))
+
+        getters = (
+            ('_ufoFormatVersion', simple_get),
+            ('_kerningGroupConversionRenameMaps', simple_get),
+            # _path ? => setting path may change the behavior when deserializing a lot!
+            # also path should be set by the caller, e.g. when saving the font
+            # otherwise, path should be deserialized as the very last item,
+            # because otherwise the font object will try to load a lot data
+            # from disk, when deserializing.
+            ('data', serialized_get),
+            ('features', serialized_get),
+            ('groups', serialized_get),
+            ('images', serialized_get),
+            ('info',  serialized_get),
+            ('kerning', serialized_get),
+            ('layers',  serialized_get),
+            ('lib', serialized_get)
+        )
+        return {key: getter(key) for key, getter in getters}
+
+    def setDataFromSerialization(self, data):
+        from functools import partial
+
+        set_attr = partial(setattr, self) # key, data
+
+        def single_update(key, data):
+            item = getattr(self, key)
+            item.setDataFromSerialization(data)
+
+        def init_set_layers(key, data):
+            self.endSelfLayerSetNotificationObservation()
+            self._layers = self.instantiateLayerSet()
+            self.beginSelfLayerSetNotificationObservation()
+            self._layers.setDataFromSerialization(data)
+
+        def init_set_data(key, data):
+            self.endSelfDataSetNotificationObservation()
+            self._data = self.instantiateDataSet()
+            self.beginSelfDataSetNotificationObservation()
+            self._data.setDataFromSerialization(data)
+
+        def init_set_images(key, data):
+            self.endSelfImageSetNotificationObservation()
+            self._images = self.instantiateImageSet()
+            self.beginSelfImageSetNotificationObservation()
+            self._images.setDataFromSerialization(data)
+
+
+        # TODO: fill the rest of setDataFromSerialization/getDataForSerialization pairs
+        setters = (
+            ('_ufoFormatVersion', set_attr),
+            ('_kerningGroupConversionRenameMaps', set_attr),
+            ('data', init_set_data),
+            ('features', single_update),
+            ('groups', single_update),
+            ('images', init_set_images),
+            ('info', single_update),
+            ('kerning', single_update),
+            ('layers', init_set_layers),
+            ('lib', single_update)
+        )
+
+        for key, setter in setters:
+            if key not in data:
+                continue
+            setter(key, data[key])
+
 
 
 # -----
@@ -1487,7 +1565,7 @@ def _testLen():
     >>> font = Font(getTestFontPath())
     >>> len(font)
     3
-    
+
     >>> font = Font()
     >>> len(font)
     0
@@ -1501,7 +1579,7 @@ def _testContains():
     True
     >>> 'NotInFont' in font
     False
-    
+
     >>> font = Font()
     >>> 'A' in font
     False

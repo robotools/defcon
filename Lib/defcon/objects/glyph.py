@@ -1168,6 +1168,88 @@ class Glyph(BaseObject):
         self.postNotification(notification="Glyph.LibChanged")
         self.dirty = True
 
+    # -----------------------------
+    # Serialization/Deserialization
+    # -----------------------------
+
+
+    def getDataForSerialization(self):
+        from functools import partial
+
+        simple_get = partial(getattr, self)
+        serialize = lambda item: item.getDataForSerialization();
+        serialized_get = lambda key: serialize(simple_get(key))
+        serialized_list_get = lambda key: [serialize(item) for item in simple_get(key)]
+
+        getters = [
+            ('name', simple_get),
+            ('unicodes', simple_get),
+            ('width', simple_get),
+            ('height', simple_get),
+            ('note', simple_get),
+            ('components', serialized_list_get),
+            ('anchors', serialized_list_get),
+            ('guidelines', serialized_list_get),
+            ('image', serialized_get),
+            ('lib', serialized_get)
+        ]
+
+        if self._shallowLoadedContours is not None:
+            getters.append( ('_shallowLoadedContours', simple_get) )
+        else:
+            getters.append( ('_contours', serialized_list_get) )
+
+        return {key: getter(key) for key, getter in getters}
+
+    def setDataFromSerialization(self, data):
+        from functools import partial, wraps
+
+        set_attr = partial(setattr, self) # key, data
+
+        def set_each(setter, drop_key=False):
+
+            _setter = lambda k, v: setter(v) if drop_key else setter
+
+            def wrapper(key, data):
+                for d in data:
+                    _setter(key, d)
+            return wrapper
+
+        def single_init(factory, data):
+            item = factory()
+            item.setDataFromSerialization(data)
+            return item
+
+        def list_init(factory, data):
+            return [single_init(factory, childData) for childData in data]
+
+        def init_set(init, factory, setter):
+            def wrapper(key, data):
+                setter(key, init(factory, data))
+            return wrapper
+
+        # Clear all contours, components, anchors and guidelines from the glyph.
+        self.clear()
+
+        setters = (
+            ('name', set_attr),
+            ('unicodes', set_attr),
+            ('width',  set_attr),
+            ('height',  set_attr),
+            ('note',  set_attr),
+            ('lib',  set_attr),
+            ('_shallowLoadedContours', set_attr),
+            ('_contours', init_set(list_init, self.instantiateContour, set_each(self.appendContour, True))),
+            ('components', init_set(list_init, self._componentClass, set_each(self.appendComponent, True))),
+            ('guidelines', init_set(list_init, self._guidelineClass, set_attr)),
+            ('anchors',init_set(list_init, self._anchorClass, set_attr)),
+            ('image', init_set(single_init, self.instantiateImage, set_attr))
+        )
+
+        for key, setter in setters:
+            if key not in data:
+                continue
+            setter(key, data[key])
 
 # -----
 # Tests
@@ -1774,7 +1856,7 @@ def _testDecomposeComponents():
     >>> font.newGlyph("referenceGlyph2")
     >>> referenceGlyph2 = font["referenceGlyph2"]
     >>> pointPen = referenceGlyph2.getPointPen()
-    >>> pointPen.addComponent("referenceGlyph1", (1, 0, 0, 1, 10, 20)) 
+    >>> pointPen.addComponent("referenceGlyph1", (1, 0, 0, 1, 10, 20))
     >>> referenceGlyph2.decomposeAllComponents()
     >>> len(referenceGlyph2.components)
     0

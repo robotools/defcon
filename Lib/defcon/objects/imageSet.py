@@ -303,6 +303,21 @@ class ImageSet(BaseObject):
         super(ImageSet, self).endSelfNotificationObservation()
         self._font = None
 
+    # -----------------------------
+    # Serialization/Deserialization
+    # -----------------------------
+
+    def getDataForSerialization(self):
+        data = {}
+        for k in self.fileNames:
+            data[k] = self[k]
+        return data
+
+    def setDataFromSerialization(self, data):
+        self._data = {}
+        self._scheduledForDeletion = {}
+        for k in data:
+            self[k] = data[k]
 
 def _imageDict(data=None, dirty=False, digest=None, onDisk=True, onDiskModTime=None):
     return dict(data=data, digest=digest, dirty=dirty, onDisk=onDisk, onDiskModTime=onDiskModTime)
