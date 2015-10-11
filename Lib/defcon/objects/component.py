@@ -393,7 +393,7 @@ class Component(BaseObject):
     def getDataForSerialization(self, **kwargs):
         from functools import partial
 
-        simple_set = partial(getattr, self)
+        simple_get = partial(getattr, self)
         getters = (
             ('baseGlyph', simple_get),
             ('transformation', simple_get),
