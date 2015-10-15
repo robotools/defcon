@@ -305,8 +305,9 @@ class LayerSet(BaseObject):
                 isDefaultLayer = layer == self.defaultLayer
                 glyphSet = writer.getGlyphSet(layerName=layerName, defaultLayer=isDefaultLayer)
                 layer.save(glyphSet, saveAs=saveAs, progressBar=progressBar)
-                if layer.lib or layer.color:
-                    glyphSet.writeLayerInfo(layer)
+                # this prevents us from saving when the color was deleted
+                #if layer.lib or layer.color:
+                glyphSet.writeLayerInfo(layer)
                 self._stampLayerInfoDataState(layer)
                 layer.dirty = False
                 if progressBar is not None:
