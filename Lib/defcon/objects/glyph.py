@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import weakref
 from warnings import warn
 from fontTools.misc import arrayTools

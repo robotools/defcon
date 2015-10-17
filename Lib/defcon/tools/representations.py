@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from fontTools.pens.boundsPen import ControlBoundsPen, BoundsPen
 from fontTools.misc.arrayTools import unionRect
 from defcon.pens.clockwiseTestPointPen import ClockwiseTestPointPen

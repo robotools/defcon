@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import os
 import weakref
 from fontTools.misc.arrayTools import unionRect, calcBounds

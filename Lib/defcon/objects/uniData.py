@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import weakref
 import unicodedata
 from fontTools.agl import AGL2UV
