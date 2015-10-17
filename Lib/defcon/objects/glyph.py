@@ -1555,7 +1555,7 @@ def _testIter():
     >>> font = Font(getTestFontPath())
     >>> glyph = font['A']
     >>> for contour in glyph:
-    ...     print len(contour)
+    ...     len(contour)
     4
     4
     """

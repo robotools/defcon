@@ -1135,17 +1135,17 @@ def _testKeys():
     >>> layer = font.layers["public.default"]
     >>> keys = layer.keys()
     >>> keys.sort()
-    >>> print keys
+    >>> keys
     ['A', 'B', 'C']
     >>> del layer["A"]
     >>> keys = layer.keys()
     >>> keys.sort()
-    >>> print keys
+    >>> keys
     ['B', 'C']
     >>> layer.newGlyph("A")
     >>> keys = layer.keys()
     >>> keys.sort()
-    >>> print keys
+    >>> keys
     ['A', 'B', 'C']
 
     >>> font = Font()
@@ -1155,7 +1155,7 @@ def _testKeys():
     >>> layer.newGlyph("A")
     >>> keys = layer.keys()
     >>> keys.sort()
-    >>> print keys
+    >>> keys
     ['A']
     """
 

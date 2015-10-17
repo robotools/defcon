@@ -1624,17 +1624,17 @@ def _testKeys():
     >>> font = Font(getTestFontPath())
     >>> keys = font.keys()
     >>> keys.sort()
-    >>> print keys
+    >>> keys
     ['A', 'B', 'C']
     >>> del font["A"]
     >>> keys = font.keys()
     >>> keys.sort()
-    >>> print keys
+    >>> keys
     ['B', 'C']
     >>> font.newGlyph("A")
     >>> keys = font.keys()
     >>> keys.sort()
-    >>> print keys
+    >>> keys
     ['A', 'B', 'C']
 
     >>> font = Font()
@@ -1643,7 +1643,7 @@ def _testKeys():
     >>> font.newGlyph("A")
     >>> keys = font.keys()
     >>> keys.sort()
-    >>> print keys
+    >>> keys
     ['A']
     """
 

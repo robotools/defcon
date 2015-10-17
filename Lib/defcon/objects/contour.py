@@ -1049,7 +1049,7 @@ def _testSplitAndInsertPointAtSegmentAndT():
 
 def _testRemoveSegment():
     """
-    >>> print "need removeSegment tests!"
+    >>> "need removeSegment tests!"
     """
 
 

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 
 path = os.path.join(os.path.dirname(__file__), "UnicodeData.txt")

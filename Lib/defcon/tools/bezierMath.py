@@ -17,7 +17,7 @@ def joinSegments(onCoords1, offCoords1, offCoords2, onCoords2, offCoords3, offCo
     ...    (250, 388), (500, 138), (500, 0)
     ...    )
     ((0.0, 195.16147160748713), (500.0, 471.16147160748704), (500, 0))
-    >>> print "need more tests!"
+    >>> "need more tests!"
     """
     (on1X, on1Y) = onCoords1
     (off1X, off1Y) = offCoords1

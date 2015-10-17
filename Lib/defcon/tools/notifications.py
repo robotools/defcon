@@ -1,3 +1,4 @@
+from __future__ import print_function
 """
 A flexible and relatively robust implementation
 of the Observer Pattern.
