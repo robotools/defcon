@@ -185,7 +185,7 @@ class ImageSet(BaseObject):
             if font is not None and font.path is not None and os.path.exists(font.path):
                 reader = UFOReader(font.path)
                 readerImageNames = reader.getImageDirectoryListing()
-                for fileName, data in list(self._data.items()):
+                for fileName, data in self._data.items():
                     if data["data"] is not None or fileName not in readerImageNames:
                         continue
                     writer.copyImageFromReader(reader, fileName, fileName)
@@ -201,7 +201,7 @@ class ImageSet(BaseObject):
                 pass
         self._scheduledForDeletion.clear()
         reader = UFOReader(writer.path)
-        for fileName, data in list(self._data.items()):
+        for fileName, data in self._data.items():
             if not data["dirty"]:
                 continue
             writer.writeImage(fileName, data["data"])
@@ -235,7 +235,7 @@ class ImageSet(BaseObject):
         """
         digest = _makeDigest(data)
         notYetLoaded = []
-        for fileName, image in list(self._data.items()):
+        for fileName, image in self._data.items():
             # skip if the image hasn't been loaded
             if image["data"] is None:
                 notYetLoaded.append(fileName)
@@ -270,7 +270,7 @@ class ImageSet(BaseObject):
                 addedImages.append(fileName)
             elif self._scheduledForDeletion[fileName]["onDiskModTime"] != reader.getFileModificationTime(os.path.join("images", fileName)):
                 addedImages.append(fileName)
-        for fileName, imageData in list(self._data.items()):
+        for fileName, imageData in self._data.items():
             # file on disk and has been loaded
             if fileName in filesOnDisk and imageData["data"] is not None:
                 newModTime = reader.getFileModificationTime(os.path.join("images", fileName))

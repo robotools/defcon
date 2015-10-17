@@ -117,7 +117,7 @@ class DataSet(BaseObject):
             if font is not None and font.path is not None and os.path.exists(font.path):
                 reader = UFOReader(font.path)
                 readerDataDirectoryListing = reader.getDataDirectoryListing()
-                for fileName, data in list(self._data.items()):
+                for fileName, data in self._data.items():
                     path = os.path.join("data", fileName)
                     if data["data"] is not None or fileName not in readerDataDirectoryListing:
                         continue
@@ -135,7 +135,7 @@ class DataSet(BaseObject):
                 pass
         self._scheduledForDeletion.clear()
         reader = UFOReader(writer.path)
-        for fileName, data in list(self._data.items()):
+        for fileName, data in self._data.items():
             if not data["dirty"]:
                 continue
             path = os.path.join("data", fileName)
@@ -164,7 +164,7 @@ class DataSet(BaseObject):
                 added.append(fileName)
             elif self._scheduledForDeletion[fileName]["onDiskModTime"] != reader.getFileModificationTime(os.path.join("data", fileName)):
                 added.append(fileName)
-        for fileName, data in list(self._data.items()):
+        for fileName, data in self._data.items():
             # file on disk and has been loaded
             if fileName in filesOnDisk and data["data"] is not None:
                 path = os.path.join("data", fileName)

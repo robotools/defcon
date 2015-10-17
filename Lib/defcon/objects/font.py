@@ -228,7 +228,7 @@ class Font(BaseObject):
         return name in self._glyphSet
 
     def keys(self):
-        return list(self._glyphSet.keys())
+        return self._glyphSet.keys()
 
     # ------
     # Layers
@@ -1293,8 +1293,7 @@ class Font(BaseObject):
         if splitFeatures is not None:
             order = self.lib.get("org.robofab.opentype.featureorder")
             if order is None:
-                order = list(splitFeatures.keys())
-                order.sort()
+                order = sorted(splitFeatures.keys())
             else:
                 del self.lib["org.robofab.opentype.featureorder"]
             del self.lib["org.robofab.opentype.features"]
@@ -1977,7 +1976,7 @@ def _testGlyphOrder():
     >>> font = Font(getTestFontPath())
     >>> font.glyphOrder
     []
-    >>> font.glyphOrder = list(sorted(font.keys()))
+    >>> font.glyphOrder = sorted(font.keys())
     >>> font.glyphOrder
     ['A', 'B', 'C']
     >>> layer = font.layers["public.default"]

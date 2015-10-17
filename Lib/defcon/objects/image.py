@@ -49,7 +49,7 @@ class Image(BaseDictObject):
         self["color"] = None
         if imageDict is not None:
             self.update(imageDict)
-        for key, value in list(_defaultTransformation.items()):
+        for key, value in _defaultTransformation.items():
             if self.get(key) is None:
                 self[key] = value
         self._dirty = False

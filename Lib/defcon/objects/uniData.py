@@ -165,7 +165,7 @@ class UnicodeData(BaseDictObject):
 
         This should never be called directly.
         """
-        for value, glyphList in list(other.items()):
+        for value, glyphList in other.items():
             for glyphName in glyphList:
                 if glyphName in self._glyphNameToForcedUnicode:
                     forcedValue = self._glyphNameToForcedUnicode[glyphName]
@@ -179,7 +179,7 @@ class UnicodeData(BaseDictObject):
     # -------
 
     def _setupForcedValueDict(self):
-        for value, glyphList in list(self.values()):
+        for value, glyphList in self.values():
             if not glyphList:
                 glyphName = None
             else:
@@ -713,7 +713,7 @@ class UnicodeData(BaseDictObject):
             sortedResult.append(baseToGlyphNames[base])
         # reverse if necessary
         if not ascending:
-            sortedResult = list(reversed(sortedResult))
+            sortedResult = reversed(sortedResult)
         return sortedResult
 
     # custom sorts
@@ -736,7 +736,7 @@ class UnicodeData(BaseDictObject):
             return noSuffix
         # magnetize the suffixes
         allSuffixes = set([glyphName.split(".", 1)[-1] for glyphName in suffixed])
-        allSuffixes = list(sorted(allSuffixes))
+        allSuffixes = sorted(allSuffixes)
         magnets = {}
         while allSuffixes:
             toMatch = toMatchOriginal = allSuffixes.pop(0)
@@ -772,7 +772,7 @@ class UnicodeData(BaseDictObject):
             magnets[toMatch] = [toMatchOriginal] + matches
         # make a flat mapping of suffix : magnet
         suffixToMagnet = {}
-        for magnet, suffixes in list(magnets.items()):
+        for magnet, suffixes in magnets.items():
             for suffix in suffixes:
                 suffixToMagnet[suffix] = magnet
         # gather data about the suffixes
@@ -803,7 +803,7 @@ class UnicodeData(BaseDictObject):
                 suffixData["space"] = True
         # rank the suffixes
         sorter = []
-        for suffix, suffixData in list(suffixMap.items()):
+        for suffix, suffixData in suffixMap.items():
             sortable = (
                 suffixData["letter"],
                 suffixData["number"],
@@ -965,7 +965,7 @@ class UnicodeData(BaseDictObject):
                     suffixes[suffix] = []
                 suffixes[suffix].append(glyphName)
             # wor through the suffixes
-            for matched in list(suffixes.values()):
+            for matched in suffixes.values():
                 # remove matched[1:] them after matched[0]
                 if len(matched) > 1:
                     for glyphName in matched[1:]:

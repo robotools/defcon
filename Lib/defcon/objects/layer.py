@@ -286,7 +286,7 @@ class Layer(BaseObject):
             self._scheduledForDeletion[name] = dict(dataOnDiskTimeStamp=dataOnDiskTimeStamp, dataOnDisk=dataOnDisk)
 
     def __len__(self):
-        return len(list(self.keys()))
+        return len(self.keys())
 
     def __contains__(self, name):
         return name in self._keys
@@ -348,14 +348,14 @@ class Layer(BaseObject):
     def _get_glyphsWithOutlines(self):
         found = []
         # scan loaded glyphs
-        for glyphName, glyph in list(self._glyphs.items()):
+        for glyphName, glyph in self._glyphs.items():
             if glyphName in self._scheduledForDeletion:
                 continue
             if len(glyph):
                 found.append(glyphName)
         # scan glyphs that have not been loaded
         if self._glyphSet is not None:
-            for glyphName, fileName in list(self._glyphSet.contents.items()):
+            for glyphName, fileName in self._glyphSet.contents.items():
                 if glyphName in self._glyphs or glyphName in self._scheduledForDeletion:
                     continue
                 glif = self._glyphSet.getGLIF(glyphName)
@@ -371,7 +371,7 @@ class Layer(BaseObject):
     def _get_componentReferences(self):
         found = {}
         # scan loaded glyphs
-        for glyphName, glyph in list(self._glyphs.items()):
+        for glyphName, glyph in self._glyphs.items():
             if glyphName in self._scheduledForDeletion:
                 continue
             if not glyph.components:
@@ -384,7 +384,7 @@ class Layer(BaseObject):
         # scan glyphs that have not been loaded
         if self._glyphSet is not None:
             glyphNames = set(self._glyphSet.contents.keys()) - set(self._glyphs.keys())
-            for glyphName, baseList in list(self._glyphSet.getComponentReferences(glyphNames).items()):
+            for glyphName, baseList in self._glyphSet.getComponentReferences(glyphNames).items():
                 for baseGlyph in baseList:
                     if baseGlyph not in found:
                         found[baseGlyph] = set()
@@ -398,7 +398,7 @@ class Layer(BaseObject):
     def _get_imageReferences(self):
         found = {}
         # scan loaded glyphs
-        for glyphName, glyph in list(self._glyphs.items()):
+        for glyphName, glyph in self._glyphs.items():
             if glyphName in self._scheduledForDeletion:
                 continue
             image = glyph.image
@@ -410,7 +410,7 @@ class Layer(BaseObject):
         # scan glyphs that have not been loaded
         if self._glyphSet is not None:
             glyphNames = set(self._glyphSet.contents.keys()) - set(self._glyphs.keys())
-            for glyphName, fileName in list(self._glyphSet.getImageReferences(glyphNames).items()):
+            for glyphName, fileName in self._glyphSet.getImageReferences(glyphNames).items():
                 if fileName not in found:
                     found[fileName] = []
                 found[fileName].append(glyphName)
@@ -442,7 +442,7 @@ class Layer(BaseObject):
         glyphRects = {}
         componentReferences = {}
         # scan loaded glyphs
-        for glyphName, glyph in list(self._glyphs.items()):
+        for glyphName, glyph in self._glyphs.items():
             if glyphName in self._scheduledForDeletion:
                 continue
             glyphRect = glyph.controlPointBounds
@@ -450,7 +450,7 @@ class Layer(BaseObject):
                 glyphRects[glyphName] = glyphRect
         # scan glyphs that have not been loaded
         if self._glyphSet is not None:
-            for glyphName, fileName in list(self._glyphSet.contents.items()):
+            for glyphName, fileName in self._glyphSet.contents.items():
                 if glyphName in self._glyphs or glyphName in self._scheduledForDeletion:
                     continue
                 glif = self._glyphSet.getGLIF(glyphName)
@@ -463,7 +463,7 @@ class Layer(BaseObject):
                         componentReferences[glyphName] = []
                     componentReferences[glyphName].append((base, xScale, xyScale, yxScale, yScale, xOffset, yOffset))
         # get the transformed component bounding boxes and update the glyphs
-        for glyphName, components in list(componentReferences.items()):
+        for glyphName, components in componentReferences.items():
             glyphRect = glyphRects.get(glyphName, (None, None, None, None))
             # XXX this doesn't handle nested components
             for base, xScale, xyScale, yxScale, yScale, xOffset, yOffset in components:
@@ -488,7 +488,7 @@ class Layer(BaseObject):
             glyphRects[glyphName] = glyphRect
         # work out the unified rect
         fontRect = None
-        for glyphRect in list(glyphRects.values()):
+        for glyphRect in glyphRects.values():
             if fontRect is None:
                 fontRect = glyphRect
             elif glyphRect is not None:
@@ -553,7 +553,7 @@ class Layer(BaseObject):
     def _get_unicodeData(self):
         if self._unicodeData is None:
             cmap = {}
-            for glyphName, glyph in list(self._glyphs.items()):
+            for glyphName, glyph in self._glyphs.items():
                 if glyphName in self._scheduledForDeletion:
                     continue
                 if not glyph.unicodes:
@@ -565,7 +565,7 @@ class Layer(BaseObject):
                         cmap[code] = [glyphName]
             if self._glyphSet is not None:
                 glyphNames = set(self._glyphSet.keys()) - set(self._glyphs.keys())
-                for glyphName, unicodes in list(self._glyphSet.getUnicodes(glyphNames=glyphNames).items()):
+                for glyphName, unicodes in self._glyphSet.getUnicodes(glyphNames=glyphNames).items():
                     for code in unicodes:
                         if code in cmap:
                             cmap[code].append(glyphName)
@@ -608,7 +608,7 @@ class Layer(BaseObject):
             self.saveGlyph(glyph, glyphSet, saveAs=saveAs)
         # remove deleted glyphs
         if not saveAs and self._scheduledForDeletion:
-            for glyphName in list(self._scheduledForDeletion.keys()):
+            for glyphName in self._scheduledForDeletion.keys():
                 if glyphName in glyphSet:
                     glyphSet.deleteGlyph(glyphName)
         glyphSet.writeContents()
@@ -664,7 +664,7 @@ class Layer(BaseObject):
         deletedGlyphs = list(self._keys - set(glyphSet.keys()))
         # glyphs modified since loading
         modifiedGlyphs = []
-        for glyphName, glyph in list(self._glyphs.items()):
+        for glyphName, glyph in self._glyphs.items():
             # deleted glyph. skip.
             if glyphName not in glyphSet.contents:
                 continue
@@ -727,7 +727,7 @@ class Layer(BaseObject):
     def endSelfNotificationObservation(self):
         if self.dispatcher is None:
             return
-        for glyph in list(self._glyphs.values()):
+        for glyph in self._glyphs.values():
             self.endSelfGlyphNotificationObservation(glyph)
         self.endSelfLibNotificationObservation()
         self.endSelfUnicodeDataNotificationObservation()

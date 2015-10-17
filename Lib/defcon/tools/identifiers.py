@@ -4,7 +4,7 @@ characters = list("0123456789")
 characters += list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 characters += list("abcdefghijklmnopqrstuvwxyz")
 identifierLength = 10
-identifierRange = list(range(identifierLength))
+identifierRange = range(identifierLength)
 
 def makeRandomIdentifier(existing, recursionDepth=0):
     if recursionDepth >= 50:
