@@ -2,6 +2,12 @@ from ufoLib.pointPen import AbstractPointPen
 
 # adapted from robofab.objects.objectsBase.RContour._get_clockwise
 
+try:
+    xrange
+    range = xrange
+except NameError:
+    pass
+
 class ClockwiseTestPointPen(AbstractPointPen):
 
     def __init__(self):

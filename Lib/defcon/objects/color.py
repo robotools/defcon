@@ -1,3 +1,9 @@
+try:
+    basestring
+except NameError:
+    basestring = str
+
+
 class Color(str):
 
     """
@@ -14,7 +20,7 @@ class Color(str):
 
     def __new__(self, value):
         # convert from string
-        if isinstance(value, str):
+        if isinstance(value, basestring):
             value = _stringToSequence(value)
         r, g, b, a = value
         # validate the values

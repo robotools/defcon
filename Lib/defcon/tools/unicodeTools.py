@@ -1973,6 +1973,11 @@ FF63;HALFWIDTH RIGHT CORNER BRACKET;Pe
 
 import unicodedata
 
+try:
+    unichr
+except NameError:
+    unichr = chr
+
 # load the data
 
 def _parseRangeText(text):
@@ -2058,7 +2063,7 @@ for line in _openClosePairText.splitlines():
 def decompositionBase(value):
     letterCategories = ("Ll", "Lu", "Lt", "Lo")
     try:
-        c = chr(value)
+        c = unichr(value)
     # see not in category function
     except ValueError:
         return -1
@@ -2068,7 +2073,7 @@ def decompositionBase(value):
     if " " not in decomposition:
         return -1
     parts = decomposition.split(" ")
-    unichrs = [chr(int(i, 16)) for i in parts if i]
+    unichrs = [unichr(int(i, 16)) for i in parts if i]
     letters = [ord(i) for i in unichrs if unicodedata.category(i) in letterCategories]
     letterCount = len(letters)
     if letterCount != 1:
@@ -2091,7 +2096,7 @@ def closeRelative(value):
 
 def category(value):
     try:
-        c = chr(value)
+        c = unichr(value)
         return unicodedata.category(c)
     # values larger than Python can use to create a
     # unichr will raise a value error. when this happens,

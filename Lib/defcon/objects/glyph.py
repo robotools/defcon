@@ -13,6 +13,11 @@ from defcon.objects.color import Color
 from defcon.tools.representations import glyphBoundsRepresentationFactory, glyphControlPointBoundsRepresentationFactory
 from defcon.pens.decomposeComponentPointPen import DecomposeComponentPointPen
 
+try:
+    basestring
+except NameError:
+    basestring = str
+
 def addRepresentationFactory(name, factory):
     warn("addRepresentationFactory is deprecated. Use the functions in defcon.__init__.", DeprecationWarning)
     Glyph.representationFactories[name] = dict(factory=factory, destructiveNotifications=["Glyph.Changed"])
@@ -895,7 +900,7 @@ class Glyph(BaseObject):
 
     def _set_note(self, value):
         if value is not None:
-            assert isinstance(value, str)
+            assert isinstance(value, basestring)
         oldValue = self._note
         if oldValue != value:
             self._note = value
