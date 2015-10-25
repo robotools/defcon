@@ -128,8 +128,6 @@ class Font(BaseObject):
         self._data = self.instantiateDataSet()
         self.beginSelfDataSetNotificationObservation()
 
-        self._dirty = False
-
         if path:
             reader = UFOReader(self._path)
             self._ufoFormatVersion = reader.formatVersion
@@ -152,7 +150,7 @@ class Font(BaseObject):
                 self._convertFromFormatVersion1RoboFabData()
             # if the ufo version is < 3, read the kerning and groups
             # right now. do this by creating a reference to the reader.
-            # otherwsie a situation could arise where the groups
+            # otherwise a situation could arise where the groups
             # are modified by an external source before being read.
             # that could create a data corruption within this object.
             if self._ufoFormatVersion < 3:
@@ -160,6 +158,10 @@ class Font(BaseObject):
                 self._kerningGroupConversionRenameMaps = reader.getKerningGroupConversionRenameMaps()
                 k = self.kerning
                 g = self.groups
+            else:
+                # unless we did some conversion from an older ufo-format, mark
+                # the font as unmodified
+                self._dirty = False
 
         if self._layers.defaultLayer is None:
             layer = self.newLayer("public.default")
