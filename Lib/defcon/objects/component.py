@@ -3,6 +3,7 @@ import weakref
 from warnings import warn
 from fontTools.misc.transform import Transform
 from defcon.objects.base import BaseObject
+from defcon.tools.identifiers import makeRandomIdentifier
 
 _defaultTransformation = (1, 0, 0, 1, 0, 0)
 
