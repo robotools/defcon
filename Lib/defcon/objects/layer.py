@@ -837,7 +837,9 @@ class _BaseParser(object):
     def parse(self, text):
         from xml.parsers.expat import ParserCreate
         parser = ParserCreate()
-        parser.returns_unicode = 0
+        # no attribute returns_unicode in Python3
+        if hasattr(parser, "returns_unicode"):
+            parser.returns_unicode = 0
         parser.StartElementHandler = self.startElementHandler
         parser.EndElementHandler = self.endElementHandler
         parser.Parse(text)
