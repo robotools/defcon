@@ -732,10 +732,7 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
-        try:
-            assert anchor.glyph != self
-        except AttributeError:
-            pass
+        assert anchor not in self.anchors
         if not isinstance(anchor, self._anchorClass):
             anchor = self.instantiateAnchor(anchorDict=anchor)
         assert anchor.glyph in (self, None), "This anchor belongs to another glyph."
@@ -839,10 +836,7 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
-        try:
-            assert guideline.glyph != self
-        except AttributeError:
-            pass
+        assert guideline not in self.guidelines
         if not isinstance(guideline, self._guidelineClass):
             guideline = self.instantiateGuideline(guidelineDict=guideline)
         assert guideline.glyph in (self, None), "This guideline belongs to another glyph."
