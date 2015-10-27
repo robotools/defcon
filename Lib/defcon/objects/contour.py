@@ -449,13 +449,13 @@ class Contour(BaseObject):
     # Move
     # ----
 
-    def move(self, xxx_todo_changeme):
+    def move(self, values):
         """
         Move all points in the contour by **(x, y)**.
 
         This will post *Contour.PointsChanged* and *Contour.Changed* notifications.
         """
-        (x, y) = xxx_todo_changeme
+        (x, y) = values
         for point in self._points:
             point.move((x, y))
         # update the representations
@@ -492,12 +492,12 @@ class Contour(BaseObject):
     # Point Inside
     # ------------
 
-    def pointInside(self, xxx_todo_changeme1, evenOdd=False):
+    def pointInside(self, coordinates, evenOdd=False):
         """
         Returns a boolean indicating if **(x, y)** is in the
         "black" area of the contour.
         """
-        (x, y) = xxx_todo_changeme1
+        (x, y) = coordinates
         from fontTools.pens.pointInsidePen import PointInsidePen
         pen = PointInsidePen(glyphSet=None, testPoint=(x, y), evenOdd=evenOdd)
         self.draw(pen)
@@ -582,12 +582,12 @@ class Contour(BaseObject):
         """
         pass
 
-    def addPoint(self, xxx_todo_changeme2, segmentType=None, smooth=False, name=None, identifier=None, **kwargs):
+    def addPoint(self, values, segmentType=None, smooth=False, name=None, identifier=None, **kwargs):
         """
         Standard point pen *addPoint* method.
         This should not be used externally.
         """
-        (x, y) = xxx_todo_changeme2
+        (x, y) = values
         point = self._pointClass((x, y), segmentType=segmentType, smooth=smooth, name=name, identifier=identifier)
         self.insertPoint(len(self._points), point)
 

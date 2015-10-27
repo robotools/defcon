@@ -1085,14 +1085,14 @@ class Glyph(BaseObject):
     # Move
     # ----
 
-    def move(self, xxx_todo_changeme):
+    def move(self, values):
         """
         Move all contours, components and anchors in the glyph
         by **(x, y)**.
 
         This posts a *Glyph.Changed* notification.
         """
-        (x, y) = xxx_todo_changeme
+        (x, y) = values
         for contour in self:
             contour.move((x, y))
         for component in self._components:
@@ -1104,12 +1104,12 @@ class Glyph(BaseObject):
     # Point Inside
     # ------------
 
-    def pointInside(self, xxx_todo_changeme1, evenOdd=False):
+    def pointInside(self, coordinates, evenOdd=False):
         """
         Returns a boolean indicating if **(x, y)** is in the
         "black" area of the glyph.
         """
-        (x, y) = xxx_todo_changeme1
+        (x, y) = coordinates
         from fontTools.pens.pointInsidePen import PointInsidePen
         pen = PointInsidePen(glyphSet=None, testPoint=(x, y), evenOdd=evenOdd)
         self.draw(pen)

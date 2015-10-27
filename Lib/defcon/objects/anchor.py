@@ -214,13 +214,13 @@ class Anchor(BaseDictObject):
     # Move
     # ----
 
-    def move(self, xxx_todo_changeme):
+    def move(self, values):
         """
         Move the anchor by **(x, y)**.
 
         This will post *Anchor.XChange*, *Anchor.YChanged* and *Anchor.Changed* notifications if anything changed.
         """
-        (x, y) = xxx_todo_changeme
+        (x, y) = values
         self.x += x
         self.y += y
 

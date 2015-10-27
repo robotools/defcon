@@ -10,8 +10,8 @@ class Point(object):
 
     __slots__ = ["_x", "_y", "_segmentType", "_smooth", "_name", "_identifier"]
 
-    def __init__(self, xxx_todo_changeme, segmentType=None, smooth=False, name=None, identifier=None):
-        (x, y) = xxx_todo_changeme
+    def __init__(self, coordinates, segmentType=None, smooth=False, name=None, identifier=None):
+        (x, y) = coordinates
         super(Point, self).__init__()
         self._x = x
         self._y = y
@@ -63,11 +63,11 @@ class Point(object):
 
     name = property(_get_name, _set_name, doc="An arbitrary name for the point.")
 
-    def move(self, xxx_todo_changeme1):
+    def move(self, values):
         """
         Move the component by **(x, y)**.
         """
-        (x, y) = xxx_todo_changeme1
+        (x, y) = values
         self.x += x
         self.y += y
 
