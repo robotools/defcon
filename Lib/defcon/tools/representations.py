@@ -7,27 +7,33 @@ from defcon.pens.clockwiseTestPointPen import ClockwiseTestPointPen
 # -----
 
 def glyphBoundsRepresentationFactory(glyph):
-    bounds = None
-    for group in (glyph, glyph.components):
-        for obj in group:
-            b = obj.bounds
-            if b is not None:
-                if bounds is None:
-                    bounds = b
-                else:
-                    bounds = unionRect(bounds, b)
+    # base glyph
+    pen = BoundsPen(None)
+    glyph.draw(pen)
+    bounds = pen.bounds
+    # components
+    for component in glyph.components:
+        b = component.bounds
+        if b is not None:
+            if bounds is None:
+                bounds = b
+            else:
+                bounds = unionRect(bounds, b)
     return bounds
 
 def glyphControlPointBoundsRepresentationFactory(glyph):
-    bounds = None
-    for group in (glyph, glyph.components):
-        for obj in group:
-            b = obj.controlPointBounds
-            if b is not None:
-                if bounds is None:
-                    bounds = b
-                else:
-                    bounds = unionRect(bounds, b)
+    # base glyph
+    pen = ControlBoundsPen(None)
+    glyph.draw(pen)
+    bounds = pen.bounds
+    # components
+    for component in glyph.components:
+        b = component.controlPointBounds
+        if b is not None:
+            if bounds is None:
+                bounds = b
+            else:
+                bounds = unionRect(bounds, b)
     return bounds
 
 # -------
