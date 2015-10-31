@@ -8,7 +8,7 @@ from defcon.pens.clockwiseTestPointPen import ClockwiseTestPointPen
 
 def glyphBoundsRepresentationFactory(glyph):
     # base glyph
-    pen = BoundsPen(None)
+    pen = BoundsPen(glyph.getParent())
     glyph.draw(pen)
     bounds = pen.bounds
     # components
@@ -23,7 +23,7 @@ def glyphBoundsRepresentationFactory(glyph):
 
 def glyphControlPointBoundsRepresentationFactory(glyph):
     # base glyph
-    pen = ControlBoundsPen(None)
+    pen = ControlBoundsPen(glyph.getParent())
     glyph.draw(pen)
     bounds = pen.bounds
     # components

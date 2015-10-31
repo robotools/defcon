@@ -128,6 +128,8 @@ class Font(BaseObject):
         self._data = self.instantiateDataSet()
         self.beginSelfDataSetNotificationObservation()
 
+        self._dirty = False
+
         if path:
             reader = UFOReader(self._path)
             self._ufoFormatVersion = reader.formatVersion
