@@ -373,30 +373,21 @@ class ObserverDict(dict):
         self._order = []
 
     def keys(self):
-        return list(self._order)
+        return iter(self)
 
     def values(self):
-        return [self[key] for key in self]
+        for key in self:
+            yield self[key]
 
     def items(self):
-        return [(key, self[key]) for key in self]
+        for key in self:
+            yield (key, self[key])
 
     def __iter__(self):
         order = self._order
         while order:
             yield order[0]
             order = order[1:]
-
-    def iterkeys(self):
-        return iter(self)
-
-    def itervalues(self):
-        for key in self:
-            yield self[key]
-
-    def iteritems(self):
-        for key in self:
-            yield (key, self[key])
 
     def __delitem__(self, key):
         super(ObserverDict, self).__delitem__(key)
