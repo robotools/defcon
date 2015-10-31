@@ -195,6 +195,7 @@ class Layer(BaseObject):
         glyph.enableNotifications()
         self.postNotification("Layer.GlyphAdded", data=(dict(name=name)))
         self.dirty = True
+        return glyph
 
     def insertGlyph(self, glyph, name=None):
         """
@@ -217,8 +218,7 @@ class Layer(BaseObject):
             name = source.name
         self.postNotification("Layer.GlyphWillBeAdded", data=(dict(name=name)))
         self.holdNotifications()
-        self.newGlyph(name)
-        dest = self[name]
+        dest = self.newGlyph(name)
         dest.copyDataFromGlyph(glyph)
         self.releaseHeldNotifications()
         return dest
@@ -938,8 +938,7 @@ def _testNewGlyph():
     >>> from defcon.test.testTools import getTestFontPath
     >>> font = Font(getTestFontPath())
     >>> layer = font.layers["public.default"]
-    >>> layer.newGlyph('NewGlyphTest')
-    >>> glyph = layer['NewGlyphTest']
+    >>> glyph = layer.newGlyph('NewGlyphTest')
     >>> glyph.name
     'NewGlyphTest'
     >>> glyph.dirty
@@ -1223,8 +1222,7 @@ def _testImageReferences():
     >>> layer = font.layers["Layer 1"]
     >>> layer.imageReferences
     {'image 1.png': ['A']}
-    >>> layer.newGlyph("B")
-    >>> glyph = layer["B"]
+    >>> glyph = layer.newGlyph("B")
     >>> glyph.image = dict(fileName="test")
     >>> layer.imageReferences
     {'test': ['B'], 'image 1.png': ['A']}
@@ -1284,8 +1282,7 @@ def _testGlyphUnicodesChanged():
 
     >>> font = Font(getTestFontPath())
     >>> layer = font.layers["public.default"]
-    >>> layer.newGlyph("test")
-    >>> glyph = layer["test"]
+    >>> glyph = layer.newGlyph("test")
     >>> glyph.unicodes = [65]
     >>> layer.unicodeData[65]
     ['test', 'A']
@@ -1328,8 +1325,7 @@ def _testGlyphDispatcher():
 
     # new
     >>> font = Font()
-    >>> font.newGlyph("A")
-    >>> glyph = font["A"]
+    >>> glyph = font.newGlyph("A")
     >>> pen = glyph.getPointPen()
     >>> pen.beginPath()
     >>> pen.addPoint((0, 0), segmentType="line")

@@ -1458,8 +1458,7 @@ def _testNewGlyph():
     """
     >>> from defcon.test.testTools import getTestFontPath
     >>> font = Font(getTestFontPath())
-    >>> font.newGlyph('NewGlyphTest')
-    >>> glyph = font['NewGlyphTest']
+    >>> glyph = font.newGlyph('NewGlyphTest')
     >>> glyph.name
     'NewGlyphTest'
     >>> glyph.dirty
@@ -1747,8 +1746,7 @@ def _testGlyphUnicodesChanged():
     >>> font.unicodeData.get(65)
 
     >>> font = Font(getTestFontPath())
-    >>> font.newGlyph("test")
-    >>> glyph = font["test"]
+    >>> glyph = font.newGlyph("test")
     >>> glyph.unicodes = [65]
     >>> font.unicodeData[65]
     ['test', 'A']
