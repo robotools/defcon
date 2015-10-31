@@ -132,6 +132,7 @@ class Font(BaseObject):
             reader = UFOReader(self._path)
             self._ufoFormatVersion = reader.formatVersion
             # go ahead and load the layers
+            self._layers.disableNotifications()
             layerNames = reader.getLayerNames()
             for layerName in layerNames:
                 glyphSet = reader.getGlyphSet(layerName)
@@ -141,10 +142,15 @@ class Font(BaseObject):
             self._layers.layerOrder = layerNames
             self._layers.defaultLayer = self._layers[defaultLayerName]
             self._layers.dirty = False
+            self._layers.enableNotifications()
             # get the image file names
+            self._images.disableNotifications()
             self._images.fileNames = reader.getImageDirectoryListing()
+            self._images.enableNotifications()
             # get the data directory listing
+            self._data.disableNotifications()
             self._data.fileNames = reader.getDataDirectoryListing()
+            self._data.enableNotifications()
             # if the UFO version is 1, do some conversion.
             if self._ufoFormatVersion == 1:
                 self._convertFromFormatVersion1RoboFabData()
