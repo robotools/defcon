@@ -29,7 +29,7 @@ class BaseObject(object):
     +=========================+==================================================+
     | changeNotificationName  | This must be a string unique to the class        |
     |                         | indicating the name of the notification          |
-    |                         | to be posted when th dirty attribute is set.     |
+    |                         | to be posted when the dirty attribute is set.    |
     +-------------------------+--------------------------------------------------+
     | representationFactories | This must be a dictionary that is shared across  |
     |                         | *all* instances of the class.                    |
@@ -85,7 +85,7 @@ class BaseObject(object):
         Add an observer to this object's notification dispatcher.
 
         * **observer** An object that can be referenced with weakref.
-        * **methodName** A string epresenting the method to be called
+        * **methodName** A string representing the method to be called
           when the notification is posted.
         * **notification** The notification that the observer should
           be notified of.
