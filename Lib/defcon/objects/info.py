@@ -57,6 +57,10 @@ class Info(BaseObject):
     Name
     ===========================
     Info.Changed
+    Info.BeginUndo
+    Info.EndUndo
+    Info.BeginRedo
+    Info.EndRedo
     Info.ValueChanged
     Info.GuidelinesChanged
     Info.GuidelineWillBeDeleted
@@ -67,6 +71,10 @@ class Info(BaseObject):
     """
 
     changeNotificationName = "Info.Changed"
+    beginUndoNotificationName = "Info.BeginUndo"
+    endUndoNotificationName = "Info.EndUndo"
+    beginRedoNotificationName = "Info.BeginRedo"
+    endRedoNotificationName = "Info.EndRedo"
     representationFactories = {}
 
     def __init__(self, font=None, guidelineClass=None):
@@ -391,5 +399,3 @@ class Info(BaseObject):
             if name not in data:
                 continue
             setter(name, data[name])
-
-

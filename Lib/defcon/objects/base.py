@@ -13,6 +13,10 @@ class BaseObject(object):
     Name
     ====================
     BaseObject.Changed
+    BaseObject.BeginUndo
+    BaseObject.EndUndo
+    BaseObject.BeginRedo
+    BaseObject.EndRedo
     ====================
 
     Keep in mind that subclasses will not post these same notifications.
@@ -32,6 +36,10 @@ class BaseObject(object):
     """
 
     changeNotificationName = "BaseObject.Changed"
+    beginUndoNotificationName = "BaseObject.BeginUndo"
+    endUndoNotificationName = "BaseObject.EndUndo"
+    beginRedoNotificationName = "BaseObject.BeginRedo"
+    endRedoNotificationName = "BaseObject.EndRedo"
     representationFactories = None
 
     def __init__(self):
@@ -41,6 +49,8 @@ class BaseObject(object):
         self._dispatcher = None
         self._dataOnDisk = None
         self._dataOnDiskTimeStamp = None
+        self._undoManager = None
+        #self._undoMethods = None
         self._representations = {}
 
     def __del__(self):
@@ -224,6 +234,96 @@ class BaseObject(object):
 
     def selfNotificationCallback(self, notification):
         self._destroyRepresentationsForNotification(notification)
+
+    # ----
+    # Undo
+    # ----
+
+    # manager
+
+    def _get_undoManager(self):
+        return self._undoManager
+
+    def setUndoManager(self, manager, prepareUndoFunc="prepareTarget",
+        canUndoFunc="canUndo", getUndoTitleFunc="getUndoTitle", undoFunc="undo",
+        canRedoFunc="canRedo", getRedoTitleFunc="getRedo", redoFunc="redo"):
+        self._undoManager = manager
+        self._undoMethods = dict(
+            prepareUndo=prepareUndoFunc,
+            canUndo=canUndoFunc,
+            getUndoTitle=getUndoTitleFunc,
+            undo=undoFunc,
+            canRedo=canRedoFunc,
+            getRedoTitle=getRedoTitleFunc,
+            redo=redoFunc,
+        )
+
+    undoManager = property(_get_undoManager, doc="The undo manager assigned to this object.")
+
+    # state registration
+
+    def prepareUndo(self, title=None):
+        manager = self.undoManager
+        prepareUndoFunction = getattr(manager, self._undoMethods["prepareUndo"])
+        prepareUndoFunction(title=title)
+
+    # undo
+
+    def canUndo(self):
+        manager = self.undoManager
+        if manager is None:
+            raise NotImplementedError
+        canUndoFunction = getattr(manager, self._undoMethods["canUndo"])
+        return canUndoFunction()
+
+    def getUndoTitle(self, index=-1):
+        manager = self.undoManager
+        if manager is None:
+            raise NotImplementedError
+        getUndoTitleFunction = getattr(
+            manager, self._undoMethods["getUndoTitle"])
+        return getUndoTitleFunction(index)
+
+    def undo(self, index=-1):
+        manager = self.undoManager
+        if manager is None:
+            raise NotImplementedError
+        dispatcher = self._dispatcher
+        if dispatcher is not None:
+            self.dispatcher.postNotification(notification=self.beginUndoNotificationName, observable=self)
+        undoFunction = getattr(manager, self._undoMethods["undo"])
+        undoFunction(index)
+        if dispatcher is not None:
+            self.dispatcher.postNotification(notification=self.endUndoNotificationName, observable=self)
+
+    # redo
+
+    def canRedo(self):
+        manager = self.undoManager
+        if manager is None:
+            raise NotImplementedError
+        canRedoFunction = getattr(manager, self._undoMethods["canRedo"])
+        return canRedoFunction()
+
+    def getRedoTitle(self, index=0):
+        manager = self.undoManager
+        if manager is None:
+            raise NotImplementedError
+        getRedoTitleFunction = getattr(
+            manager, self._undoMethods["getRedoTitle"])
+        return getRedoTitleFunction(index)
+
+    def redo(self, index=0):
+        manager = self.undoManager
+        if manager is None:
+            raise NotImplementedError
+        dispatcher = self._dispatcher
+        if dispatcher is not None:
+            self.dispatcher.postNotification(notification=self.beginRedoNotificationName, observable=self)
+        redoFunction = getattr(manager, self._undoMethods["redo"])
+        redoFunction(index)
+        if dispatcher is not None:
+            self.dispatcher.postNotification(notification=self.endRedoNotificationName, observable=self)
 
     # ---------------
     # Representations

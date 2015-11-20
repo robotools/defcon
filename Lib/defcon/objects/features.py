@@ -13,11 +13,19 @@ class Features(BaseObject):
     Name
     ================
     Features.Changed
+    Features.BeginUndo
+    Features.EndUndo
+    Features.BeginRedo
+    Features.EndRedo
     Features.TextChanged
     ================
     """
 
     changeNotificationName = "Features.Changed"
+    beginUndoNotificationName = "Features.BeginUndo"
+    endUndoNotificationName = "Features.EndUndo"
+    beginRedoNotificationName = "Features.BeginRedo"
+    endRedoNotificationName = "Features.EndRedo"
     representationFactories = {}
 
     def __init__(self, font=None):
