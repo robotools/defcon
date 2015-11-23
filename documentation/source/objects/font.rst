@@ -36,6 +36,7 @@ Sub-Objects
 * :attr:`~defcon.Font.kerning`
 * :attr:`~defcon.Font.groups`
 * :attr:`~defcon.Font.features`
+* :attr:`~defcon.Font.layers`
 * :attr:`~defcon.Font.lib`
 * :attr:`~defcon.Font.unicodeData`
 
@@ -46,6 +47,11 @@ Glyphs
 * :meth:`~defcon.Font.newGlyph`
 * :meth:`~defcon.Font.insertGlyph`
 * :meth:`~defcon.Font.keys`
+
+Layers
+""""""
+* :meth:`~defcon.Font.newLayer`
+
 
 Reference Data
 """"""""""""""

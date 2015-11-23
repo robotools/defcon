@@ -459,45 +459,45 @@ class UnicodeData(BaseDictObject):
         sorts that give optimized ordering results. Complex and canned sorts may change
         with further updates, so they should not be relied on for persistent ordering.
 
-        =================   ===========
-        Simple Sort Types   Description
-        =================   ===========
-        alphabetical        Self-explanitory.
-        unicode             Sort based on Unicode value.
-        script              Sort based on Unicode script.
-        category            Sort based on Unicode category.
-        block               Sort based on Unicode block.
-        suffix              Sort based on glyph name suffix.
-        decompositionBase   Sort based on the base glyph defined in the decomposition rules.
-        =================   ===========
+        ==================   ==============================================================
+        Simple Sort Types    Description
+        ==================   ==============================================================
+        alphabetical         Self-explanatory.
+        unicode              Sort based on Unicode value.
+        script               Sort based on Unicode script.
+        category             Sort based on Unicode category.
+        block                Sort based on Unicode block.
+        suffix               Sort based on glyph name suffix.
+        decompositionBase    Sort based on the base glyph defined in the decomposition rules.
+        ==================   ==============================================================
 
-        ==================  ===========
-        Complex Sort Types  Description
-        ==================  ===========
-        weightedSuffix      Sort based on glyph names suffix. The ordering of the
-                            suffixes is based on the calculated "weight" of the suffix.
-                            This value is calculated by noting what type of glyphs have
-                            the same suffix. The more glyph types, the more important the
-                            suffix. Additionally, glyphs with suffixes that have only
-                            numerical differences are grouped together. For example,
-                            a.alt, a.alt1 and a.alt319 will be grouped together.
-        ligature            Sort into to groups: non-ligatures and ligatures.
-                            The determination of whether a glyph is a ligature or
-                            not is based on the Unicode value, common glyph names
-                            or the use of an underscore in the name.
-        =================   ===========
+        ==================   ==============================================================
+        Complex Sort Types   Description
+        ==================   ==============================================================
+        weightedSuffix       Sort based on glyph names suffix. The ordering of the
+                             suffixes is based on the calculated "weight" of the suffix.
+                             This value is calculated by noting what type of glyphs have
+                             the same suffix. The more glyph types, the more important the
+                             suffix. Additionally, glyphs with suffixes that have only
+                             numerical differences are grouped together. For example,
+                             a.alt, a.alt1 and a.alt319 will be grouped together.
+        ligature             Sort into to groups: non-ligatures and ligatures.
+                             The determination of whether a glyph is a ligature or
+                             not is based on the Unicode value, common glyph names
+                             or the use of an underscore in the name.
+        ==================   ==============================================================
 
-        ==================  ===========
-        Canned Sort Types   Description
-        ==================  ===========
-        cannedDesign        Sort glyphs into a design process friendly order.
-        =================   ===========
-
-        =================   ===========
-        Custom Sort Type    Description
-        =================   ===========
-        custom              Sort using a custom function. See details below.
-        =================   ===========
+        ==================   ==============================================================
+        Canned Sort Types    Description
+        ==================   ==============================================================
+        cannedDesign         Sort glyphs into a design process friendly order.
+        ==================   ==============================================================
+                             
+        ==================   ==============================================================
+        Custom Sort Type     Description
+        ==================   ==============================================================
+        custom               Sort using a custom function. See details below.
+        ==================   ==============================================================
 
         *Sorting with a custom function:*
         If the builtin sort types don't do exactly what you need, you can use a **custom** sort type
