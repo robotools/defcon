@@ -11,18 +11,25 @@ class LayerSet(BaseObject):
 
     **This object posts the following notifications:**
 
-    ============================
-    Name
-    ============================
-    LayerSet.Changed
-    LayerSet.LayersChanged
-    LayerSet.LayerChanged
-    LayerSet.DefaultLayerChanged
-    LayerSet.LayerOrderChanged
-    LayerSet.LayerAdded
-    LayerSet.LayerDeleted
-    LayerSet.LayerWillBeDeleted
-    ============================
+    +----------------------------+
+    |Name                        |
+    +============================+
+    |LayerSet.Changed            |
+    +----------------------------+
+    |LayerSet.LayersChanged      |
+    +----------------------------+
+    |LayerSet.LayerChanged       |
+    +----------------------------+
+    |LayerSet.DefaultLayerChanged|
+    +----------------------------+
+    |LayerSet.LayerOrderChanged  |
+    +----------------------------+
+    |LayerSet.LayerAdded         |
+    +----------------------------+
+    |LayerSet.LayerDeleted       |
+    +----------------------------+
+    |LayerSet.LayerWillBeDeleted |
+    +----------------------------+
 
     This object behaves like a dict. For example, to get a particular
     layer::

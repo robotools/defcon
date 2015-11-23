@@ -234,6 +234,12 @@ class Font(BaseObject):
     # ------
 
     def newLayer(self, name):
+        """
+        Create a new :class:`Layer` and add it to
+        the top of the layer order.
+
+        This posts *LayerSet.LayerAdded* and *LayerSet.Changed* notifications.
+        """
         return self._layers.newLayer(name)
 
     # ----------

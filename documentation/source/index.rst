@@ -34,6 +34,7 @@ Objects
    :maxdepth: 1
 
    objects/font
+   objects/layer
    objects/glyph
    objects/contour
    objects/component
@@ -47,6 +48,7 @@ Objects
    objects/unicodedata
    objects/notificationcenter
    objects/base
+   objects/layerSet
 
 
 Dependencies
