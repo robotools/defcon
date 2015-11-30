@@ -50,7 +50,6 @@ class BaseObject(object):
         self._dataOnDisk = None
         self._dataOnDiskTimeStamp = None
         self._undoManager = None
-        #self._undoMethods = None
         self._representations = {}
 
     def __del__(self):
@@ -244,28 +243,16 @@ class BaseObject(object):
     def _get_undoManager(self):
         return self._undoManager
 
-    def setUndoManager(self, manager, prepareUndoFunc="prepareTarget",
-        canUndoFunc="canUndo", getUndoTitleFunc="getUndoTitle", undoFunc="undo",
-        canRedoFunc="canRedo", getRedoTitleFunc="getRedo", redoFunc="redo"):
+    def _set_undoManager(self, manager):
         self._undoManager = manager
-        self._undoMethods = dict(
-            prepareUndo=prepareUndoFunc,
-            canUndo=canUndoFunc,
-            getUndoTitle=getUndoTitleFunc,
-            undo=undoFunc,
-            canRedo=canRedoFunc,
-            getRedoTitle=getRedoTitleFunc,
-            redo=redoFunc,
-        )
 
-    undoManager = property(_get_undoManager, doc="The undo manager assigned to this object.")
+    undoManager = property(_get_undoManager, _set_undoManager,
+                           doc="The undo manager assigned to this object.")
 
     # state registration
 
-    def prepareUndo(self, title=None):
-        manager = self.undoManager
-        prepareUndoFunction = getattr(manager, self._undoMethods["prepareUndo"])
-        prepareUndoFunction(title=title)
+    def prepareUndo(self, *args, **kwargs):
+        self.undoManager.prepareTarget(*args, **kwargs)
 
     # undo
 
@@ -273,26 +260,29 @@ class BaseObject(object):
         manager = self.undoManager
         if manager is None:
             raise NotImplementedError
-        canUndoFunction = getattr(manager, self._undoMethods["canUndo"])
-        return canUndoFunction()
+        return manager.canUndo()
 
-    def getUndoTitle(self, index=-1):
+    def getUndoTitle(self, index=None):
         manager = self.undoManager
         if manager is None:
             raise NotImplementedError
-        getUndoTitleFunction = getattr(
-            manager, self._undoMethods["getUndoTitle"])
-        return getUndoTitleFunction(index)
+        if index is None:
+            index = -1
+        return manager.getUndoTitle(index)
 
-    def undo(self, index=-1):
+    def _undo(self, index):
+        if index is None:
+            index = -1
+        self.undoManager.undo(index)
+
+    def undo(self, index=None):
         manager = self.undoManager
         if manager is None:
             raise NotImplementedError
         dispatcher = self._dispatcher
         if dispatcher is not None:
             self.dispatcher.postNotification(notification=self.beginUndoNotificationName, observable=self)
-        undoFunction = getattr(manager, self._undoMethods["undo"])
-        undoFunction(index)
+        self._undo(index)
         if dispatcher is not None:
             self.dispatcher.postNotification(notification=self.endUndoNotificationName, observable=self)
 
@@ -302,26 +292,29 @@ class BaseObject(object):
         manager = self.undoManager
         if manager is None:
             raise NotImplementedError
-        canRedoFunction = getattr(manager, self._undoMethods["canRedo"])
-        return canRedoFunction()
+        return manager.canRedo()
 
-    def getRedoTitle(self, index=0):
+    def getRedoTitle(self, index=None):
         manager = self.undoManager
         if manager is None:
             raise NotImplementedError
-        getRedoTitleFunction = getattr(
-            manager, self._undoMethods["getRedoTitle"])
-        return getRedoTitleFunction(index)
+        if index is None:
+            index = 0
+        return manager.getRedoTitle(index)
 
-    def redo(self, index=0):
+    def _redo(self, index):
+        if index is None:
+            index = 0
+        self.undoManager.redo(index)
+
+    def redo(self, index=None):
         manager = self.undoManager
         if manager is None:
             raise NotImplementedError
         dispatcher = self._dispatcher
         if dispatcher is not None:
             self.dispatcher.postNotification(notification=self.beginRedoNotificationName, observable=self)
-        redoFunction = getattr(manager, self._undoMethods["redo"])
-        redoFunction(index)
+        self._redo(index)
         if dispatcher is not None:
             self.dispatcher.postNotification(notification=self.endRedoNotificationName, observable=self)
 
