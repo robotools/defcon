@@ -37,7 +37,7 @@ setup(name="defcon",
     description="A set of flexible objects for representing UFO data.",
     author="Tal Leming",
     author_email="tal@typesupply.com",
-    url="http://code.typesupply.com",
+    url="https://github.com/typesupply/defcon",
     license="MIT",
     packages=[
         "defcon",
