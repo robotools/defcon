@@ -13,6 +13,10 @@ class BaseObject(object):
     Name
     ====================
     BaseObject.Changed
+    BaseObject.BeginUndo
+    BaseObject.EndUndo
+    BaseObject.BeginRedo
+    BaseObject.EndRedo
     ====================
 
     Keep in mind that subclasses will not post these same notifications.
@@ -32,6 +36,10 @@ class BaseObject(object):
     """
 
     changeNotificationName = "BaseObject.Changed"
+    beginUndoNotificationName = "BaseObject.BeginUndo"
+    endUndoNotificationName = "BaseObject.EndUndo"
+    beginRedoNotificationName = "BaseObject.BeginRedo"
+    endRedoNotificationName = "BaseObject.EndRedo"
     representationFactories = None
 
     def __init__(self):
@@ -41,6 +49,7 @@ class BaseObject(object):
         self._dispatcher = None
         self._dataOnDisk = None
         self._dataOnDiskTimeStamp = None
+        self._undoManager = None
         self._representations = {}
 
     def __del__(self):
@@ -224,6 +233,90 @@ class BaseObject(object):
 
     def selfNotificationCallback(self, notification):
         self._destroyRepresentationsForNotification(notification)
+
+    # ----
+    # Undo
+    # ----
+
+    # manager
+
+    def _get_undoManager(self):
+        return self._undoManager
+
+    def _set_undoManager(self, manager):
+        self._undoManager = manager
+
+    undoManager = property(_get_undoManager, _set_undoManager,
+                           doc="The undo manager assigned to this object.")
+
+    # state registration
+
+    def prepareUndo(self, *args, **kwargs):
+        self.undoManager.prepareTarget(*args, **kwargs)
+
+    # undo
+
+    def canUndo(self):
+        manager = self.undoManager
+        if manager is None:
+            raise NotImplementedError
+        return manager.canUndo()
+
+    def getUndoTitle(self, index=None):
+        manager = self.undoManager
+        if manager is None:
+            raise NotImplementedError
+        if index is None:
+            index = -1
+        return manager.getUndoTitle(index)
+
+    def _undo(self, index):
+        if index is None:
+            index = -1
+        self.undoManager.undo(index)
+
+    def undo(self, index=None):
+        manager = self.undoManager
+        if manager is None:
+            raise NotImplementedError
+        dispatcher = self._dispatcher
+        if dispatcher is not None:
+            self.dispatcher.postNotification(notification=self.beginUndoNotificationName, observable=self)
+        self._undo(index)
+        if dispatcher is not None:
+            self.dispatcher.postNotification(notification=self.endUndoNotificationName, observable=self)
+
+    # redo
+
+    def canRedo(self):
+        manager = self.undoManager
+        if manager is None:
+            raise NotImplementedError
+        return manager.canRedo()
+
+    def getRedoTitle(self, index=None):
+        manager = self.undoManager
+        if manager is None:
+            raise NotImplementedError
+        if index is None:
+            index = 0
+        return manager.getRedoTitle(index)
+
+    def _redo(self, index):
+        if index is None:
+            index = 0
+        self.undoManager.redo(index)
+
+    def redo(self, index=None):
+        manager = self.undoManager
+        if manager is None:
+            raise NotImplementedError
+        dispatcher = self._dispatcher
+        if dispatcher is not None:
+            self.dispatcher.postNotification(notification=self.beginRedoNotificationName, observable=self)
+        self._redo(index)
+        if dispatcher is not None:
+            self.dispatcher.postNotification(notification=self.endRedoNotificationName, observable=self)
 
     # ---------------
     # Representations

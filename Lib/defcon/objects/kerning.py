@@ -13,6 +13,10 @@ class Kerning(BaseDictObject):
     Name
     ===================
     Kerning.Changed
+    Kerning.BeginUndo
+    Kerning.EndUndo
+    Kerning.BeginRedo
+    Kerning.EndRedo
     Kerning.PairSet
     Kerning.PairDeleted
     Kerning.Cleared
@@ -42,6 +46,10 @@ class Kerning(BaseDictObject):
     """
 
     changeNotificationName = "Kerning.Changed"
+    beginUndoNotificationName = "Kerning.BeginUndo"
+    endUndoNotificationName = "Kerning.EndUndo"
+    beginRedoNotificationName = "Kerning.BeginRedo"
+    endRedoNotificationName = "Kerning.EndRedo"
     setItemNotificationName = "Kerning.PairSet"
     deleteItemNotificationName = "Kerning.PairDeleted"
     clearNotificationName = "Kerning.Cleared"

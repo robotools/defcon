@@ -34,6 +34,10 @@ class Glyph(BaseObject):
     Name
     ============================
     Glyph.Changed
+    Glyph.BeginUndo
+    Glyph.EndUndo
+    Glyph.BeginRedo
+    Glyph.EndRedo
     Glyph.NameWillChange
     Glyph.NameChanged
     Glyph.UnicodesChanged
@@ -72,6 +76,10 @@ class Glyph(BaseObject):
     """
 
     changeNotificationName = "Glyph.Changed"
+    beginUndoNotificationName = "Glyph.BeginUndo"
+    endUndoNotificationName = "Glyph.EndUndo"
+    beginRedoNotificationName = "Glyph.BeginRedo"
+    endRedoNotificationName = "Glyph.EndRedo"
     representationFactories = {
         "defcon.glyph.bounds" : dict(
             factory=glyphBoundsRepresentationFactory,
