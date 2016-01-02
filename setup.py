@@ -6,14 +6,14 @@ from distutils.core import setup
 try:
     import fontTools
 except:
-    print("*** Warning: defcon requires FontTools, see:")
-    print("    fonttools.sf.net")
+    print("*** Warning: defcon requires fontTools, see:")
+    print("    https://github.com/behdad/fonttools")
 
 try:
-    import robofab
+    import ufoLib
 except:
-    print("*** Warning: defcon requires RoboFab, see:")
-    print("    robofab.com")
+    print("*** Warning: defcon requires ufoLib, see:")
+    print("    https://github.com/unified-font-object/ufoLib")
 
 if "sdist" in sys.argv:
     import os
