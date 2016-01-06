@@ -97,9 +97,6 @@ class Glyph(BaseObject):
         self._lib = libClass()
         self._lib.setParent(self)
 
-    def __del__(self):
-        self.destroyAllRepresentations()
-
     def _set_dispatcher(self, dispatcher):
         super(Glyph, self)._set_dispatcher(dispatcher)
         if dispatcher is not None:
@@ -204,7 +201,7 @@ class Glyph(BaseObject):
     bounds = property(_get_bounds, doc="The bounds of the glyph's outline expressed as a tuple of form (xMin, yMin, xMax, yMax).")
 
     def _get_controlPointBounds(self):
-        from fontTools.pens.boundsPen import ControlBoundsPen
+        from robofab.pens.boundsPen import ControlBoundsPen
         if self._controlPointBoundsCache is None:
             pen = ControlBoundsPen(self.getParent())
             self.draw(pen)
