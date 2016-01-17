@@ -24,29 +24,30 @@ def _layoutEngineOTLTablesRepresentationFactory(layoutEngine):
     import os
     import tempfile
     font = layoutEngine.font
-    otf = TTFont()
-    otf.setGlyphOrder(sorted(font.keys()))
-    # XXX hack around fontTools only reading from disk
-    feaPath = tempfile.mktemp()
-    f = open(feaPath, "w")
-    f.write(font.features.text)
-    f.close()
-    # compile with fontTools
-    try:
-        addOpenTypeFeatures(feaPath, otf)
-    except:
-        import traceback
-        print traceback.format_exc(5)
-    finally:
-        # XXX clean up file on disk
-        os.remove(feaPath)
     gdef = gsub = gpos = None
-    if otf.has_key("GDEF"):
-        gdef = otf["GDEF"]
-    if otf.has_key("GSUB"):
-        gsub = otf["GSUB"]
-    if otf.has_key("GPOS"):
-        gpos = otf["GPOS"]
+    if font.features.text:
+        otf = TTFont()
+        otf.setGlyphOrder(sorted(font.keys()))
+        # XXX hack around fontTools only reading from disk
+        feaPath = tempfile.mktemp()
+        f = open(feaPath, "w")
+        f.write(font.features.text)
+        f.close()
+        # compile with fontTools
+        try:
+            addOpenTypeFeatures(feaPath, otf)
+        except:
+            import traceback
+            print traceback.format_exc(5)
+        finally:
+            # XXX clean up file on disk
+            os.remove(feaPath)
+        if otf.has_key("GDEF"):
+            gdef = otf["GDEF"]
+        if otf.has_key("GSUB"):
+            gsub = otf["GSUB"]
+        if otf.has_key("GPOS"):
+            gpos = otf["GPOS"]
     return gdef, gsub, gpos
 
 # -----------
@@ -104,7 +105,7 @@ class LayoutEngine(BaseObject):
             self._updateEngine()
         return self._layoutEngine
 
-    engine = property(_get_engine, doc="The compositor layot engine. This object must always be retrieved from the LayoutEngine for the automatic updating to occur.")
+    engine = property(_get_engine, doc="The compositor layout engine. This object must always be retrieved from the LayoutEngine for the automatic updating to occur.")
 
     # --------------
     # Engine Updates
