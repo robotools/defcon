@@ -24,6 +24,7 @@ from defcon.objects.lib import Lib
 from defcon.objects.uniData import UnicodeData
 from defcon.objects.color import Color
 from defcon.objects.guideline import Guideline
+from defcon.objects.layoutEngine import LayoutEngine
 
 def registerRepresentationFactory(cls, name, factory, destructiveNotifications=None):
     """
