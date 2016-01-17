@@ -138,12 +138,12 @@ class LayoutEngine(BaseObject):
     # default layer changed (changes cmap)
 
     def beginSelfLayersObservation(self):
-        layers = font.layers
+        layers = self.font.layers
         layers.addObserver(observer=self, methodName="_layerSetDefaultLayerWillChange", notification="LayerSet.DefaultLayerWillChange")
         layers.addObserver(observer=self, methodName="_layerSetDefaultLayerChanged", notification="LayerSet.DefaultLayerChanged")
 
     def endSelfLayersObservation(self):
-        layers = font.layers
+        layers = self.font.layers
         layers.removeObserver(observer=self, notification="LayerSet.DefaultLayerWillChange")
         layers.removeObserver(observer=self, notification="LayerSet.DefaultLayerChanged")
 
@@ -157,11 +157,11 @@ class LayoutEngine(BaseObject):
     # cmap change
 
     def beginSelfLayerObservation(self):
-        layer = font.layers.defaultLayer
+        layer = self.font.layers.defaultLayer
         layer.addObserver(observer=self, methodName="_layerGlyphUnicodesChanged", notification="Layer.GlyphUnicodesChanged")
 
     def endSelfLayerObservation(self):
-        layer = font.layers.defaultLayer
+        layer = self.font.layers.defaultLayer
         layer.removeObserver(observer=self, notification="Layer.GlyphUnicodesChanged")
 
     def _layerGlyphUnicodesChanged(self):
@@ -170,11 +170,11 @@ class LayoutEngine(BaseObject):
     # feature text change
 
     def beginSelfFeaturesObservation(self):
-        features = font.features
+        features = self.font.features
         features.addObserver(observer=self, methodName="_featuresTextChanged", notification="Features.TextChanged")
 
     def endSelfFeaturesObservation(self):
-        features = font.features
+        features = self.font.features
         features.removeObserver(observer=self, notification="Features.TextChanged")
 
     def _featuresTextChanged(self, notification):
