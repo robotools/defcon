@@ -312,11 +312,11 @@ class Contour(BaseObject):
             lastWasOffCurve = point.segmentType is None
         if len(segments[-1]) == 0:
             del segments[-1]
-        if lastWasOffCurve and not self.open:
+        if lastWasOffCurve:
             lastSegment = segments[-1]
             segment = segments.pop(0)
             lastSegment.extend(segment)
-            assert len(lastSegment) == 3
+            assert len(lastSegment) == 3 or self.open
         elif segments[0][-1].segmentType != "move":
             segment = segments.pop(0)
             segments.append(segment)
