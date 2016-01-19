@@ -5,8 +5,8 @@ from defcon.objects.base import BaseObject
 
 try:
     import compositor
-    from uniData import UnicodeData
-    from features import Features
+    from defcon.objects.uniData import UnicodeData
+    from defcon.objects.features import Features
 except ImportError:
     pass
 
@@ -29,7 +29,7 @@ def _layoutEngineOTLTablesRepresentationFactory(layoutEngine):
         otf = TTFont()
         otf.setGlyphOrder(sorted(font.keys()))
         # XXX hack around fontTools only reading from disk
-        feaPath = tempfile.mktemp()
+        fd, feaPath = tempfile.mkstemp()
         f = open(feaPath, "w")
         f.write(font.features.text)
         f.close()
@@ -38,15 +38,15 @@ def _layoutEngineOTLTablesRepresentationFactory(layoutEngine):
             addOpenTypeFeatures(feaPath, otf)
         except:
             import traceback
-            print traceback.format_exc(5)
+            print(traceback.format_exc(5))
         finally:
-            # XXX clean up file on disk
+            os.close(fd)
             os.remove(feaPath)
-        if otf.has_key("GDEF"):
+        if "GDEF" in otf:
             gdef = otf["GDEF"]
-        if otf.has_key("GSUB"):
+        if "GSUB" in otf:
             gsub = otf["GSUB"]
-        if otf.has_key("GPOS"):
+        if "GPOS" in otf:
             gpos = otf["GPOS"]
     return gdef, gsub, gpos
 
