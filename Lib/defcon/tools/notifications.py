@@ -3,6 +3,7 @@ A flexible and relatively robust implementation
 of the Observer Pattern.
 """
 
+import sys
 import weakref
 
 """
@@ -364,7 +365,7 @@ class Notification(object):
     data = property(_get_data, doc="Arbitrary data passed along with the notification. There is no set format for this data and there is not requirement that any data be present. Refer to the documentation for methods that are responsible for generating notifications for information about this data.")
 
 
-class ObserverDict(dict):
+class _ObserverDict(dict):
 
     """An object for storing ordered observers."""
 
@@ -398,6 +399,13 @@ class ObserverDict(dict):
             del self[key]
         super(ObserverDict, self).__setitem__(key, value)
         self._order.append(key)
+
+if sys.version_info >= (3, 5):
+    # Python 3.5+ has a C-implementation of OrderedDict
+    from collections import OrderedDict
+    ObserverDict = OrderedDict
+else:
+    ObserverDict = _ObserverDict
 
 # -----
 # Tests
