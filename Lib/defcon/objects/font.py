@@ -140,6 +140,7 @@ class Font(BaseObject):
                 glyphSet = reader.getGlyphSet(layerName)
                 layer = self._layers.newLayer(layerName, glyphSet=glyphSet)
                 layer.dirty = False
+                self._beginSelfLayerNotificationObservation(layer)
             defaultLayerName = reader.getDefaultLayerName()
             self._layers.layerOrder = layerNames
             self._layers.defaultLayer = self._layers[defaultLayerName]
@@ -875,6 +876,7 @@ class Font(BaseObject):
     def endSelfNotificationObservation(self):
         if self.dispatcher is None:
             return
+        self.endSelfLayersNotificationObservation()
         self.endSelfLayerSetNotificationObservation()
         self.endSelfInfoSetNotificationObservation()
         self.endSelfKerningNotificationObservation()
@@ -889,9 +891,20 @@ class Font(BaseObject):
         if notification.object.dirty:
             self.dirty = True
 
+    def beginSelfLayerSetNotificationObservation(self):
+        for layer in self._layers:
+            self._beginSelfLayerNotificationObservation(layer)
+
+    def endSelfLayersNotificationObservation(self):
+        for layer in self._layers:
+            self._endSelfLayerNotificationObservation(layer)
+
     def _layerAddedNotificationCallback(self, notification):
         name = notification.data["name"]
         layer = self.layers[name]
+        self._beginSelfLayerNotificationObservation(layer)
+
+    def _beginSelfLayerNotificationObservation(self, layer):
         layer.addObserver(self, "_glyphAddedNotificationCallback", "Layer.GlyphAdded")
         layer.addObserver(self, "_glyphDeletedNotificationCallback", "Layer.GlyphDeleted")
         layer.addObserver(self, "_glyphRenamedNotificationCallback", "Layer.GlyphNameChanged")
@@ -899,6 +912,9 @@ class Font(BaseObject):
     def _layerWillBeDeletedNotificationCallback(self, notification):
         name = notification.data["name"]
         layer = self.layers[name]
+        self._endSelfLayerNotificationObservation(layer)
+
+    def _endSelfLayerNotificationObservation(self, layer):
         layer.removeObserver(self, "Layer.GlyphAdded")
         layer.removeObserver(self, "Layer.GlyphDeleted")
         layer.removeObserver(self, "Layer.GlyphNameChanged")
@@ -1410,9 +1426,11 @@ class Font(BaseObject):
             item.setDataFromSerialization(data)
 
         def init_set_layers(key, data):
+            self.endSelfLayersNotificationObservation()
             self.endSelfLayerSetNotificationObservation()
             self._layers = self.instantiateLayerSet()
             self.beginSelfLayerSetNotificationObservation()
+            self.beginSelfLayersNotificationObservation()
             self._layers.setDataFromSerialization(data)
 
         def init_set_data(key, data):
