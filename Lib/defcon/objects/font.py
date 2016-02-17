@@ -891,7 +891,7 @@ class Font(BaseObject):
         if notification.object.dirty:
             self.dirty = True
 
-    def beginSelfLayerSetNotificationObservation(self):
+    def beginSelfLayersNotificationObservation(self):
         for layer in self._layers:
             self._beginSelfLayerNotificationObservation(layer)
 
