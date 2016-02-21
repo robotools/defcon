@@ -126,7 +126,7 @@ class ImageSet(BaseObject):
     def __setitem__(self, fileName, data):
         if fileName not in self._data:
             assert fileName == self.makeFileName(fileName)
-        assert data.startswith(pngSignature)
+        assert data.startswith(pngSignature), "Image does not begin with the PNG signature."
         isNewImage = fileName not in self._data
         onDisk = False
         onDiskModTime = None
