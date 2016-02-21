@@ -4,8 +4,7 @@ import weakref
 from ufoLib import UFOReader, UFOLibError
 from defcon.objects.base import BaseObject
 from ufoLib.filenames import userNameToFileName
-
-pngSignature = "\x89PNG\r\n\x1a\n"
+from ufoLib.validators import pngSignature
 
 
 class ImageSet(BaseObject):
