@@ -6,7 +6,7 @@
 Notifications
 =============
 
-defcon uses something similar to the `Observer Pattern <http://en.wikipedia.org/wiki/Observer_pattern>`_ for inter-object communication and object observation. This abstraction allows you to cleanly listen for particular events happening in particular objects. You don't need to wire up lots of hooks into the various objects or establish complex circular relationships thoughout your interface code. Rather, you register to be notified when something happens in an object. In defcon, these are referred to as *notifications*. For example, I want to be notified when the my font changes::
+defcon uses something similar to the `Observer Pattern <http://en.wikipedia.org/wiki/Observer_pattern>`_ for inter-object communication and object observation. This abstraction allows you to cleanly listen for particular events happening in particular objects. You don't need to wire up lots of hooks into the various objects or establish complex circular relationships thoughout your interface code. Rather, you register to be notified when something happens in an object. In defcon, these are referred to as *notifications*. For example, I want to be notified when one of my glyphs is changed::
 
     class MyInterface(object):
 
