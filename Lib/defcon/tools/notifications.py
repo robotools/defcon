@@ -92,7 +92,7 @@ class NotificationCenter(object):
         observer = weakref.ref(observer)
         return observer in self._registry[key]
 
-    def removeObserver(self, observer, notification, observable):
+    def removeObserver(self, observer, notification, observable=None):
         """
         Remove an observer from this notification dispatcher.
 

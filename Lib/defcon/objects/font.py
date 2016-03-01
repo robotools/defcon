@@ -1780,7 +1780,7 @@ def _testGlyphUnicodesChanged():
 
 def _testTestForExternalChanges():
     """
-    >>> from plistlib import readPlist, writePlist
+    >>> from ufoLib.plistlib import readPlist, writePlist
     >>> from defcon.test.testTools import getTestFontPath
     >>> path = getTestFontPath("TestExternalEditing.ufo")
     >>> font = Font(path)

@@ -702,7 +702,7 @@ def _testExternalChanges():
     """
     >>> import os
     >>> import shutil
-    >>> from plistlib import readPlist, writePlist
+    >>> from ufoLib.plistlib import readPlist, writePlist
     >>> from defcon import Font
     >>> from defcon.test.testTools import getTestFontPath, makeTestFontCopy, tearDownTestFontCopy
 
@@ -793,7 +793,7 @@ def _testReloadLayers():
     """
     >>> import os
     >>> import shutil
-    >>> from plistlib import readPlist, writePlist
+    >>> from ufoLib.plistlib import readPlist, writePlist
     >>> from defcon import Font
     >>> from defcon.test.testTools import getTestFontPath, makeTestFontCopy, tearDownTestFontCopy
 

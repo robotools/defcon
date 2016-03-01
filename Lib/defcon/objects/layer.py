@@ -1397,7 +1397,7 @@ def _testGlyphDispatcher():
 
 def _testExternalChanges():
     """
-    >>> from plistlib import readPlist, writePlist
+    >>> from ufoLib.plistlib import readPlist, writePlist
     >>> from defcon import Font
     >>> from defcon.test.testTools import getTestFontPath, makeTestFontCopy, tearDownTestFontCopy
     >>> path = getTestFontPath("TestExternalEditing.ufo")
