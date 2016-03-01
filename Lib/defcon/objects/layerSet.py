@@ -496,13 +496,13 @@ class _StaticLayerInfoMaker(object):
         self.color = None
 
     def pack(self):
-        from plistlib import dumps
+        from ufoLib.plistlib import writePlistToString
         data = {}
         if self.lib:
             data["lib"] = self.lib
         if self.color is not None:
             data["color"] = self.color
-        return dumps(data)
+        return writePlistToString(data)
 
 # -----
 # Tests
