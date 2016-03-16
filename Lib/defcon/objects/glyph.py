@@ -356,7 +356,7 @@ class Glyph(BaseObject):
         """
         Draw the glyph with **pen**.
         """
-        from robofab.pens.adapterPens import PointToSegmentPen
+        from ufoLib.pointPen import PointToSegmentPen
         pointPen = PointToSegmentPen(pen)
         self.drawPoints(pointPen)
 
@@ -387,7 +387,7 @@ class Glyph(BaseObject):
         """
         Get the pen used to draw into this glyph.
         """
-        from robofab.pens.adapterPens import SegmentToPointPen
+        from ufoLib.pointPen import SegmentToPointPen
         return SegmentToPointPen(self.getPointPen())
 
     def getPointPen(self):

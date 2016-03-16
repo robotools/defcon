@@ -1318,6 +1318,7 @@ class Font(BaseObject):
                     setattr(self.info, infoAttr, value)
 
     def _convertToFormatVersion1RoboFabData(self, libCopy):
+        # no ufoLib analogue. should this be re-written?
         from robofab.tools.fontlabFeatureSplitter import splitFeaturesForFontLab
         # features
         features = self.features.text

@@ -267,6 +267,7 @@ class Contour(BaseObject):
         This will post *Contour.WindingDirectionChanged*,
         *Contour.PointsChanged* and *Contour.Changed* notifications.
         """
+        # No ufoLib analogue to ReverseContourPointPen
         from robofab.pens.reverseContourPointPen import ReverseContourPointPen
         oldDirection = self.clockwise
         # put the current points in another contour
@@ -584,7 +585,7 @@ class Contour(BaseObject):
         """
         Draw the contour with **pen**.
         """
-        from robofab.pens.adapterPens import PointToSegmentPen
+        from ufoLib.pointPen import PointToSegmentPen
         pointPen = PointToSegmentPen(pen)
         self.drawPoints(pointPen)
 
