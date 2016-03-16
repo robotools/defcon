@@ -54,8 +54,9 @@ Objects
 Dependencies
 ^^^^^^^^^^^^
 
-* `FontTools <http://fonttools.sf.net>`_
+* `FontTools <https://github.com/behdad/fonttools>`_
 * `RoboFab <http://robofab.com>`_
+* `ufoLib <https://github.com/unified-font-object/ufoLib>`_
 
 
 Indices and tables

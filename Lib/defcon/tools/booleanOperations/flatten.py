@@ -1,9 +1,6 @@
 import math
-from fontTools.pens.basePen import BasePen
 from fontTools.misc import bezierTools
 from fontTools.pens.basePen import decomposeQuadraticSegment
-from robofab.pens.reverseContourPointPen import ReverseContourPointPen
-from robofab.pens.adapterPens import PointToSegmentPen
 
 """
 To Do:
