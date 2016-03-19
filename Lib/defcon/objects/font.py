@@ -915,9 +915,9 @@ class Font(BaseObject):
         self._endSelfLayerNotificationObservation(layer)
 
     def _endSelfLayerNotificationObservation(self, layer):
-        layer.removeObserver(self, "Layer.GlyphAdded")
-        layer.removeObserver(self, "Layer.GlyphDeleted")
-        layer.removeObserver(self, "Layer.GlyphNameChanged")
+        layer.removeObserver(observer=self, notification="Layer.GlyphAdded")
+        layer.removeObserver(observer=self, notification="Layer.GlyphDeleted")
+        layer.removeObserver(observer=self, notification="Layer.GlyphNameChanged")
 
     def _glyphAddedNotificationCallback(self, notification):
         name = notification.data["name"]
