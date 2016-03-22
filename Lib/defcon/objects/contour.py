@@ -5,6 +5,7 @@ from defcon.objects.base import BaseObject
 from defcon.tools import bezierMath
 from defcon.tools.representations import contourBoundsRepresentationFactory,\
     contourControlPointBoundsRepresentationFactory, contourClockwiseRepresentationFactory
+from defcon.tools.identifiers import makeRandomIdentifier
 
 
 class Contour(BaseObject):
