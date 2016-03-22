@@ -34,6 +34,8 @@ class Layer(BaseObject):
     +----------------------------+
     |Layer.GlyphNameChanged      |
     +----------------------------+
+    |Layer.GlyphUnicodesChanged  |
+    +----------------------------+
     |Layer.NameChanged           |
     +----------------------------+
     |Layer.ColorChanged          |
@@ -759,6 +761,7 @@ class Layer(BaseObject):
         if self._unicodeData is not None:
             self._unicodeData.removeGlyphData(glyphName, oldValues)
             self._unicodeData.addGlyphData(glyphName, newValues)
+        self.postNotification("Layer.GlyphUnicodesChanged", data=dict(oldValue=oldValues, newValue=newValues))
 
 
 # ------------

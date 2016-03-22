@@ -11,25 +11,27 @@ class LayerSet(BaseObject):
 
     **This object posts the following notifications:**
 
-    +----------------------------+
-    |Name                        |
-    +============================+
-    |LayerSet.Changed            |
-    +----------------------------+
-    |LayerSet.LayersChanged      |
-    +----------------------------+
-    |LayerSet.LayerChanged       |
-    +----------------------------+
-    |LayerSet.DefaultLayerChanged|
-    +----------------------------+
-    |LayerSet.LayerOrderChanged  |
-    +----------------------------+
-    |LayerSet.LayerAdded         |
-    +----------------------------+
-    |LayerSet.LayerDeleted       |
-    +----------------------------+
-    |LayerSet.LayerWillBeDeleted |
-    +----------------------------+
+    +-------------------------------+
+    |Name                           |
+    +===============================+
+    |LayerSet.Changed               |
+    +-------------------------------+
+    |LayerSet.LayersChanged         |
+    +-------------------------------+
+    |LayerSet.LayerChanged          |
+    +-------------------------------+
+    |LayerSet.DefaultLayerWillChange|
+    +-------------------------------+
+    |LayerSet.DefaultLayerChanged   |
+    +-------------------------------+
+    |LayerSet.LayerOrderChanged     |
+    +-------------------------------+
+    |LayerSet.LayerAdded            |
+    +-------------------------------+
+    |LayerSet.LayerDeleted          |
+    +-------------------------------+
+    |LayerSet.LayerWillBeDeleted    |
+    +-------------------------------+
 
     This object behaves like a dict. For example, to get a particular
     layer::
@@ -113,6 +115,7 @@ class LayerSet(BaseObject):
             raise ValueError("The default layer must not be None.")
         if layer == self._defaultLayer:
             return
+        self.postNotification(notification="LayerSet.DefaultLayerWillChange")
         oldName = None
         if self._defaultLayer is not None:
             oldName = self._defaultLayer.name

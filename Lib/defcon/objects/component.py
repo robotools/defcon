@@ -181,7 +181,7 @@ class Component(BaseObject):
         """
         Draw the component with **pen**.
         """
-        from robofab.pens.adapterPens import PointToSegmentPen
+        from ufoLib.pointPen import PointToSegmentPen
         pointPen = PointToSegmentPen(pen)
         self.drawPoints(pointPen)
 
