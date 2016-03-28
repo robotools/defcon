@@ -6,7 +6,6 @@ import tempfile
 import shutil
 from fontTools.misc.arrayTools import unionRect
 from ufoLib import UFOReader, UFOWriter
-from ufoLib.validators import kerningValidator
 from defcon.errors import DefconError
 from defcon.objects.base import BaseObject
 from defcon.objects.layerSet import LayerSet
@@ -376,31 +375,25 @@ class Font(BaseObject):
             reader = UFOReader(self._path)
         kerning = reader.readKerning()
         groups = reader.readGroups()
-        # validate
-        kerningValidity, kerningErrors = kerningValidator(kerning, groups)
         # instantiate everything and store it if valid
         self._groups = self.instantiateGroups()
         self.beginSelfGroupsNotificationObservation()
         self._kerning = self.instantiateKerning()
         self.beginSelfKerningNotificationObservation()
-        if kerningValidity:
-            ## store groups
-            self._groups.disableNotifications()
-            self._groups.update(groups)
-            self._groups.dirty = False
-            self._groups.enableNotifications()
-            self._stampGroupsDataState(reader)
-            ## store kerning
-            self._kerning.disableNotifications()
-            self._kerning.update(kerning)
-            self._kerning.dirty = False
-            self._kerning.enableNotifications()
-            self._stampKerningDataState(reader)
-        # report the validity
-        if not kerningValidity:
-            error = DefconError("The kerning data is not valid.")
-            error.report = "\n".join(kerningErrors)
-            raise error
+        # Note: the incoming kerning data has not been validated.
+        # Gremlins may be sneaking in through here.
+        ## store groups
+        self._groups.disableNotifications()
+        self._groups.update(groups)
+        self._groups.dirty = False
+        self._groups.enableNotifications()
+        self._stampGroupsDataState(reader)
+        ## store kerning
+        self._kerning.disableNotifications()
+        self._kerning.update(kerning)
+        self._kerning.dirty = False
+        self._kerning.enableNotifications()
+        self._stampKerningDataState(reader)
 
     def instantiateKerning(self):
         kerning = self._kerningClass(
@@ -684,13 +677,6 @@ class Font(BaseObject):
         assert self.layers.defaultLayer is not None
         if self.layers.defaultLayer.name != "public.default":
             assert "public.default" not in self.layers.layerOrder
-        # validate kerning and groups before doing anything destructive
-        if self._kerning is not None and self._groups is not None:
-            kerningValidity, kerningErrors = kerningValidator(self._kerning, self._groups)
-            if not kerningValidity:
-                error = DefconError("The kerning data is not valid.")
-                error.report = "\n".join(kerningErrors)
-                raise error
         ## work out the format version
         # if None is given, fallback to the one that
         # came in when the UFO was loaded
@@ -722,6 +708,8 @@ class Font(BaseObject):
             # save the objects
             self._saveInfo(writer=writer, saveAs=saveAs, progressBar=progressBar)
             self._saveGroups(writer=writer, saveAs=saveAs, progressBar=progressBar)
+            # Note: the outgoing kerning data has not been validated.
+            # Gremlins may be sneaking out through here.
             self._saveKerning(writer=writer, saveAs=saveAs, progressBar=progressBar)
             self._saveLib(writer=writer, saveAs=saveAs, progressBar=progressBar)
             if formatVersion >= 2:
@@ -1141,12 +1129,8 @@ class Font(BaseObject):
         else:
             reader = UFOReader(self._path)
             kerning = reader.readKerning()
-            if self._groups is not None:
-                kerningValidity, kerningErrors = kerningValidator(self._kerning, self._groups)
-                if not kerningValidity:
-                    error = DefconError("The kerning data is not valid.")
-                    error.report = "\n".join(kerningErrors)
-                    raise error
+            # Note: the incoming kerning data has not been validated.
+            # Gremlins may be sneaking in through here.
             self._kerning.clear()
             self._kerning.update(kerning)
             self._stampKerningDataState(reader)
