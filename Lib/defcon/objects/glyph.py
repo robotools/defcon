@@ -683,10 +683,7 @@ class Glyph(BaseObject):
     anchors = property(_get_anchors, _set_anchors, doc="An ordered list of :class:`Anchor` objects stored in the glyph.")
 
     def instantiateAnchor(self, anchorDict=None):
-        anchor = self._anchorClass(
-            glyph=self,
-            anchorDict=anchorDict
-        )
+        anchor = self._anchorClass(anchorDict=anchorDict)
         return anchor
 
     def beginSelfAnchorNotificationObservation(self, anchor):
