@@ -683,10 +683,7 @@ class Glyph(BaseObject):
     anchors = property(_get_anchors, _set_anchors, doc="An ordered list of :class:`Anchor` objects stored in the glyph.")
 
     def instantiateAnchor(self, anchorDict=None):
-        anchor = self._anchorClass(
-            glyph=self,
-            anchorDict=anchorDict
-        )
+        anchor = self._anchorClass(anchorDict=anchorDict)
         return anchor
 
     def beginSelfAnchorNotificationObservation(self, anchor):
@@ -722,19 +719,17 @@ class Glyph(BaseObject):
         This will post a *Glyph.Changed* notification.
         """
         try:
-            assert anchor.glyph != self
+            assert anchor.glyph is None
         except AttributeError:
             pass
         if not isinstance(anchor, self._anchorClass):
             anchor = self.instantiateAnchor(anchorDict=anchor)
-        assert anchor.glyph in (self, None), "This anchor belongs to another glyph."
-        if anchor.glyph is None:
-            if anchor.identifier is not None:
-                identifiers = self._identifiers
-                assert anchor.identifier not in identifiers
-                identifiers.add(anchor.identifier)
-            anchor.glyph = self
-            anchor.beginSelfNotificationObservation()
+        if anchor.identifier is not None:
+            identifiers = self._identifiers
+            assert anchor.identifier not in identifiers
+            identifiers.add(anchor.identifier)
+        anchor.glyph = self
+        anchor.beginSelfNotificationObservation()
         self.beginSelfAnchorNotificationObservation(anchor)
         self._anchors.insert(index, anchor)
         self.postNotification(notification="Glyph.AnchorsChanged")

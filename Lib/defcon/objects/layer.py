@@ -206,6 +206,7 @@ class Layer(BaseObject):
         glyph.enableNotifications()
         self.postNotification("Layer.GlyphAdded", data=(dict(name=name)))
         self.dirty = True
+        return glyph
 
     def insertGlyph(self, glyph, name=None):
         """
