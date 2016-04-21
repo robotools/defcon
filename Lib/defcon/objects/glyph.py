@@ -691,10 +691,7 @@ class Glyph(BaseObject):
     anchors = property(_get_anchors, _set_anchors, doc="An ordered list of :class:`Anchor` objects stored in the glyph.")
 
     def instantiateAnchor(self, anchorDict=None):
-        anchor = self._anchorClass(
-            glyph=self,
-            anchorDict=anchorDict
-        )
+        anchor = self._anchorClass(anchorDict=anchorDict)
         return anchor
 
     def beginSelfAnchorNotificationObservation(self, anchor):
@@ -801,10 +798,7 @@ class Glyph(BaseObject):
     guidelines = property(_get_guidelines, _set_guidelines, doc="An ordered list of :class:`Guideline` objects stored in the glyph. Setting this will post a *Glyph.Changed* notification along with any notifications posted by the :py:meth:`Glyph.appendGuideline` and :py:meth:`Glyph.clearGuidelines` methods.")
 
     def instantiateGuideline(self, guidelineDict=None):
-        guideline = self._guidelineClass(
-            glyph=self,
-            guidelineDict=guidelineDict
-        )
+        guideline = self._guidelineClass(guidelineDict=guidelineDict)
         return guideline
 
     def beginSelfGuidelineNotificationObservation(self, guideline):
