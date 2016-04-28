@@ -316,7 +316,6 @@ class Contour(BaseObject):
             lastSegment = segments[-1]
             segment = segments.pop(0)
             lastSegment.extend(segment)
-            assert len(lastSegment) == 3 or self.open
         elif segments[0][-1].segmentType != "move":
             segment = segments.pop(0)
             segments.append(segment)
