@@ -388,7 +388,7 @@ class Font(BaseObject):
         kerning = reader.readKerning()
         groups = reader.readGroups()
         # validate
-        kerningValidity, kerningErrors = kerningValidator(kerning, groups)
+        kerningValidity, kerningErrors = kerningValidator(kerning)
         # instantiate everything and store it if valid
         self._groups = self.instantiateGroups()
         self.beginSelfGroupsNotificationObservation()
@@ -697,7 +697,7 @@ class Font(BaseObject):
             assert "public.default" not in self.layers.layerOrder
         # validate kerning and groups before doing anything destructive
         if self._kerning is not None and self._groups is not None:
-            kerningValidity, kerningErrors = kerningValidator(self._kerning, self._groups)
+            kerningValidity, kerningErrors = kerningValidator(self._kerning)
             if not kerningValidity:
                 error = DefconError("The kerning data is not valid.")
                 error.report = "\n".join(kerningErrors)
@@ -1168,7 +1168,7 @@ class Font(BaseObject):
             reader = UFOReader(self._path)
             kerning = reader.readKerning()
             if self._groups is not None:
-                kerningValidity, kerningErrors = kerningValidator(self._kerning, self._groups)
+                kerningValidity, kerningErrors = kerningValidator(self._kerning)
                 if not kerningValidity:
                     error = DefconError("The kerning data is not valid.")
                     error.report = "\n".join(kerningErrors)
