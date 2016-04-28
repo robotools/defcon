@@ -1,4 +1,5 @@
-build/
-documentation/build/
 .DS_Store
 *.pyc
+
+build/*
+documentation/build/*
