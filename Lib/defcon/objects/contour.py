@@ -72,6 +72,7 @@ class Contour(BaseObject):
             pointClass = Point
         self._pointClass = pointClass
         self._identifier = None
+        self._dirty = False
 
     def __del__(self):
         super(Contour, self).__del__()
