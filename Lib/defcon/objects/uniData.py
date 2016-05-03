@@ -32,7 +32,7 @@ class UnicodeData(BaseDictObject):
             66 : ["B"],
         }
 
-    To get the list o glyph names associated with a particular Unicode
+    To get the list of glyph names associated with a particular Unicode
     value, do this::
 
         glyphList = unicodeData[65]
@@ -418,7 +418,7 @@ class UnicodeData(BaseDictObject):
     def sortGlyphNames(self, glyphNames, sortDescriptors=[dict(type="unicode")]):
         """
         This sorts the list of **glyphNames** following the sort descriptors
-        provided in the **sortDescriptors** list. Ths works by iterating over
+        provided in the **sortDescriptors** list. This works by iterating over
         the sort descriptors and subdividing. For example, if the first
         sort descriptor is a suffix type, internally, the result of the
         sort will look something like this::
