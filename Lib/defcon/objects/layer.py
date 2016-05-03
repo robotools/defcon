@@ -771,8 +771,8 @@ class Layer(BaseObject):
     def getDataForSerialization(self, **kwargs):
         from functools import partial
         simple_get = partial(getattr, self)
-        serialize = lambda item: item.getDataForSerialization();
-        serialized_get = lambda key: serialize(simple_get(key));
+        serialize = lambda item: item.getDataForSerialization()
+        serialized_get = lambda key: serialize(simple_get(key))
 
         getters = (
             ('lib', serialized_get),

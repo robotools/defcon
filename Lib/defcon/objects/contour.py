@@ -694,15 +694,15 @@ class Contour(BaseObject):
             # store the point pen protocol calls
             # this will store the identifier and the point data
             pointData = []
-            self.drawPoints(Recorder(pointData));
-            return pointData;
+            self.drawPoints(Recorder(pointData))
+            return pointData
 
         getters = [('pen', get_points)]
         return self._serialize(getters, **kwargs)
 
     def setDataFromSerialization(self, data):
         self.clear()
-        self.identifier = None;
+        self.identifier = None
         if 'pen' in data:
             # play back
             Recorder(data['pen'])._play(self)
@@ -752,14 +752,14 @@ class Recorder(object):
         recorderPen._play(glyphB)
     """
     def __init__(self, data=None):
-        self.__dict__['_data'] = data if data is not None else [];
+        self.__dict__['_data'] = data if data is not None else []
 
     def _play(self, target):
         """ Replay all methof calls this Recorder to target.
             Public Method(!)
         """
         for cmd, args, kwds in self._data:
-            getattr(target, cmd)(*args, **kwds);
+            getattr(target, cmd)(*args, **kwds)
 
     def __setattr__(self, name, value):
         raise AttributeError('It\'s not allowed to set attributes here.', name)
@@ -771,7 +771,7 @@ class Recorder(object):
             self._data.append((name, args, kwds))
         # cache the method, don't use __setattr__
         self.__dict__[name] = command
-        return command;
+        return command
 
 # -----
 # Tests

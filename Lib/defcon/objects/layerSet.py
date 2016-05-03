@@ -465,7 +465,7 @@ class LayerSet(BaseObject):
     # -----------------------------
 
     def getDataForSerialization(self, **kwargs):
-        serialize = lambda item: item.getDataForSerialization();
+        serialize = lambda item: item.getDataForSerialization()
 
         def get_layers(k):
             layers = []
@@ -483,12 +483,12 @@ class LayerSet(BaseObject):
         from functools import partial
 
         if 'layers' not in data:
-            return;
+            return
         for name, data, isDefault in data['layers']:
             layer = self.newLayer(name)
             layer.setDataFromSerialization(data)
             if isDefault:
-                self.defaultLayer = layer;
+                self.defaultLayer = layer
 
 class _StaticLayerInfoMaker(object):
 

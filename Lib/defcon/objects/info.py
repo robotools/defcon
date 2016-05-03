@@ -365,7 +365,7 @@ class Info(BaseObject):
         from functools import partial
 
         simple_get = partial(getattr, self)
-        serialize = lambda item: item.getDataForSerialization();
+        serialize = lambda item: item.getDataForSerialization()
         serialized_get = lambda key: serialize(simple_get(key))
         serialized_list_get = lambda key: [serialize(item) for item in simple_get(key)]
 
@@ -374,7 +374,7 @@ class Info(BaseObject):
         ]
         for name in self._properties:
             if getattr(self, '_' + name) is None:
-                continue;
+                continue
             getters.append((name, simple_get))
 
         return self._serialize(getters, **kwargs)
