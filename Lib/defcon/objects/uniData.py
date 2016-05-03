@@ -599,8 +599,7 @@ class UnicodeData(BaseDictObject):
     def _sortByAlphabet(self, glyphNames, ascending, allowPseudoUnicode):
         result = sorted(glyphNames)
         if not ascending:
-            result = reversed(result)
-        result = list(result)
+            result.reverse()
         return result
 
     def _sortBySuffix(self, glyphNames, ascending, allowPseudoUnicode):
@@ -633,8 +632,8 @@ class UnicodeData(BaseDictObject):
                 withValue.append((value, glyphName))
         withValue = [glyphName for uniValue, glyphName in sorted(withValue)]
         if not ascending:
-            withValue = list(reversed(withValue))
-            withoutValue = list(reversed(withoutValue))
+            withValue.reverse()
+            withoutValue.reverse()
             result = [withoutValue, withValue]
         else:
             result = [withValue, withoutValue]
@@ -665,7 +664,7 @@ class UnicodeData(BaseDictObject):
             if tag in tagToGlyphs:
                 sortedResult.append(tagToGlyphs[tag])
         if not ascending:
-            sortedResult = list(reversed(sortedResult))
+            sortedResult.reverse()
         return sortedResult
 
     def _sortByDecompositionBase(self, glyphNames, ascending, allowPseudoUnicode):
@@ -719,7 +718,7 @@ class UnicodeData(BaseDictObject):
             sortedResult.append(baseToGlyphNames[base])
         # reverse if necessary
         if not ascending:
-            sortedResult = reversed(sortedResult)
+            sortedResult.reverse()
         return sortedResult
 
     # custom sorts
