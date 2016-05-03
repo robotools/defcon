@@ -2,6 +2,7 @@ from __future__ import absolute_import
 import weakref
 from warnings import warn
 from fontTools.misc import arrayTools
+from fontTools.misc.py23 import basestring
 from defcon.objects.base import BaseObject
 from defcon.objects.contour import Contour
 from defcon.objects.point import Point
@@ -14,10 +15,6 @@ from defcon.objects.color import Color
 from defcon.tools.representations import glyphBoundsRepresentationFactory, glyphControlPointBoundsRepresentationFactory
 from defcon.pens.decomposeComponentPointPen import DecomposeComponentPointPen
 
-try:
-    basestring
-except NameError:
-    basestring = str
 
 def addRepresentationFactory(name, factory):
     warn("addRepresentationFactory is deprecated. Use the functions in defcon.__init__.", DeprecationWarning)

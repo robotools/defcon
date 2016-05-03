@@ -1,12 +1,7 @@
 from ufoLib.pointPen import AbstractPointPen
-
+from fontTools.misc.py23 import range
 # adapted from robofab.objects.objectsBase.RContour._get_clockwise
 
-try:
-    xrange
-    range = xrange
-except NameError:
-    pass
 
 class ClockwiseTestPointPen(AbstractPointPen):
 

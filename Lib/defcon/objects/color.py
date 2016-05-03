@@ -1,7 +1,4 @@
-try:
-    basestring
-except NameError:
-    basestring = str
+from fontTools.misc.py23 import basestring
 
 
 class Color(str):

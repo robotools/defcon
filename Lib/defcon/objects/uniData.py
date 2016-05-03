@@ -2,14 +2,10 @@ from __future__ import absolute_import
 import weakref
 import unicodedata
 from fontTools.agl import AGL2UV
+from fontTools.misc.py23 import basestring, range
 from defcon.tools import unicodeTools
 from defcon.objects.base import BaseDictObject
 
-try:
-    basestring
-    range = xrange
-except NameError:
-    basestring = str
 
 class UnicodeData(BaseDictObject):
 
