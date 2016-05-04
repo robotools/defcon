@@ -726,7 +726,7 @@ class Recorder(object):
         Example Session PointPen:
 
         data_glyphA = []
-        recorderPointPen = new Recorder(data_glyphA)
+        recorderPointPen = Recorder(data_glyphA)
         glyphA.drawPoints(recorderPointPen)
 
         # The point data of the glyph is now stored within data
@@ -736,7 +736,7 @@ class Recorder(object):
         stored_data = pickle.dumps(data_glyphA)
         restored_data_glyphA = pickle.loads(stored_data)
 
-        player = new Recorder(restored_data_glyphA)
+        player = Recorder(restored_data_glyphA)
         # The recorder behaves like glyphA.drawPoints
         player._play(glyphB)
 
@@ -744,7 +744,7 @@ class Recorder(object):
         Example Session SegmentPen:
 
         data_glyphA = []
-        recorderPen = new Recorder(data_glyphA)
+        recorderPen = Recorder(data_glyphA)
         glyphA.draw(recorderPen)
 
         # reuse it immediately
