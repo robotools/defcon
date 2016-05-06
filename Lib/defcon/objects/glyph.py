@@ -1202,7 +1202,7 @@ class Glyph(BaseObject):
         return self._serialize(getters, **kwargs)
 
     def setDataFromSerialization(self, data):
-        from functools import partial, wraps
+        from functools import partial
 
         set_attr = partial(setattr, self) # key, data
 
