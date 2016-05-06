@@ -1,25 +1,19 @@
 #!/usr/bin/env python
-
+from __future__ import print_function
 import sys
 from distutils.core import setup
 
 try:
     import fontTools
 except:
-    print "*** Warning: defcon requires FontTools, see:"
-    print "    github.com/behdad/fonttools"
+    print("*** Warning: defcon requires fontTools, see:")
+    print("    https://github.com/behdad/fonttools")
 
-try:
-    import robofab
-except:
-    print "*** Warning: defcon requires RoboFab, see:"
-    print "    robofab.com"
-    
 try:
     import ufoLib
 except:
-    print "*** Warning: defcon requires ufoLib, see:"
-    print "    github.com/unified-font-object/ufoLib"
+    print("*** Warning: defcon requires ufoLib, see:")
+    print("    https://github.com/unified-font-object/ufoLib")
 
 if "sdist" in sys.argv:
     import os

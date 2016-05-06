@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import os
 import re
 import weakref
@@ -133,25 +134,32 @@ class Font(BaseObject):
             reader = UFOReader(self._path)
             self._ufoFormatVersion = reader.formatVersion
             # go ahead and load the layers
+            self._layers.disableNotifications()
             layerNames = reader.getLayerNames()
             for layerName in layerNames:
                 glyphSet = reader.getGlyphSet(layerName)
                 layer = self._layers.newLayer(layerName, glyphSet=glyphSet)
                 layer.dirty = False
+                self._beginSelfLayerNotificationObservation(layer)
             defaultLayerName = reader.getDefaultLayerName()
             self._layers.layerOrder = layerNames
             self._layers.defaultLayer = self._layers[defaultLayerName]
             self._layers.dirty = False
+            self._layers.enableNotifications()
             # get the image file names
+            self._images.disableNotifications()
             self._images.fileNames = reader.getImageDirectoryListing()
+            self._images.enableNotifications()
             # get the data directory listing
+            self._data.disableNotifications()
             self._data.fileNames = reader.getDataDirectoryListing()
+            self._data.enableNotifications()
             # if the UFO version is 1, do some conversion.
             if self._ufoFormatVersion == 1:
                 self._convertFromFormatVersion1RoboFabData()
             # if the ufo version is < 3, read the kerning and groups
             # right now. do this by creating a reference to the reader.
-            # otherwsie a situation could arise where the groups
+            # otherwise a situation could arise where the groups
             # are modified by an external source before being read.
             # that could create a data corruption within this object.
             if self._ufoFormatVersion < 3:
@@ -159,6 +167,10 @@ class Font(BaseObject):
                 self._kerningGroupConversionRenameMaps = reader.getKerningGroupConversionRenameMaps()
                 k = self.kerning
                 g = self.groups
+            else:
+                # unless we did some conversion from an older ufo-format, mark
+                # the font as unmodified
+                self._dirty = False
 
         if self._layers.defaultLayer is None:
             layer = self.newLayer("public.default")
@@ -197,7 +209,7 @@ class Font(BaseObject):
         return self._glyphSet.insertGlyph(glyph, name=name)
 
     def __iter__(self):
-        names = self._glyphSet.keys()
+        names = list(self._glyphSet.keys())
         while names:
             name = names[0]
             yield self._glyphSet[name]
@@ -853,6 +865,7 @@ class Font(BaseObject):
     def endSelfNotificationObservation(self):
         if self.dispatcher is None:
             return
+        self.endSelfLayersNotificationObservation()
         self.endSelfLayerSetNotificationObservation()
         self.endSelfInfoSetNotificationObservation()
         self.endSelfKerningNotificationObservation()
@@ -867,9 +880,20 @@ class Font(BaseObject):
         if notification.object.dirty:
             self.dirty = True
 
+    def beginSelfLayersNotificationObservation(self):
+        for layer in self._layers:
+            self._beginSelfLayerNotificationObservation(layer)
+
+    def endSelfLayersNotificationObservation(self):
+        for layer in self._layers:
+            self._endSelfLayerNotificationObservation(layer)
+
     def _layerAddedNotificationCallback(self, notification):
         name = notification.data["name"]
         layer = self.layers[name]
+        self._beginSelfLayerNotificationObservation(layer)
+
+    def _beginSelfLayerNotificationObservation(self, layer):
         layer.addObserver(self, "_glyphAddedNotificationCallback", "Layer.GlyphAdded")
         layer.addObserver(self, "_glyphDeletedNotificationCallback", "Layer.GlyphDeleted")
         layer.addObserver(self, "_glyphRenamedNotificationCallback", "Layer.GlyphNameChanged")
@@ -877,9 +901,12 @@ class Font(BaseObject):
     def _layerWillBeDeletedNotificationCallback(self, notification):
         name = notification.data["name"]
         layer = self.layers[name]
-        layer.removeObserver(self, "Layer.GlyphAdded")
-        layer.removeObserver(self, "Layer.GlyphDeleted")
-        layer.removeObserver(self, "Layer.GlyphNameChanged")
+        self._endSelfLayerNotificationObservation(layer)
+
+    def _endSelfLayerNotificationObservation(self, layer):
+        layer.removeObserver(observer=self, notification="Layer.GlyphAdded")
+        layer.removeObserver(observer=self, notification="Layer.GlyphDeleted")
+        layer.removeObserver(observer=self, notification="Layer.GlyphNameChanged")
 
     def _glyphAddedNotificationCallback(self, notification):
         name = notification.data["name"]
@@ -1234,7 +1261,7 @@ class Font(BaseObject):
         self.layers.reloadLayers(layerData)
         self.postNotification(notification="Font.ReloadedLayers")
         self.postNotification(notification="Font.ReloadedGlyphs")
-        
+
 
     # -----------------------------
     # UFO Format Version Conversion
@@ -1251,8 +1278,7 @@ class Font(BaseObject):
         if splitFeatures is not None:
             order = self.lib.get("org.robofab.opentype.featureorder")
             if order is None:
-                order = splitFeatures.keys()
-                order.sort()
+                order = sorted(splitFeatures.keys())
             else:
                 del self.lib["org.robofab.opentype.featureorder"]
             del self.lib["org.robofab.opentype.features"]
@@ -1300,7 +1326,7 @@ class Font(BaseObject):
                         value.append(i)
                         value.append(j)
                     setattr(self.info, infoAttr, value)
-    
+
     featureRE = re.compile(
         "^"            # start of line
         "\s*"          #
@@ -1311,7 +1337,7 @@ class Font(BaseObject):
         "\{"           # {
         , re.MULTILINE # run in multiline to preserve line seps
     )
-    
+
     def _splitFeaturesForConversion(self, text):
         classes = ""
         features = []
@@ -1382,10 +1408,91 @@ class Font(BaseObject):
                         finalValues.append([])
                     finalValues[-1].append(value)
                 hintData[libKey] = finalValues
-        for key, value in hintData.items():
+        for key, value in list(hintData.items()):
             if value is None:
                 del hintData[key]
         libCopy["org.robofab.postScriptHintData"] = hintData
+
+    # -----------------------------
+    # Serialization/Deserialization
+    # -----------------------------
+
+    def getDataForSerialization(self, **kwargs):
+        from functools import partial
+
+        simple_get = partial(getattr, self)
+        serialize = lambda item: item.getDataForSerialization()
+        serialized_get = lambda key: serialize(simple_get(key))
+
+        getters = (
+            ('_ufoFormatVersion', simple_get),
+            ('_kerningGroupConversionRenameMaps', simple_get),
+            # _path ? => setting path may change the behavior when deserializing a lot!
+            # also path should be set by the caller, e.g. when saving the font
+            # otherwise, path should be deserialized as the very last item,
+            # because otherwise the font object will try to load a lot data
+            # from disk, when deserializing.
+            ('data', serialized_get),
+            ('features', serialized_get),
+            ('groups', serialized_get),
+            ('images', serialized_get),
+            ('info',  serialized_get),
+            ('kerning', serialized_get),
+            ('layers',  serialized_get),
+            ('lib', serialized_get)
+        )
+
+        return self._serialize(getters, **kwargs)
+
+    def setDataFromSerialization(self, data):
+        from functools import partial
+
+        set_attr = partial(setattr, self) # key, data
+
+        def single_update(key, data):
+            item = getattr(self, key)
+            item.setDataFromSerialization(data)
+
+        def init_set_layers(key, data):
+            self.endSelfLayersNotificationObservation()
+            self.endSelfLayerSetNotificationObservation()
+            self._layers = self.instantiateLayerSet()
+            self.beginSelfLayerSetNotificationObservation()
+            self.beginSelfLayersNotificationObservation()
+            self._layers.setDataFromSerialization(data)
+
+        def init_set_data(key, data):
+            self.endSelfDataSetNotificationObservation()
+            self._data = self.instantiateDataSet()
+            self.beginSelfDataSetNotificationObservation()
+            self._data.setDataFromSerialization(data)
+
+        def init_set_images(key, data):
+            self.endSelfImageSetNotificationObservation()
+            self._images = self.instantiateImageSet()
+            self.beginSelfImageSetNotificationObservation()
+            self._images.setDataFromSerialization(data)
+
+
+        # TODO: fill the rest of setDataFromSerialization/getDataForSerialization pairs
+        setters = (
+            ('_ufoFormatVersion', set_attr),
+            ('_kerningGroupConversionRenameMaps', set_attr),
+            ('data', init_set_data),
+            ('features', single_update),
+            ('groups', single_update),
+            ('images', init_set_images),
+            ('info', single_update),
+            ('kerning', single_update),
+            ('layers', init_set_layers),
+            ('lib', single_update)
+        )
+
+        for key, setter in setters:
+            if key not in data:
+                continue
+            setter(key, data[key])
+
 
 
 # -----
@@ -1405,8 +1512,7 @@ def _testNewGlyph():
     """
     >>> from defcon.test.testTools import getTestFontPath
     >>> font = Font(getTestFontPath())
-    >>> font.newGlyph('NewGlyphTest')
-    >>> glyph = font['NewGlyphTest']
+    >>> glyph = font.newGlyph('NewGlyphTest')
     >>> glyph.name
     'NewGlyphTest'
     >>> glyph.dirty
@@ -1521,7 +1627,7 @@ def _testLen():
     >>> font = Font(getTestFontPath())
     >>> len(font)
     3
-    
+
     >>> font = Font()
     >>> len(font)
     0
@@ -1535,7 +1641,7 @@ def _testContains():
     True
     >>> 'NotInFont' in font
     False
-    
+
     >>> font = Font()
     >>> 'A' in font
     False
@@ -1547,17 +1653,17 @@ def _testKeys():
     >>> font = Font(getTestFontPath())
     >>> keys = font.keys()
     >>> keys.sort()
-    >>> print keys
+    >>> keys
     ['A', 'B', 'C']
     >>> del font["A"]
     >>> keys = font.keys()
     >>> keys.sort()
-    >>> print keys
+    >>> keys
     ['B', 'C']
     >>> font.newGlyph("A")
     >>> keys = font.keys()
     >>> keys.sort()
-    >>> print keys
+    >>> keys
     ['A', 'B', 'C']
 
     >>> font = Font()
@@ -1566,7 +1672,7 @@ def _testKeys():
     >>> font.newGlyph("A")
     >>> keys = font.keys()
     >>> keys.sort()
-    >>> print keys
+    >>> keys
     ['A']
     """
 
@@ -1694,8 +1800,7 @@ def _testGlyphUnicodesChanged():
     >>> font.unicodeData.get(65)
 
     >>> font = Font(getTestFontPath())
-    >>> font.newGlyph("test")
-    >>> glyph = font["test"]
+    >>> glyph = font.newGlyph("test")
     >>> glyph.unicodes = [65]
     >>> font.unicodeData[65]
     ['test', 'A']
@@ -1703,7 +1808,7 @@ def _testGlyphUnicodesChanged():
 
 def _testTestForExternalChanges():
     """
-    >>> from plistlib import readPlist, writePlist
+    >>> from ufoLib.plistlib import readPlist, writePlist
     >>> from defcon.test.testTools import getTestFontPath
     >>> path = getTestFontPath("TestExternalEditing.ufo")
     >>> font = Font(path)
@@ -1900,7 +2005,7 @@ def _testGlyphOrder():
     >>> font = Font(getTestFontPath())
     >>> font.glyphOrder
     []
-    >>> font.glyphOrder = list(sorted(font.keys()))
+    >>> font.glyphOrder = sorted(font.keys())
     >>> font.glyphOrder
     ['A', 'B', 'C']
     >>> layer = font.layers["public.default"]
@@ -1919,19 +2024,19 @@ def _testSplitFeaturesForConversion():
     """
     >>> testText = '''
     >>> @class1 = [a b c d];
-    >>> 
+    >>>
     >>> feature liga {
     >>>     sub f i by fi;
     >>> } liga;
-    >>> 
+    >>>
     >>> @class2 = [x y z];
-    >>> 
+    >>>
     >>> feature salt {
     >>> sub a by a.alt;
     >>> } salt; feature ss01 {sub x by x.alt} ss01;
-    >>> 
+    >>>
     >>> feature ss02 {sub y by y.alt} ss02;
-    >>> 
+    >>>
     >>> # feature calt {
     >>> #     sub a b' by b.alt;
     >>> # } calt;

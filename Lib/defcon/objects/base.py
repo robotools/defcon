@@ -1,6 +1,7 @@
+from __future__ import absolute_import
 import weakref
 from defcon.tools.notifications import NotificationCenter
-
+import pickle
 
 class BaseObject(object):
 
@@ -13,6 +14,10 @@ class BaseObject(object):
     Name
     ====================
     BaseObject.Changed
+    BaseObject.BeginUndo
+    BaseObject.EndUndo
+    BaseObject.BeginRedo
+    BaseObject.EndRedo
     ====================
 
     Keep in mind that subclasses will not post these same notifications.
@@ -24,7 +29,7 @@ class BaseObject(object):
     +=========================+==================================================+
     | changeNotificationName  | This must be a string unique to the class        |
     |                         | indicating the name of the notification          |
-    |                         | to be posted when th dirty attribute is set.     |
+    |                         | to be posted when the dirty attribute is set.    |
     +-------------------------+--------------------------------------------------+
     | representationFactories | This must be a dictionary that is shared across  |
     |                         | *all* instances of the class.                    |
@@ -32,6 +37,10 @@ class BaseObject(object):
     """
 
     changeNotificationName = "BaseObject.Changed"
+    beginUndoNotificationName = "BaseObject.BeginUndo"
+    endUndoNotificationName = "BaseObject.EndUndo"
+    beginRedoNotificationName = "BaseObject.BeginRedo"
+    endRedoNotificationName = "BaseObject.EndRedo"
     representationFactories = None
 
     def __init__(self):
@@ -41,6 +50,7 @@ class BaseObject(object):
         self._dispatcher = None
         self._dataOnDisk = None
         self._dataOnDiskTimeStamp = None
+        self._undoManager = None
         self._representations = {}
 
     def __del__(self):
@@ -75,7 +85,7 @@ class BaseObject(object):
         Add an observer to this object's notification dispatcher.
 
         * **observer** An object that can be referenced with weakref.
-        * **methodName** A string epresenting the method to be called
+        * **methodName** A string representing the method to be called
           when the notification is posted.
         * **notification** The notification that the observer should
           be notified of.
@@ -225,6 +235,90 @@ class BaseObject(object):
     def selfNotificationCallback(self, notification):
         self._destroyRepresentationsForNotification(notification)
 
+    # ----
+    # Undo
+    # ----
+
+    # manager
+
+    def _get_undoManager(self):
+        return self._undoManager
+
+    def _set_undoManager(self, manager):
+        self._undoManager = manager
+
+    undoManager = property(_get_undoManager, _set_undoManager,
+                           doc="The undo manager assigned to this object.")
+
+    # state registration
+
+    def prepareUndo(self, *args, **kwargs):
+        self.undoManager.prepareTarget(*args, **kwargs)
+
+    # undo
+
+    def canUndo(self):
+        manager = self.undoManager
+        if manager is None:
+            raise NotImplementedError
+        return manager.canUndo()
+
+    def getUndoTitle(self, index=None):
+        manager = self.undoManager
+        if manager is None:
+            raise NotImplementedError
+        if index is None:
+            index = -1
+        return manager.getUndoTitle(index)
+
+    def _undo(self, index):
+        if index is None:
+            index = -1
+        self.undoManager.undo(index)
+
+    def undo(self, index=None):
+        manager = self.undoManager
+        if manager is None:
+            raise NotImplementedError
+        dispatcher = self._dispatcher
+        if dispatcher is not None:
+            self.dispatcher.postNotification(notification=self.beginUndoNotificationName, observable=self)
+        self._undo(index)
+        if dispatcher is not None:
+            self.dispatcher.postNotification(notification=self.endUndoNotificationName, observable=self)
+
+    # redo
+
+    def canRedo(self):
+        manager = self.undoManager
+        if manager is None:
+            raise NotImplementedError
+        return manager.canRedo()
+
+    def getRedoTitle(self, index=None):
+        manager = self.undoManager
+        if manager is None:
+            raise NotImplementedError
+        if index is None:
+            index = 0
+        return manager.getRedoTitle(index)
+
+    def _redo(self, index):
+        if index is None:
+            index = 0
+        self.undoManager.redo(index)
+
+    def redo(self, index=None):
+        manager = self.undoManager
+        if manager is None:
+            raise NotImplementedError
+        dispatcher = self._dispatcher
+        if dispatcher is not None:
+            self.dispatcher.postNotification(notification=self.beginRedoNotificationName, observable=self)
+        self._redo(index)
+        if dispatcher is not None:
+            self.dispatcher.postNotification(notification=self.endRedoNotificationName, observable=self)
+
     # ---------------
     # Representations
     # ---------------
@@ -323,6 +417,57 @@ class BaseObject(object):
 
     dirty = property(_get_dirty, _set_dirty, doc="The dirty state of the object. True if the object has been changed. False if not. Setting this to True will cause the base changed notification to be posted. The object will automatically maintain this attribute and update it as you change the object.")
 
+    # -----------------------------
+    # Serialization/Deserialization
+    # -----------------------------
+
+    def serialize(self, dumpFunc=None, whitelist=None, blacklist=None):
+        data = self.getDataForSerialization(whitelist=whitelist, blacklist=blacklist)
+
+        dump = dumpFunc if dumpFunc is not None else pickle.dumps
+        return dump(data)
+
+    def deserialize(self, data, loadFunc=None):
+        load = loadFunc if loadFunc is not None else pickle.loads
+        self.setDataFromSerialization(load(data))
+
+    def getDataForSerialization(self, **kwargs):
+        """
+        Return a dict of data that can be pickled.
+        """
+        return {}
+
+    def setDataFromSerialization(self, data):
+        """
+        Restore state from the provided data-dict.
+        """
+        pass
+
+    def _serialize(self, getters, whitelist=None, blacklist=None, **kwargs):
+        """ A helper function for the defcon objects.
+
+        Return a dict where the keys are the keys in getters and the values
+        are the results of the getter functions
+
+        getters is a list of tuples:
+        [
+            (:str:key, :callable:getter_function)
+        ]
+
+        if a whitelist is not None: the key must be in whitelist
+        if a blacklist is not None: the key must not be in blacklist
+        """
+        data = {}
+        for key, getter in getters:
+            if whitelist is not None and key not in whitelist:
+                continue
+            if blacklist is not None and key in blacklist:
+                continue
+            data[key] = getter(key)
+        return data
+
+
+
 
 class BaseDictObject(dict, BaseObject):
 
@@ -398,6 +543,25 @@ class BaseDictObject(dict, BaseObject):
             self.postNotification(self.updateNotificationName)
         self.dirty = True
 
+    # -----------------------------
+    # Serialization/Deserialization
+    # -----------------------------
+
+    def getDataForSerialization(self, **kwargs):
+        from copy import deepcopy
+
+        deep_get = lambda k: deepcopy(self[k])
+
+        getters = []
+        for k in self.keys():
+            k = deepcopy(k) # needed?
+            getters.append((k, deep_get))
+
+        return self._serialize(getters, **kwargs)
+
+    def setDataFromSerialization(self, data):
+        self.clear()
+        self.update(data)
 
 def _representationTestFactory(obj, **kwargs):
     return repr(tuple(sorted(kwargs.items())))

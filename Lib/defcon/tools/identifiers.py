@@ -8,8 +8,7 @@ identifierRange = range(identifierLength)
 
 def makeRandomIdentifier(existing, recursionDepth=0):
     if recursionDepth >= 50:
-        raise NotImplementedError,\
-            "Failed 50 times in a row to create a unique id. Sorry."
+        raise NotImplementedError("Failed 50 times in a row to create a unique id. Sorry.")
     identifier = []
     for i in identifierRange:
         c = random.choice(characters)

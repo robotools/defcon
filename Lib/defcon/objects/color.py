@@ -1,3 +1,6 @@
+from fontTools.misc.py23 import basestring
+
+
 class Color(str):
 
     """

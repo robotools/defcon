@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import os
 import weakref
 from ufoLib import UFOReader, UFOLibError
@@ -52,7 +53,7 @@ class DataSet(BaseObject):
     # ----------
 
     def _get_fileNames(self):
-        return self._data.keys()
+        return list(self._data.keys())
 
     def _set_fileNames(self, fileNames):
         assert not self._data
@@ -195,6 +196,25 @@ class DataSet(BaseObject):
     def endSelfNotificationObservation(self):
         super(DataSet, self).endSelfNotificationObservation()
         self._font = None
+
+    # -----------------------------
+    # Serialization/Deserialization
+    # -----------------------------
+
+    def getDataForSerialization(self, **kwargs):
+        simple_get = lambda key: self[key]
+
+        getters = []
+        for k in self.fileNames:
+            getters.append((k, simple_get))
+
+        return self._serialize(getters, **kwargs)
+
+    def setDataFromSerialization(self, data):
+        self._data = {}
+        self._scheduledForDeletion = {}
+        for k in data:
+            self[k] = data[k]
 
 
 def _dataDict(data=None, dirty=False, onDisk=True, onDiskModTime=None):

@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import weakref
 from warnings import warn
 from fontTools.misc.transform import Transform
@@ -199,12 +200,13 @@ class Component(BaseObject):
     # Move
     # ----
 
-    def move(self, (x, y)):
+    def move(self, values):
         """
         Move the component by **(x, y)**.
 
         This posts *Component.TransformationChanged* and *Component.Changed* notifications.
         """
+        (x, y) = values
         xScale, xyScale, yxScale, yScale, xOffset, yOffset = self._transformation
         xOffset += x
         yOffset += y
@@ -214,11 +216,12 @@ class Component(BaseObject):
     # Point Inside
     # ------------
 
-    def pointInside(self, (x, y), evenOdd=False):
+    def pointInside(self, coordinates, evenOdd=False):
         """
         Returns a boolean indicating if **(x, y)** is in the
         "black" area of the component.
         """
+        (x, y) = coordinates
         from fontTools.pens.pointInsidePen import PointInsidePen
         glyph = self.glyph
         if glyph is None:
@@ -384,6 +387,36 @@ class Component(BaseObject):
 
     def baseGlyphDataChangedNotificationCallback(self, notification):
         self.postNotification("Component.BaseGlyphDataChanged")
+
+    # -----------------------------
+    # Serialization/Deserialization
+    # -----------------------------
+
+    def getDataForSerialization(self, **kwargs):
+        from functools import partial
+
+        simple_get = partial(getattr, self)
+        getters = (
+            ('baseGlyph', simple_get),
+            ('transformation', simple_get),
+            ('identifier', simple_get)
+        )
+
+        return self._serialize(getters, **kwargs)
+
+    def setDataFromSerialization(self, data):
+        from functools import partial
+
+        simple_set = partial(setattr, self)
+        setters = (
+            ('baseGlyph', simple_set),
+            ('transformation', simple_set),
+            ('identifier', simple_set)
+        )
+        for key, setter in setters:
+            if key not in data:
+                continue
+            setter(key, data[key])
 
 
 def _testIdentifier():

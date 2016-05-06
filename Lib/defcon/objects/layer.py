@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import os
 import weakref
 from fontTools.misc.arrayTools import unionRect, calcBounds
@@ -170,10 +171,10 @@ class Layer(BaseObject):
     def loadGlyph(self, name):
         """
         Load a glyph from the glyph set. This should not be called
-        externally, but subclasses may overrode it for custom behavior.
+        externally, but subclasses may override it for custom behavior.
         """
-        if self._glyphSet is None or not self._glyphSet.has_key(name):
-            raise KeyError, "%s not in layer" % name
+        if self._glyphSet is None or name not in self._glyphSet:
+            raise KeyError("%s not in layer" % name)
         glyph = self.instantiateGlyphObject()
         glyph.disableNotifications()
         glyph._isLoading = True
@@ -223,14 +224,13 @@ class Layer(BaseObject):
         # it is crucially important that the data be reconstructed
         # in its entirety so that the parent data is properly set
         # in all of the various objects.
-        from copy import deepcopy
+        # FIXME: Please Explain!!
         source = glyph
         if name is None:
             name = source.name
         self.postNotification("Layer.GlyphWillBeAdded", data=(dict(name=name)))
         self.holdNotifications()
-        self.newGlyph(name)
-        dest = self[name]
+        dest = self.newGlyph(name)
         dest.copyDataFromGlyph(glyph)
         self.releaseHeldNotifications()
         return dest
@@ -251,7 +251,7 @@ class Layer(BaseObject):
     # -------------
 
     def __iter__(self):
-        names = self.keys()
+        names = list(self.keys())
         while names:
             name = names[0]
             yield self[name]
@@ -264,7 +264,7 @@ class Layer(BaseObject):
 
     def __delitem__(self, name):
         if name not in self:
-            raise KeyError, "%s not in layer" % name
+            raise KeyError("%s not in layer" % name)
         self.postNotification("Layer.GlyphWillBeDeleted", data=dict(name=name))
         self._deleteGlyph(name)
         self.postNotification("Layer.GlyphDeleted", data=dict(name=name))
@@ -574,7 +574,7 @@ class Layer(BaseObject):
                             cmap[code] = [glyphName]
 
             self._unicodeData = self.instantiateUnicodeData()
-            self._unicodeData.disableNotifications()        
+            self._unicodeData.disableNotifications()
             self._unicodeData.update(cmap)
             self._unicodeData.enableNotifications()
             self.beginSelfUnicodeDataNotificationObservation()
@@ -764,6 +764,53 @@ class Layer(BaseObject):
             self._unicodeData.addGlyphData(glyphName, newValues)
         self.postNotification("Layer.GlyphUnicodesChanged", data=dict(oldValue=oldValues, newValue=newValues))
 
+    # -----------------------------
+    # Serialization/Deserialization
+    # -----------------------------
+
+    def getDataForSerialization(self, **kwargs):
+        from functools import partial
+        simple_get = partial(getattr, self)
+        serialize = lambda item: item.getDataForSerialization()
+        serialized_get = lambda key: serialize(simple_get(key))
+
+        getters = (
+            ('lib', serialized_get),
+            ('color', simple_get),
+            ('glyphs', lambda _: {name:self[name].getDataForSerialization() for name in self.keys()})
+        )
+
+        return self._serialize(getters, **kwargs)
+
+    def setDataFromSerialization(self, data):
+        from functools import partial
+
+        set_attr = partial(setattr, self) # key, data
+
+        def set_glyph(name, data):
+            glyph = self.instantiateGlyphObject()
+            glyph.setDataFromSerialization(data)
+            # there is a redundancy of of the glyph name. I decide here that
+            # the single source of truth is the dict key of the layer, not
+            # whatever the glyph brings with it.
+            glyph.name = name
+            self._insertGlyph(glyph)
+
+        def set_glyphs(key, glyphs):
+            for name in glyphs:
+                set_glyph(name, glyphs[name])
+
+        setters = (
+            ('lib', set_attr),
+            ('color', set_attr),
+            ('glyphs', set_glyphs)
+        )
+
+        for key, setter in setters:
+            if key not in data:
+                continue
+            setter(key, data[key])
+
 
 # ------------
 # Fast Parsers
@@ -790,7 +837,9 @@ class _BaseParser(object):
     def parse(self, text):
         from xml.parsers.expat import ParserCreate
         parser = ParserCreate()
-        parser.returns_unicode = 0
+        # no attribute returns_unicode in Python3
+        if hasattr(parser, "returns_unicode"):
+            parser.returns_unicode = 0
         parser.StartElementHandler = self.startElementHandler
         parser.EndElementHandler = self.endElementHandler
         parser.Parse(text)
@@ -904,8 +953,7 @@ def _testNewGlyph():
     >>> from defcon.test.testTools import getTestFontPath
     >>> font = Font(getTestFontPath())
     >>> layer = font.layers["public.default"]
-    >>> layer.newGlyph('NewGlyphTest')
-    >>> glyph = layer['NewGlyphTest']
+    >>> glyph = layer.newGlyph('NewGlyphTest')
     >>> glyph.name
     'NewGlyphTest'
     >>> glyph.dirty
@@ -1090,17 +1138,17 @@ def _testKeys():
     >>> layer = font.layers["public.default"]
     >>> keys = layer.keys()
     >>> keys.sort()
-    >>> print keys
+    >>> keys
     ['A', 'B', 'C']
     >>> del layer["A"]
     >>> keys = layer.keys()
     >>> keys.sort()
-    >>> print keys
+    >>> keys
     ['B', 'C']
     >>> layer.newGlyph("A")
     >>> keys = layer.keys()
     >>> keys.sort()
-    >>> print keys
+    >>> keys
     ['A', 'B', 'C']
 
     >>> font = Font()
@@ -1110,7 +1158,7 @@ def _testKeys():
     >>> layer.newGlyph("A")
     >>> keys = layer.keys()
     >>> keys.sort()
-    >>> print keys
+    >>> keys
     ['A']
     """
 
@@ -1189,8 +1237,7 @@ def _testImageReferences():
     >>> layer = font.layers["Layer 1"]
     >>> layer.imageReferences
     {'image 1.png': ['A']}
-    >>> layer.newGlyph("B")
-    >>> glyph = layer["B"]
+    >>> glyph = layer.newGlyph("B")
     >>> glyph.image = dict(fileName="test")
     >>> layer.imageReferences
     {'test': ['B'], 'image 1.png': ['A']}
@@ -1250,8 +1297,7 @@ def _testGlyphUnicodesChanged():
 
     >>> font = Font(getTestFontPath())
     >>> layer = font.layers["public.default"]
-    >>> layer.newGlyph("test")
-    >>> glyph = layer["test"]
+    >>> glyph = layer.newGlyph("test")
     >>> glyph.unicodes = [65]
     >>> layer.unicodeData[65]
     ['test', 'A']
@@ -1294,8 +1340,7 @@ def _testGlyphDispatcher():
 
     # new
     >>> font = Font()
-    >>> font.newGlyph("A")
-    >>> glyph = font["A"]
+    >>> glyph = font.newGlyph("A")
     >>> pen = glyph.getPointPen()
     >>> pen.beginPath()
     >>> pen.addPoint((0, 0), segmentType="line")
@@ -1355,7 +1400,7 @@ def _testGlyphDispatcher():
 
 def _testExternalChanges():
     """
-    >>> from plistlib import readPlist, writePlist
+    >>> from ufoLib.plistlib import readPlist, writePlist
     >>> from defcon import Font
     >>> from defcon.test.testTools import getTestFontPath, makeTestFontCopy, tearDownTestFontCopy
     >>> path = getTestFontPath("TestExternalEditing.ufo")

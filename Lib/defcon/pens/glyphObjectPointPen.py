@@ -50,6 +50,11 @@ class GlyphObjectLoadingPointPen(GlyphObjectPointPen):
         if identifier is not None:
             if identifier in self._glyph.identifiers:
                 raise DefconError("The contour identifier (%s) is already used." % identifier)
+            # FIXME: we should do self._glyph.identifiers.add(identifier)
+            # otherwise the shallow contours could define the same identifier multiple times
+            # or even between shallow loading and real loading something else could
+            # take the identifier. The check above is pretty much worthless
+            # without storing the identifier.
             contour["identifier"] = identifier
         self._contours.append(contour)
 
@@ -68,5 +73,10 @@ class GlyphObjectLoadingPointPen(GlyphObjectPointPen):
         if identifier is not None:
             if identifier in self._glyph.identifiers:
                 raise DefconError("The contour identifier (%s) is already used." % identifier)
+            # FIXME: we should do self._glyph.identifiers.add(identifier)
+            # otherwise the shallow contours could define the same identifier multiple times
+            # or even between shallow loading and real loading something else could
+            # take the identifier. The check above is pretty much worthless
+            # without storing the identifier.
             kwargs["identifier"] = identifier
         self._contours[-1]["points"].append((args, kwargs))

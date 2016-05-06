@@ -1,6 +1,8 @@
+from __future__ import absolute_import
 import weakref
 import unicodedata
 from fontTools.agl import AGL2UV
+from fontTools.misc.py23 import basestring, range
 from defcon.tools import unicodeTools
 from defcon.objects.base import BaseDictObject
 
@@ -26,7 +28,7 @@ class UnicodeData(BaseDictObject):
             66 : ["B"],
         }
 
-    To get the list o glyph names associated with a particular Unicode
+    To get the list of glyph names associated with a particular Unicode
     value, do this::
 
         glyphList = unicodeData[65]
@@ -199,7 +201,7 @@ class UnicodeData(BaseDictObject):
         if self.unicodeForGlyphName(glyphName) is not None:
             return
         # start at the highest point, falling back to the bottom of the PUA
-        startPoint = max(self._forcedUnicodeToGlyphName.keys() + [_privateUse1Min])
+        startPoint = max(list(self._forcedUnicodeToGlyphName.keys()) + [_privateUse1Min])
         # find the value and store it
         value = _findAvailablePUACode(self._forcedUnicodeToGlyphName)
         self._forcedUnicodeToGlyphName[value] = glyphName
@@ -412,7 +414,7 @@ class UnicodeData(BaseDictObject):
     def sortGlyphNames(self, glyphNames, sortDescriptors=[dict(type="unicode")]):
         """
         This sorts the list of **glyphNames** following the sort descriptors
-        provided in the **sortDescriptors** list. Ths works by iterating over
+        provided in the **sortDescriptors** list. This works by iterating over
         the sort descriptors and subdividing. For example, if the first
         sort descriptor is a suffix type, internally, the result of the
         sort will look something like this::
@@ -593,8 +595,7 @@ class UnicodeData(BaseDictObject):
     def _sortByAlphabet(self, glyphNames, ascending, allowPseudoUnicode):
         result = sorted(glyphNames)
         if not ascending:
-            result = reversed(result)
-        result = list(result)
+            result.reverse()
         return result
 
     def _sortBySuffix(self, glyphNames, ascending, allowPseudoUnicode):
@@ -627,8 +628,8 @@ class UnicodeData(BaseDictObject):
                 withValue.append((value, glyphName))
         withValue = [glyphName for uniValue, glyphName in sorted(withValue)]
         if not ascending:
-            withValue = list(reversed(withValue))
-            withoutValue = list(reversed(withoutValue))
+            withValue.reverse()
+            withoutValue.reverse()
             result = [withoutValue, withValue]
         else:
             result = [withValue, withoutValue]
@@ -659,7 +660,7 @@ class UnicodeData(BaseDictObject):
             if tag in tagToGlyphs:
                 sortedResult.append(tagToGlyphs[tag])
         if not ascending:
-            sortedResult = list(reversed(sortedResult))
+            sortedResult.reverse()
         return sortedResult
 
     def _sortByDecompositionBase(self, glyphNames, ascending, allowPseudoUnicode):
@@ -704,7 +705,7 @@ class UnicodeData(BaseDictObject):
             # the base could be in the list more than once.
             # if so, add the proper number of instances of the base.
             count = noBase.count(base)
-            r = [base for i in xrange(count)]
+            r = [base for i in range(count)]
             # add the referencing glyphs
             r += baseToGlyphNames.get(base, [])
             sortedResult.append(r)
@@ -713,7 +714,7 @@ class UnicodeData(BaseDictObject):
             sortedResult.append(baseToGlyphNames[base])
         # reverse if necessary
         if not ascending:
-            sortedResult = list(reversed(sortedResult))
+            sortedResult.reverse()
         return sortedResult
 
     # custom sorts
@@ -736,7 +737,7 @@ class UnicodeData(BaseDictObject):
             return noSuffix
         # magnetize the suffixes
         allSuffixes = set([glyphName.split(".", 1)[-1] for glyphName in suffixed])
-        allSuffixes = list(sorted(allSuffixes))
+        allSuffixes = sorted(allSuffixes)
         magnets = {}
         while allSuffixes:
             toMatch = toMatchOriginal = allSuffixes.pop(0)

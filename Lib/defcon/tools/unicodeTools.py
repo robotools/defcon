@@ -1,4 +1,5 @@
 import unicodedata
+from fontTools.misc.py23 import unichr
 
 _scriptsText = """
 # Scripts-5.0.0.txt
@@ -1971,9 +1972,8 @@ FF63;HALFWIDTH RIGHT CORNER BRACKET;Pe
 301F;LOW DOUBLE PRIME QUOTATION MARK;Pe
 """
 
-import unicodedata
-
 # load the data
+
 
 def _parseRangeText(text):
     result = []

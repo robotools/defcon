@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import weakref
 from defcon.objects.base import BaseDictObject
 from defcon.objects.color import Color
@@ -189,6 +190,26 @@ class Image(BaseDictObject):
         self.postNotification("Image.ColorChanged", data=dict(oldValue=oldColor, newValue=newColor))
 
     color = property(_get_color, _set_color, doc="The image's :class:`Color` object. When setting, the value can be a UFO color string, a sequence of (r, g, b, a) or a :class:`Color` object. Setting this posts *Image.ColorChanged* and *Image.Changed* notifications.")
+
+    # ----
+    # Move
+    # ----
+
+    def move(self, values):
+        """
+        Move the image by **(x, y)**.
+
+        This posts *Image.Changed* and *Image.TransformationChanged* notifications.
+        """
+        xOffset, yOffset = values
+        if not (xOffset or yOffset):
+            return
+        oldTransformation = self.transformation
+        self.holdNotifications()
+        self["xOffset"] += xOffset
+        self["yOffset"] += yOffset
+        self.releaseHeldNotifications()
+        self.postNotification("Image.TransformationChanged", data=dict(oldValue=oldTransformation, newValue=self.transformation))
 
     # ------------------------
     # Notification Observation

@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import weakref
 from defcon.tools.identifiers import makeRandomIdentifier
 
@@ -10,7 +11,8 @@ class Point(object):
 
     __slots__ = ["_x", "_y", "_segmentType", "_smooth", "_name", "_identifier"]
 
-    def __init__(self, (x, y), segmentType=None, smooth=False, name=None, identifier=None):
+    def __init__(self, coordinates, segmentType=None, smooth=False, name=None, identifier=None):
+        (x, y) = coordinates
         super(Point, self).__init__()
         self._x = x
         self._y = y
@@ -62,10 +64,11 @@ class Point(object):
 
     name = property(_get_name, _set_name, doc="An arbitrary name for the point.")
 
-    def move(self, (x, y)):
+    def move(self, values):
         """
         Move the component by **(x, y)**.
         """
+        (x, y) = values
         self.x += x
         self.y += y
 

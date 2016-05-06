@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import shutil
 
@@ -25,6 +26,6 @@ def tearDownTestFontCopy(testFontPath=None):
     shutil.rmtree(testFontPath)
 
 class NotificationTestObject(object):
-    
+
     def testCallback(self, notification):
-        print notification.name, notification.data
+        print(notification.name, notification.data)

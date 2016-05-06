@@ -1,8 +1,11 @@
+from __future__ import print_function
+from collections import OrderedDict
 """
 A flexible and relatively robust implementation
 of the Observer Pattern.
 """
 
+import sys
 import weakref
 
 """
@@ -91,7 +94,7 @@ class NotificationCenter(object):
         observer = weakref.ref(observer)
         return observer in self._registry[key]
 
-    def removeObserver(self, observer, notification, observable):
+    def removeObserver(self, observer, notification, observable=None):
         """
         Remove an observer from this notification dispatcher.
 
@@ -364,49 +367,8 @@ class Notification(object):
     data = property(_get_data, doc="Arbitrary data passed along with the notification. There is no set format for this data and there is not requirement that any data be present. Refer to the documentation for methods that are responsible for generating notifications for information about this data.")
 
 
-class ObserverDict(dict):
+ObserverDict = OrderedDict
 
-    """An object for storing ordered observers."""
-
-    def __init__(self):
-        super(ObserverDict, self).__init__()
-        self._order = []
-
-    def keys(self):
-        return list(self._order)
-
-    def values(self):
-        return [self[key] for key in self]
-
-    def items(self):
-        return [(key, self[key]) for key in self]
-
-    def __iter__(self):
-        order = self._order
-        while order:
-            yield order[0]
-            order = order[1:]
-
-    def iterkeys(self):
-        return iter(self)
-
-    def itervalues(self):
-        for key in self:
-            yield self[key]
-
-    def iteritems(self):
-        for key in self:
-            yield (key, self[key])
-
-    def __delitem__(self, key):
-        super(ObserverDict, self).__delitem__(key)
-        self._order.remove(key)
-
-    def __setitem__(self, key, value):
-        if key in self:
-            del self[key]
-        super(ObserverDict, self).__setitem__(key, value)
-        self._order.append(key)
 
 # -----
 # Tests
@@ -415,7 +377,7 @@ class ObserverDict(dict):
 class _TestObserver(object):
 
     def notificationCallback(self, notification):
-        print notification.name, notification.object.name
+        print(notification.name, notification.object.name)
 
 
 class _TestObservable(object):

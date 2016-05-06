@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import weakref
 from defcon.objects.base import BaseDictObject
 
@@ -13,6 +14,10 @@ class Groups(BaseDictObject):
     Name
     ===================
     Groups.Changed
+    Groups.BeginUndo
+    Groups.EndUndo
+    Groups.BeginRedo
+    Groups.EndRedo
     Groups.GroupSet
     Groups.GroupDeleted
     Groups.Cleared
@@ -62,6 +67,10 @@ class Groups(BaseDictObject):
     """
 
     changeNotificationName = "Groups.Changed"
+    beginUndoNotificationName = "Groups.BeginUndo"
+    endUndoNotificationName = "Groups.EndUndo"
+    beginRedoNotificationName = "Groups.BeginRedo"
+    endRedoNotificationName = "Groups.EndRedo"
     setItemNotificationName = "Groups.GroupSet"
     deleteItemNotificationName = "Groups.GroupDeleted"
     clearNotificationName = "Groups.Cleared"

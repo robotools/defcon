@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import weakref
 from defcon.objects.base import BaseDictObject
 from defcon.objects.color import Color
@@ -214,12 +215,13 @@ class Anchor(BaseDictObject):
     # Move
     # ----
 
-    def move(self, (x, y)):
+    def move(self, values):
         """
         Move the anchor by **(x, y)**.
 
         This will post *Anchor.XChange*, *Anchor.YChanged* and *Anchor.Changed* notifications if anything changed.
         """
+        (x, y) = values
         self.x += x
         self.y += y
 

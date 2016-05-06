@@ -1,6 +1,6 @@
+from __future__ import absolute_import
 from defcon.pens.glyphObjectPointPen import GlyphObjectPointPen
-# no ufoLib analogue for TransformPointPen
-from robofab.pens.adapterPens import TransformPointPen
+from defcon.pens.transformPointPen import TransformPointPen
 from defcon.objects.component import _defaultTransformation
 
 

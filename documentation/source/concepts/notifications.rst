@@ -17,7 +17,7 @@ defcon uses something similar to the `Observer Pattern <http://en.wikipedia.org/
 
         def glyphChangedCallback(self, notification):
             glyph = notification.object
-            print "the glyph (%s) changed!" % glyph.name
+            print("the glyph (%s) changed!" % glyph.name)
 
 When the glyph is changed in anyway by anyone, it posts a "Glyph.Changed" notification to all registered observers. My method above is called when this happens and I can react as needed.
 

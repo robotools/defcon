@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import weakref
 from defcon.objects.base import BaseDictObject
 
@@ -13,6 +14,10 @@ class Lib(BaseDictObject):
     Name
     ===============
     Lib.Changed
+    Lib.BeginUndo
+    Lib.EndUndo
+    Lib.BeginRedo
+    Lib.EndRedo
     Lib.ItemSet
     Lib.ItemDeleted
     Lib.Cleared
@@ -41,6 +46,10 @@ class Lib(BaseDictObject):
     """
 
     changeNotificationName = "Lib.Changed"
+    beginUndoNotificationName = "Lib.BeginUndo"
+    endUndoNotificationName = "Lib.EndUndo"
+    beginRedoNotificationName = "Lib.BeginRedo"
+    endRedoNotificationName = "Lib.EndRedo"
     setItemNotificationName = "Lib.ItemSet"
     deleteItemNotificationName = "Lib.ItemDeleted"
     clearNotificationName = "Lib.Cleared"

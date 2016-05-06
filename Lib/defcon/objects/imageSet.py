@@ -1,11 +1,11 @@
+from __future__ import absolute_import
 import os
 import hashlib
 import weakref
 from ufoLib import UFOReader, UFOLibError
 from defcon.objects.base import BaseObject
 from ufoLib.filenames import userNameToFileName
-
-pngSignature = "\x89PNG\r\n\x1a\n"
+from ufoLib.validators import pngSignature
 
 
 class ImageSet(BaseObject):
@@ -83,11 +83,11 @@ class ImageSet(BaseObject):
     # ----------
 
     def _get_fileNames(self):
-        return self._data.keys()
+        return list(self._data.keys())
 
     def _set_fileNames(self, fileNames):
         assert not self._data
-        oldValue = self._data.keys()
+        oldValue = list(self._data.keys())
         for fileName in fileNames:
             self._data[fileName] = _imageDict(onDisk=True)
         self.postNotification("ImageSet.FileNamesChanged", data=dict(oldValue=oldValue, newValue=fileNames))
@@ -127,7 +127,7 @@ class ImageSet(BaseObject):
     def __setitem__(self, fileName, data):
         if fileName not in self._data:
             assert fileName == self.makeFileName(fileName)
-        assert data.startswith(pngSignature)
+        assert data.startswith(pngSignature), "Image does not begin with the PNG signature."
         isNewImage = fileName not in self._data
         onDisk = False
         onDiskModTime = None
@@ -219,8 +219,8 @@ class ImageSet(BaseObject):
         """
         Make a file system legal version of **fileName**.
         """
-        if not isinstance(fileName, unicode):
-            fileName = unicode(fileName)
+        if not isinstance(fileName, str):
+            fileName = str(fileName)
         suffix = ""
         if fileName.lower().endswith(".png"):
             suffix = fileName[-4:]
@@ -303,6 +303,24 @@ class ImageSet(BaseObject):
         super(ImageSet, self).endSelfNotificationObservation()
         self._font = None
 
+    # -----------------------------
+    # Serialization/Deserialization
+    # -----------------------------
+
+    def getDataForSerialization(self, **kwargs):
+        simple_get = lambda key: getattr(self, key)
+
+        getters = []
+        for k in self.fileNames:
+            getters.append((k, simple_get))
+
+        return self._serialize(getters, **kwargs)
+
+    def setDataFromSerialization(self, data):
+        self._data = {}
+        self._scheduledForDeletion = {}
+        for k in data:
+            self[k] = data[k]
 
 def _imageDict(data=None, dirty=False, digest=None, onDisk=True, onDiskModTime=None):
     return dict(data=data, digest=digest, dirty=dirty, onDisk=onDisk, onDiskModTime=onDiskModTime)

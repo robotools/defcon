@@ -7,10 +7,10 @@ class FuzzyNumber(object):
     def __repr__(self):
         return "[%f %f]" % (self.value, self.threshold)
 
-    def __cmp__(self, other):
+    def __lt__(self, other):
         if hasattr(other, "value"):
             if abs(self.value - other.value) < self.threshold:
-                return 0
+                return False
             else:
-                return cmp(self.value, other.value)
-        return cmp(self.value, other)
+                return self.value < other.value
+        return self.value < other

@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import weakref
 from ufoLib import UFOReader
 from defcon.objects.base import BaseObject
@@ -47,7 +48,7 @@ class LayerSet(BaseObject):
     changeNotificationName = "LayerSet.Changed"
     representationFactories = {}
 
-    def __init__(self, font=None, layerClass=None, libClass=None, unicodeDataClass=None, 
+    def __init__(self, font=None, layerClass=None, libClass=None, unicodeDataClass=None,
             guidelineClass=None, glyphClass=None,
             glyphContourClass=None, glyphPointClass=None, glyphComponentClass=None, glyphAnchorClass=None,
             glyphImageClass=None):
@@ -315,8 +316,9 @@ class LayerSet(BaseObject):
                 isDefaultLayer = layer == self.defaultLayer
                 glyphSet = writer.getGlyphSet(layerName=layerName, defaultLayer=isDefaultLayer)
                 layer.save(glyphSet, saveAs=saveAs, progressBar=progressBar)
-                if layer.lib or layer.color:
-                    glyphSet.writeLayerInfo(layer)
+                # this prevents us from saving when the color was deleted
+                #if layer.lib or layer.color:
+                glyphSet.writeLayerInfo(layer)
                 self._stampLayerInfoDataState(layer)
                 layer.dirty = False
                 if progressBar is not None:
@@ -458,6 +460,35 @@ class LayerSet(BaseObject):
             newDefaultLayerName = reader.getDefaultLayerName()
             self.defaultLayer = self[newDefaultLayerName]
 
+    # -----------------------------
+    # Serialization/Deserialization
+    # -----------------------------
+
+    def getDataForSerialization(self, **kwargs):
+        serialize = lambda item: item.getDataForSerialization()
+
+        def get_layers(k):
+            layers = []
+            for name in self.layerOrder:
+                layer = self[name]
+                isDefaultLayer = layer == self.defaultLayer
+                layers.append((name, serialize(layer), isDefaultLayer))
+            return layers
+
+        getters = [('layers', get_layers)]
+
+        return self._serialize(getters, **kwargs)
+
+    def setDataFromSerialization(self, data):
+        from functools import partial
+
+        if 'layers' not in data:
+            return
+        for name, data, isDefault in data['layers']:
+            layer = self.newLayer(name)
+            layer.setDataFromSerialization(data)
+            if isDefault:
+                self.defaultLayer = layer
 
 class _StaticLayerInfoMaker(object):
 
@@ -466,7 +497,7 @@ class _StaticLayerInfoMaker(object):
         self.color = None
 
     def pack(self):
-        from plistlib import writePlistToString
+        from ufoLib.plistlib import writePlistToString
         data = {}
         if self.lib:
             data["lib"] = self.lib
@@ -497,7 +528,7 @@ def _testLayerOrder():
     >>> layers = font.layers
     >>> layers.layerOrder
     ['public.default', 'public.background', 'Layer 1']
-    >>> layers.layerOrder = list(reversed(layers.layerOrder))
+    >>> layers.layerOrder = reversed(layers.layerOrder)
     >>> layers.layerOrder
     ['Layer 1', 'public.background', 'public.default']
     """
@@ -672,7 +703,7 @@ def _testExternalChanges():
     """
     >>> import os
     >>> import shutil
-    >>> from plistlib import readPlist, writePlist
+    >>> from ufoLib.plistlib import readPlist, writePlist
     >>> from defcon import Font
     >>> from defcon.test.testTools import getTestFontPath, makeTestFontCopy, tearDownTestFontCopy
 
@@ -763,7 +794,7 @@ def _testReloadLayers():
     """
     >>> import os
     >>> import shutil
-    >>> from plistlib import readPlist, writePlist
+    >>> from ufoLib.plistlib import readPlist, writePlist
     >>> from defcon import Font
     >>> from defcon.test.testTools import getTestFontPath, makeTestFontCopy, tearDownTestFontCopy
 

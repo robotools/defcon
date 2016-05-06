@@ -1,6 +1,8 @@
+from __future__ import absolute_import
 import weakref
 from warnings import warn
 from fontTools.misc import arrayTools
+from fontTools.misc.py23 import basestring
 from defcon.objects.base import BaseObject
 from defcon.objects.contour import Contour
 from defcon.objects.point import Point
@@ -12,6 +14,7 @@ from defcon.objects.image import Image
 from defcon.objects.color import Color
 from defcon.tools.representations import glyphBoundsRepresentationFactory, glyphControlPointBoundsRepresentationFactory
 from defcon.pens.decomposeComponentPointPen import DecomposeComponentPointPen
+
 
 def addRepresentationFactory(name, factory):
     warn("addRepresentationFactory is deprecated. Use the functions in defcon.__init__.", DeprecationWarning)
@@ -34,6 +37,10 @@ class Glyph(BaseObject):
     Name
     ============================
     Glyph.Changed
+    Glyph.BeginUndo
+    Glyph.EndUndo
+    Glyph.BeginRedo
+    Glyph.EndRedo
     Glyph.NameWillChange
     Glyph.NameChanged
     Glyph.UnicodesChanged
@@ -72,6 +79,10 @@ class Glyph(BaseObject):
     """
 
     changeNotificationName = "Glyph.Changed"
+    beginUndoNotificationName = "Glyph.BeginUndo"
+    endUndoNotificationName = "Glyph.EndUndo"
+    beginRedoNotificationName = "Glyph.BeginRedo"
+    endRedoNotificationName = "Glyph.EndRedo"
     representationFactories = {
         "defcon.glyph.bounds" : dict(
             factory=glyphBoundsRepresentationFactory,
@@ -788,10 +799,7 @@ class Glyph(BaseObject):
     guidelines = property(_get_guidelines, _set_guidelines, doc="An ordered list of :class:`Guideline` objects stored in the glyph. Setting this will post a *Glyph.Changed* notification along with any notifications posted by the :py:meth:`Glyph.appendGuideline` and :py:meth:`Glyph.clearGuidelines` methods.")
 
     def instantiateGuideline(self, guidelineDict=None):
-        guideline = self._guidelineClass(
-            glyph=self,
-            guidelineDict=guidelineDict
-        )
+        guideline = self._guidelineClass(guidelineDict=guidelineDict)
         return guideline
 
     def beginSelfGuidelineNotificationObservation(self, guideline):
@@ -826,10 +834,7 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
-        try:
-            assert guideline.glyph != self
-        except AttributeError:
-            pass
+        assert guideline not in self.guidelines
         if not isinstance(guideline, self._guidelineClass):
             guideline = self.instantiateGuideline(guidelineDict=guideline)
         assert guideline.glyph in (self, None), "This guideline belongs to another glyph."
@@ -1078,13 +1083,14 @@ class Glyph(BaseObject):
     # Move
     # ----
 
-    def move(self, (x, y)):
+    def move(self, values):
         """
         Move all contours, components and anchors in the glyph
         by **(x, y)**.
 
         This posts a *Glyph.Changed* notification.
         """
+        (x, y) = values
         for contour in self:
             contour.move((x, y))
         for component in self._components:
@@ -1096,11 +1102,12 @@ class Glyph(BaseObject):
     # Point Inside
     # ------------
 
-    def pointInside(self, (x, y), evenOdd=False):
+    def pointInside(self, coordinates, evenOdd=False):
         """
         Returns a boolean indicating if **(x, y)** is in the
         "black" area of the glyph.
         """
+        (x, y) = coordinates
         from fontTools.pens.pointInsidePen import PointInsidePen
         pen = PointInsidePen(glyphSet=None, testPoint=(x, y), evenOdd=evenOdd)
         self.draw(pen)
@@ -1161,6 +1168,88 @@ class Glyph(BaseObject):
         self.postNotification(notification="Glyph.LibChanged")
         self.dirty = True
 
+    # -----------------------------
+    # Serialization/Deserialization
+    # -----------------------------
+
+
+    def getDataForSerialization(self, **kwargs):
+        from functools import partial
+
+        simple_get = partial(getattr, self)
+        serialize = lambda item: item.getDataForSerialization()
+        serialized_get = lambda key: serialize(simple_get(key))
+        serialized_list_get = lambda key: [serialize(item) for item in simple_get(key)]
+
+        getters = [
+            ('name', simple_get),
+            ('unicodes', simple_get),
+            ('width', simple_get),
+            ('height', simple_get),
+            ('note', simple_get),
+            ('components', serialized_list_get),
+            ('anchors', serialized_list_get),
+            ('guidelines', serialized_list_get),
+            ('image', serialized_get),
+            ('lib', serialized_get)
+        ]
+
+        if self._shallowLoadedContours is not None:
+            getters.append( ('_shallowLoadedContours', simple_get) )
+        else:
+            getters.append( ('_contours', serialized_list_get) )
+
+        return self._serialize(getters, **kwargs)
+
+    def setDataFromSerialization(self, data):
+        from functools import partial
+
+        set_attr = partial(setattr, self) # key, data
+
+        def set_each(setter, drop_key=False):
+
+            _setter = lambda k, v: setter(v) if drop_key else setter
+
+            def wrapper(key, data):
+                for d in data:
+                    _setter(key, d)
+            return wrapper
+
+        def single_init(factory, data):
+            item = factory()
+            item.setDataFromSerialization(data)
+            return item
+
+        def list_init(factory, data):
+            return [single_init(factory, childData) for childData in data]
+
+        def init_set(init, factory, setter):
+            def wrapper(key, data):
+                setter(key, init(factory, data))
+            return wrapper
+
+        # Clear all contours, components, anchors and guidelines from the glyph.
+        self.clear()
+
+        setters = (
+            ('name', set_attr),
+            ('unicodes', set_attr),
+            ('width',  set_attr),
+            ('height',  set_attr),
+            ('note',  set_attr),
+            ('lib',  set_attr),
+            ('_shallowLoadedContours', set_attr),
+            ('_contours', init_set(list_init, self.instantiateContour, set_each(self.appendContour, True))),
+            ('components', init_set(list_init, self._componentClass, set_each(self.appendComponent, True))),
+            ('guidelines', init_set(list_init, self._guidelineClass, set_attr)),
+            ('anchors',init_set(list_init, self._anchorClass, set_attr)),
+            ('image', init_set(single_init, self.instantiateImage, set_attr))
+        )
+
+        for key, setter in setters:
+            if key not in data:
+                continue
+            setter(key, data[key])
 
 # -----
 # Tests
@@ -1459,7 +1548,7 @@ def _testIter():
     >>> font = Font(getTestFontPath())
     >>> glyph = font['A']
     >>> for contour in glyph:
-    ...     print len(contour)
+    ...     len(contour)
     4
     4
     """
@@ -1767,7 +1856,7 @@ def _testDecomposeComponents():
     >>> font.newGlyph("referenceGlyph2")
     >>> referenceGlyph2 = font["referenceGlyph2"]
     >>> pointPen = referenceGlyph2.getPointPen()
-    >>> pointPen.addComponent("referenceGlyph1", (1, 0, 0, 1, 10, 20)) 
+    >>> pointPen.addComponent("referenceGlyph1", (1, 0, 0, 1, 10, 20))
     >>> referenceGlyph2.decomposeAllComponents()
     >>> len(referenceGlyph2.components)
     0

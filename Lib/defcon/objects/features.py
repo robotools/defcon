@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import weakref
 from defcon.objects.base import BaseObject
 
@@ -13,11 +14,19 @@ class Features(BaseObject):
     Name
     ================
     Features.Changed
+    Features.BeginUndo
+    Features.EndUndo
+    Features.BeginRedo
+    Features.EndRedo
     Features.TextChanged
     ================
     """
 
     changeNotificationName = "Features.Changed"
+    beginUndoNotificationName = "Features.BeginUndo"
+    endUndoNotificationName = "Features.EndUndo"
+    beginRedoNotificationName = "Features.BeginRedo"
+    endRedoNotificationName = "Features.EndRedo"
     representationFactories = {}
 
     def __init__(self, font=None):
@@ -67,3 +76,15 @@ class Features(BaseObject):
     def endSelfNotificationObservation(self):
         super(Features, self).endSelfNotificationObservation()
         self._font = None
+
+    # -----------------------------
+    # Serialization/Deserialization
+    # -----------------------------
+
+    def getDataForSerialization(self, **kwargs):
+        getters = [('text', lambda k: getattr(self, k))]
+        return self._serialize(getters, **kwargs)
+
+    def setDataFromSerialization(self, data):
+        if 'text' in data:
+            self.text = data['text']
