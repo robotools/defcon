@@ -153,7 +153,7 @@ class NotificationCenter(object):
         for key in registryPossibilities:
             if key not in self._registry:
                 continue
-            for observerRef, methodName in self._registry[key].items():
+            for observerRef, methodName in list(self._registry[key].items()):
                 # observer specific hold/disabled
                 # -------------------------------
                 if self._holds or self._disabled:
