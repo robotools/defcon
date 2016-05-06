@@ -705,7 +705,7 @@ class Contour(BaseObject):
         self.identifier = None
         if 'pen' in data:
             # play back
-            Recorder(data['pen'])._play(self)
+            Recorder(data['pen'])(self)
 
 
 class Recorder(object):
@@ -715,8 +715,8 @@ class Recorder(object):
 
         Method calls to be recorded must not start with an underscore.
 
-        This class defines a public method with a private(!) attribute name:
-        "Recorder._play(self, target)" because that way calls to all methods
+        This class creates a callable object which can be used like a
+        function: "recorder(target)" because that way calls to all methods
         that don't start with underscores can be recorded.
 
         This is useful to record the commands of both pen protocols
@@ -738,7 +738,7 @@ class Recorder(object):
 
         player = Recorder(restored_data_glyphA)
         # The recorder behaves like glyphA.drawPoints
-        player._play(glyphB)
+        player(glyphB)
 
 
         Example Session SegmentPen:
@@ -749,12 +749,12 @@ class Recorder(object):
 
         # reuse it immediately
         # The recorder behaves like glyphA.draw
-        recorderPen._play(glyphB)
+        recorderPen(glyphB)
     """
     def __init__(self, data=None):
         self.__dict__['_data'] = data if data is not None else []
 
-    def _play(self, target):
+    def __call__(self, target):
         """ Replay all methof calls this Recorder to target.
             Public Method(!)
         """
