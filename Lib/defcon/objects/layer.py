@@ -251,11 +251,8 @@ class Layer(BaseObject):
     # -------------
 
     def __iter__(self):
-        names = list(self.keys())
-        while names:
-            name = names[0]
-            yield self[name]
-            names = names[1:]
+        # this is a value iterator, unlike dict()
+        return iter(self._glyphs.values())
 
     def __getitem__(self, name):
         if name not in self._glyphs:

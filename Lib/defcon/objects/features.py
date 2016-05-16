@@ -82,7 +82,9 @@ class Features(BaseObject):
     # -----------------------------
 
     def getDataForSerialization(self, **kwargs):
-        getters = [('text', lambda k: getattr(self, k))]
+        from functools import partial
+
+        getters = [('text', partial(getattr, self))]
         return self._serialize(getters, **kwargs)
 
     def setDataFromSerialization(self, data):

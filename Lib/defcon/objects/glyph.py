@@ -1010,12 +1010,7 @@ class Glyph(BaseObject):
     def __iter__(self):
         if self._shallowLoadedContours is not None:
             self._fullyLoadShallowLoadedContours()
-        contourCount = len(self)
-        index = 0
-        while index < contourCount:
-            contour = self[index]
-            yield contour
-            index += 1
+        return iter(self._contours)
 
     def __getitem__(self, index):
         if self._shallowLoadedContours is not None:

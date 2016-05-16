@@ -209,11 +209,7 @@ class Font(BaseObject):
         return self._glyphSet.insertGlyph(glyph, name=name)
 
     def __iter__(self):
-        names = list(self._glyphSet.keys())
-        while names:
-            name = names[0]
-            yield self._glyphSet[name]
-            names = names[1:]
+        return iter(self._glyphSet.values())
 
     def __getitem__(self, name):
         return self._glyphSet[name]

@@ -17,7 +17,7 @@ Internal Documentation
 Storage Structures:
 
 registry : {
-        (notification, observable) : ObserverDict(
+        (notification, observable) : OrderedDict(
             observer : method name
         )
     }
@@ -76,7 +76,7 @@ class NotificationCenter(object):
         observer = weakref.ref(observer)
         key = (notification, observable)
         if key not in self._registry:
-            self._registry[key] = ObserverDict()
+            self._registry[key] = OrderedDict()
         assert observer not in self._registry[key], "An observer is only allowed to have one callback for a given notification + observable combination."
         self._registry[key][observer] = methodName
 
@@ -365,9 +365,6 @@ class Notification(object):
         return self._data
 
     data = property(_get_data, doc="Arbitrary data passed along with the notification. There is no set format for this data and there is not requirement that any data be present. Refer to the documentation for methods that are responsible for generating notifications for information about this data.")
-
-
-ObserverDict = OrderedDict
 
 
 # -----
