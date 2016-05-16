@@ -1,6 +1,6 @@
 import weakref
 from fontTools.ttLib import TTFont
-from fontTools.feaLib.builder import addOpenTypeFeatures
+from fontTools.feaLib.builder import addOpenTypeFeaturesFromString
 from defcon.objects.base import BaseObject
 
 try:
@@ -21,27 +21,17 @@ def _makeCMAP(unicodeData):
     return mapping
 
 def _layoutEngineOTLTablesRepresentationFactory(layoutEngine):
-    import os
-    import tempfile
     font = layoutEngine.font
     gdef = gsub = gpos = None
     if font.features.text:
         otf = TTFont()
         otf.setGlyphOrder(sorted(font.keys()))
-        # XXX hack around fontTools only reading from disk
-        fd, feaPath = tempfile.mkstemp()
-        f = open(feaPath, "w")
-        f.write(font.features.text)
-        f.close()
         # compile with fontTools
         try:
-            addOpenTypeFeatures(feaPath, otf)
+            addOpenTypeFeaturesFromString(otf, font.features.text)
         except:
             import traceback
             print(traceback.format_exc(5))
-        finally:
-            os.close(fd)
-            os.remove(feaPath)
         if "GDEF" in otf:
             gdef = otf["GDEF"]
         if "GSUB" in otf:

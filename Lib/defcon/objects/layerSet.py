@@ -528,7 +528,7 @@ def _testLayerOrder():
     >>> layers = font.layers
     >>> layers.layerOrder
     ['public.default', 'public.background', 'Layer 1']
-    >>> layers.layerOrder = reversed(layers.layerOrder)
+    >>> layers.layerOrder = list(reversed(layers.layerOrder))
     >>> layers.layerOrder
     ['Layer 1', 'public.background', 'public.default']
     """

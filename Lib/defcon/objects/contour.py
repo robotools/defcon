@@ -226,27 +226,10 @@ class Contour(BaseObject):
         return len(self._points)
 
     def __getitem__(self, index):
-        if isinstance(index, slice):
-            if index.start > len(self._points):
-                raise IndexError
-            if index.stop is None:
-                stop = len(self._points)
-            elif index.stop > len(self._points):
-                raise IndexError
-            else:
-                stop = index.stop
-            return self._points[index.start:stop]
-        if index > len(self._points):
-            raise IndexError
-        return self._points[index]
+        return self._points.__getitem__(index)
 
     def __iter__(self):
-        pointCount = len(self)
-        index = 0
-        while index < pointCount:
-            point = self[index]
-            yield point
-            index += 1
+        return iter(self._points)
 
     def clear(self):
         """
