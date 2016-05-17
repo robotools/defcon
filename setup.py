@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 import sys
-from distutils.core import setup
+from setuptools import setup
 
 try:
     import fontTools
