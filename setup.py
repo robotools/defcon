@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import sys
-from distutils.core import setup
+from setuptools import setup
 
 try:
     import fontTools
