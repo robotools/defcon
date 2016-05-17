@@ -299,6 +299,10 @@ class Layer(BaseObject):
         names = names - set(self._scheduledForDeletion.keys())
         return list(names)
 
+    def values(self):
+        for key in self.keys():
+            yield self[key]
+
     # ----------
     # Attributes
     # ----------
