@@ -288,7 +288,7 @@ class Layer(BaseObject):
         return len(self.keys())
 
     def __contains__(self, name):
-        return name in self._keys
+        return name in self.keys()
 
     def keys(self):
         """
