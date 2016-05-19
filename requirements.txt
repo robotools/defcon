@@ -1,0 +1,3 @@
+git+https://github.com/behdad/fonttools
+git+https://github.com/unified-font-object/ufoLib
+git+https://github.com/typesupply/compositor
