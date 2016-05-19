@@ -237,55 +237,6 @@ class Anchor(BaseDictObject):
         self._glyph = None
 
 
-def _test():
-    """
-    >>> a = Anchor()
-    >>> a.dirty
-    False
-
-    >>> a = Anchor()
-    >>> a.x = 100
-    >>> a.x
-    100
-    >>> a.dirty
-    True
-
-    >>> a = Anchor()
-    >>> a.y = 100
-    >>> a.y
-    100
-    >>> a.dirty
-    True
-
-    >>> a = Anchor()
-    >>> a.name = "foo"
-    >>> a.name
-    'foo'
-    >>> a.dirty
-    True
-    >>> a.name = None
-    >>> a.name
-    >>> a.dirty
-    True
-
-    >>> a = Anchor()
-    >>> a.color = "1,1,1,1"
-    >>> a.color
-    '1,1,1,1'
-    >>> a.dirty
-    True
-
-    >>> a = Anchor()
-    >>> a.identifier
-    >>> a.generateIdentifier()
-    >>> a.identifier is None
-    False
-
-    >>> a = Anchor(anchorDict=dict(x=1, y=2, name="3", identifier="4", color="1,1,1,1"))
-    >>> a.x, a.y, a.name, a.identifier, a.color
-    (1, 2, '3', '4', '1,1,1,1')
-    """
-
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
