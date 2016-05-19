@@ -16,19 +16,22 @@ except:
     print("    https://github.com/unified-font-object/ufoLib")
 
 if "sdist" in sys.argv:
-    import os
-    import subprocess
-    import shutil
-    docFolder = os.path.join(os.getcwd(), "documentation")
-    # remove existing
-    doctrees = os.path.join(docFolder, "build", "doctrees")
-    if os.path.exists(doctrees):
+    try:
+        import os
+        import subprocess
+        import shutil
+        docFolder = os.path.join(os.getcwd(), "documentation")
+        # remove existing
+        doctrees = os.path.join(docFolder, "build", "doctrees")
+        if os.path.exists(doctrees):
+            shutil.rmtree(doctrees)
+        # compile
+        p = subprocess.Popen(["make", "html"], cwd=docFolder)
+        p.wait()
+        # remove doctrees
         shutil.rmtree(doctrees)
-    # compile
-    p = subprocess.Popen(["make", "html"], cwd=docFolder)
-    p.wait()
-    # remove doctrees
-    shutil.rmtree(doctrees)
+    except:
+        print("*** Warning: could not make html documentation")
 
 
 
@@ -46,5 +49,6 @@ setup(name="defcon",
         "defcon.test",
         "defcon.tools"
     ],
-    package_dir={"":"Lib"}
+    package_dir={"":"Lib"},
+    test_suite="defcon.test",
 )
