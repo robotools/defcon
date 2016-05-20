@@ -1339,7 +1339,7 @@ class Font(BaseObject):
         classes = ""
         features = []
         while text:
-            m = featureRE.search(text)
+            m = self.featureRE.search(text)
             if m is None:
                 classes = text
                 text = ""
@@ -1357,7 +1357,7 @@ class Font(BaseObject):
                 # grab all text before the next feature definition
                 # and add it to the current definition
                 if text:
-                    m = featureRE.search(text)
+                    m = self.featureRE.search(text)
                     if m is not None:
                         start, end = m.span()
                         featureText += text[:start]
@@ -1372,7 +1372,7 @@ class Font(BaseObject):
     def _convertToFormatVersion1RoboFabData(self, libCopy):
         # features
         features = self.features.text
-        classes, features = _splitFeaturesForConversion(features)
+        classes, features = self._splitFeaturesForConversion(features)
         if classes:
             libCopy["org.robofab.opentype.classes"] = classes.strip() + "\n"
         if features:
