@@ -12,6 +12,25 @@ try:
 except ImportError:
     from plistlib import readPlist as load, writePlist as dump
 
+testFeaturesText = """
+@class1 = [a b c d];
+
+feature liga {
+    sub f i by fi;
+} liga;
+
+@class2 = [x y z];
+
+feature salt {
+    sub a by a.alt;
+} salt; feature ss01 {sub x by x.alt} ss01;
+
+feature ss02 {sub y by y.alt} ss02;
+
+# feature calt {
+#     sub a b' by b.alt;
+# } calt;
+"""
 
 class FontTest(unittest.TestCase):
 
@@ -464,38 +483,20 @@ class FontTest(unittest.TestCase):
         f.write(t)
         f.close()
 
-    # TODO: fix _splitFeaturesForConversion
-    # def test_splitFeaturesForConversion(self):
-    #     testText = '''
-    #     @class1 = [a b c d];
-    #
-    #     feature liga {
-    #         sub f i by fi;
-    #         } liga;
-    #
-    #     @class2 = [x y z];
-    #
-    #     feature salt {
-    #     sub a by a.alt;
-    #     } salt; feature ss01 {sub x by x.alt} ss01;
-    #
-    #     feature ss02 {sub y by y.alt} ss02;
-    #
-    #     # feature calt {
-    #     #     sub a b' by b.alt;
-    #     # } calt;
-    #     '''
-    #     font = Font()
-    #     self.assertEqual(
-    #         font._splitFeaturesForConversion(testText),
-    #         ("\n@class1 = [a b c d];\n",
-    #          [("liga", "\nfeature liga {\n    sub f i by fi;\n} liga;\n\n"
-    #            "@class2 = [x y z];\n"),
-    #           ("salt", "\nfeature salt {\n    sub a by a.alt;\n} salt; "
-    #            "feature ss01 {sub x by x.alt} ss01;\n"),
-    #           ("ss02", "\nfeature ss02 {sub y by y.alt} ss02;\n\n"
-    #            "# feature calt {\n#     sub a b' by b.alt;\n# } calt;\n")])
-    #     )
+    def test_splitFeaturesForConversion(self):
+        font = Font()
+        self.assertEqual(
+            font._splitFeaturesForConversion(testFeaturesText),
+            (
+                "\n@class1 = [a b c d];\n",
+                [("liga", "\nfeature liga {\n    sub f i by fi;\n} liga;\n\n"
+                  "@class2 = [x y z];\n"),
+                 ("salt", "\nfeature salt {\n    sub a by a.alt;\n} salt; "
+                  "feature ss01 {sub x by x.alt} ss01;\n"),
+                 ("ss02", "\nfeature ss02 {sub y by y.alt} ss02;\n\n"
+                  "# feature calt {\n#     sub a b' by b.alt;\n# } calt;\n")]
+            )
+        )
 
     def test_glyph_name_change(self):
         font = Font(getTestFontPath())
