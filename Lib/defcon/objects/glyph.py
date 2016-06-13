@@ -99,8 +99,10 @@ class Glyph(BaseObject):
         guidelineClass=None, libClass=None, imageClass=None):
         layerSet = font = None
         if layer is not None:
-            font = weakref.ref(layer.layerSet.font)
-            layerSet = weakref.ref(layer.layerSet)
+            layerSet = layer.layerSet
+            if layerSet is not None:
+                font = weakref.ref(layer.layerSet.font)
+                layerSet = weakref.ref(layer.layerSet)
             layer = weakref.ref(layer)
         self._font = font
         self._layerSet = layerSet
