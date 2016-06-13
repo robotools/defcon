@@ -75,11 +75,11 @@ class Contour(BaseObject):
     controlPointBounds = property(_get_controlPointBounds, doc="The control bounds of all points in the contour. This only measures the point positions, it does not measure curves. So, curves without points at the extrema will not be properly measured.")
 
     def _get_clockwise(self):
-        from defcon.pens.clockwiseTestPointPen import ClockwiseTestPointPen
+        from fontTools.pens.areaPen import AreaPen
         if self._clockwiseCache is None:
-            pen = ClockwiseTestPointPen()
-            self.drawPoints(pen)
-            self._clockwiseCache = pen.getIsClockwise()
+            pen = AreaPen()
+            self.draw(pen)
+            self._clockwiseCache = pen.value < 0
         return self._clockwiseCache
 
     def _set_clockwise(self, value):
