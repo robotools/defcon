@@ -1,0 +1,19 @@
+# Byte-compiled and optimized files
+__pycache__/
+*.py[co]
+*$py.class
+
+# Packaging
+*.egg-info
+MANIFEST
+build/*
+documentation/build/*
+
+# Unit test and coverage files
+.cache
+.coverage
+.coverage.*
+.tox
+
+# OS X Finder
+.DS_Store
