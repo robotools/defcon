@@ -57,5 +57,6 @@ def contourControlPointBoundsRepresentationFactory(obj):
 
 def contourClockwiseRepresentationFactory(contour):
     pen = AreaPen()
+    pen.endPath = pen.closePath
     contour.draw(pen)
     return pen.value < 0
