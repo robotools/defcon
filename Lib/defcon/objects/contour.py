@@ -78,6 +78,7 @@ class Contour(BaseObject):
         from fontTools.pens.areaPen import AreaPen
         if self._clockwiseCache is None:
             pen = AreaPen()
+            pen.endPath = pen.closePath
             self.draw(pen)
             self._clockwiseCache = pen.value < 0
         return self._clockwiseCache
