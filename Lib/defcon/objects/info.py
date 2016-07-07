@@ -6,9 +6,13 @@ import weakref
 from warnings import warn
 import ufoLib
 from defcon.objects.base import BaseObject
-from defcon.objects.guideline import Guideline
 from copy import copy
 
+def _guidelineDeprecation(message=None):
+    msg = "Font level guidelines are now handled in the Font object."
+    if message is not None:
+        msg += " " + message
+    warn(msg, DeprecationWarning, stacklevel=2)
 
 def init_property(cls, name, setup):
     setterName = '_set_{0}'.format(name)
@@ -63,8 +67,6 @@ class Info(BaseObject):
     Info.BeginRedo
     Info.EndRedo
     Info.ValueChanged
-    Info.GuidelinesChanged
-    Info.GuidelineWillBeDeleted
     ===========================
 
     **Note:** The documentation strings here were automatically generated
@@ -84,25 +86,15 @@ class Info(BaseObject):
         self._font = font
         super(Info, self).__init__()
         self.beginSelfNotificationObservation()
-        self._identifiers = set()
-        if guidelineClass is None:
-            guidelineClass = Guideline
-        self._guidelineClass = guidelineClass
-
-        self._guidelines = []
-
+        if guidelineClass is not None:
+            _guidelineDeprecation()
         # init private property attributes
         for name in self._properties:
             _, default = self._properties[name]
             setattr(self, '_'+name, copy(default))
 
-    def __del__(self):
-        super(Info, self).__del__()
-        self._guidelines = None
-
     def getParent(self):
         return self.font
-
 
     def _get_font(self):
         if self._font is not None:
@@ -224,122 +216,58 @@ class Info(BaseObject):
         "year": ("The year the font was created. This attribute is deprecated as of version 2. It's presence should not be relied upon by authoring tools. However, it may occur in a font's info so authoring tools should preserve it if present. This should be a integer. Setting this will post an *Info.Changed* notification.", None),
     }
 
-    # -----------
-    # Identifiers
-    # -----------
-
-    def _get_identifiers(self):
-        return self._identifiers
-
-    identifiers = property(_get_identifiers, doc="Set of identifiers for the info. This is primarily for internal use.")
-
     # ----------
     # Guidelines
     # ----------
 
     def _get_guidelines(self):
-        return list(self._guidelines)
+        font = self.font
+        if font is None:
+            return []
+        return font.guidelines
 
     def _set_guidelines(self, value):
-        self.clearGuidelines()
-        self.holdNotifications()
-        for guideline in value:
-            self.appendGuideline(guideline)
-        self.releaseHeldNotifications()
+        font = self.font
+        if font is None:
+            return []
+        font.guidelines = value
 
-    guidelines = property(_get_guidelines, _set_guidelines, doc="An ordered list of :class:`Guideline` objects stored in the info. Setting this will post a *Info.Changed* notification along with any notifications posted by the :py:meth:`Info.appendGuideline` and :py:meth:`Info.clearGuidelines` methods.")
+    guidelines = property(_get_guidelines, _set_guidelines, doc="This is a compatibility attribute for ufoLib. It maps to :py:attr:`Font.guidelines`.")
 
-    def instantiateGuideline(self, guidelineDict=None):
-        guideline = self._guidelineClass(
-            fontInfo=self,
-            guidelineDict=guidelineDict
-        )
-        return guideline
+    def appendGuideline(self, *args, **kwargs):
+        _guidelineDeprecation("This maps to Font.appendGuideline.")
+        font = self.font
+        if font is None:
+            raise NotImplementedError
+        return font.appendGuideline(*args, **kwargs)
 
-    def beginSelfGuidelineNotificationObservation(self, guideline):
-        if guideline.dispatcher is None:
-            return
-        guideline.addObserver(observer=self, methodName="_guidelineChanged", notification="Guideline.Changed")
+    def insertGuideline(self, *args, **kwargs):
+        _guidelineDeprecation("This maps to Font.insertGuideline.")
+        font = self.font
+        if font is None:
+            raise NotImplementedError
+        return font.insertGuideline(*args, **kwargs)
 
-    def endSelfGuidelineNotificationObservation(self, guideline):
-        if guideline.dispatcher is None:
-            return
-        guideline.endSelfNotificationObservation()
-        guideline.removeObserver(observer=self, notification="Guideline.Changed")
+    def removeGuideline(self, *args, **kwargs):
+        _guidelineDeprecation("This maps to Font.removeGuideline.")
+        font = self.font
+        if font is None:
+            raise NotImplementedError
+        return font.removeGuideline(*args, **kwargs)
 
-    def appendGuideline(self, guideline):
-        """
-        Append **guideline** to the info. The guideline must be a defcon
-        :class:`Guideline` object or a subclass of that object. An error
-        will be raised if the guideline's identifier conflicts with any of
-        the identifiers within the info.
+    def guidelineIndex(self, *args, **kwargs):
+        _guidelineDeprecation("This maps to Font.guidelineIndex.")
+        font = self.font
+        if font is None:
+            raise NotImplementedError
+        return font.guidelineIndex(*args, **kwargs)
 
-        This will post *Info.GuidelinesChanged* and *Info.Changed* notifications.
-        """
-        self.insertGuideline(len(self._guidelines), guideline)
-
-    def insertGuideline(self, index, guideline):
-        """
-        Insert **guideline** into the info at index. The guideline
-        must be a defcon :class:`Guideline` object or a subclass
-        of that object. An error will be raised if the guideline's
-        identifier conflicts with any of the identifiers within
-        the info.
-
-        This will post *Info.GuidelinesChanged* and *Info.Changed* notifications.
-        """
-        try:
-            assert guideline.fontInfo != self
-        except AttributeError:
-            pass
-        if not isinstance(guideline, self._guidelineClass):
-            guideline = self.instantiateGuideline(guidelineDict=guideline)
-        assert guideline.fontInfo in (self, None), "This guideline belongs to another font."
-        if guideline.fontInfo is None:
-            assert guideline.glyph is None, "This guideline belongs to a glyph."
-        if guideline.fontInfo is None:
-            if guideline.identifier is not None:
-                identifiers = self._identifiers
-                assert guideline.identifier not in identifiers
-                if guideline.identifier is not None:
-                    identifiers.add(guideline.identifier)
-            guideline.fontInfo = self
-            guideline.beginSelfNotificationObservation()
-        self.beginSelfGuidelineNotificationObservation(guideline)
-        self._guidelines.insert(index, guideline)
-        self.postNotification("Info.GuidelinesChanged")
-        self.dirty = True
-
-    def removeGuideline(self, guideline):
-        """
-        Remove **guideline** from the info.
-
-        This will post a *Glyph.Changed* notification.
-        """
-        self.postNotification(notification="Info.GuidelineWillBeDeleted", data=dict(object=guideline))
-        if guideline.identifier is not None:
-            self._identifiers.remove(guideline.identifier)
-        self._guidelines.remove(guideline)
-        self.endSelfGuidelineNotificationObservation(guideline)
-        self.postNotification("Info.GuidelinesChanged")
-        self.dirty = True
-
-    def guidelineIndex(self, guideline):
-        """
-        Get the index for **guideline**.
-        """
-        return self._guidelines.index(guideline)
-
-    def clearGuidelines(self):
-        """
-        Clear all guidelines from the info.
-
-        This posts a *Glyph.Changed* notification.
-        """
-        self.holdNotifications()
-        for guideline in reversed(self._guidelines):
-            self.removeGuideline(guideline)
-        self.releaseHeldNotifications()
+    def clearGuidelines(self, *args, **kwargs):
+        _guidelineDeprecation("This maps to Font.clearGuidelines.")
+        font = self.font
+        if font is None:
+            raise NotImplementedError
+        font.clearGuidelines(*args, **kwargs)
 
     # ------------------------
     # Notification Observation
@@ -348,14 +276,8 @@ class Info(BaseObject):
     def endSelfNotificationObservation(self):
         if self.dispatcher is None:
             return
-        for guideline in self.guidelines:
-            self.endSelfGuidelineNotificationObservation(guideline)
         super(Info, self).endSelfNotificationObservation()
         self._font = None
-
-    def _guidelineChanged(self, notification):
-        self.postNotification("Info.GuidelinesChanged")
-        self.dirty = True
 
     # -----------------------------
     # Serialization/Deserialization
@@ -367,11 +289,7 @@ class Info(BaseObject):
         simple_get = partial(getattr, self)
         serialize = lambda item: item.getDataForSerialization()
         serialized_get = lambda key: serialize(simple_get(key))
-        serialized_list_get = lambda key: [serialize(item) for item in simple_get(key)]
 
-        getters = [
-            ('guidelines', serialized_list_get)
-        ]
         for name in self._properties:
             if getattr(self, '_' + name) is None:
                 continue
@@ -384,18 +302,8 @@ class Info(BaseObject):
 
         simple_set = partial(setattr, self)
 
-        def set_guidelines(key, data):
-            guides = []
-            for d in data:
-                guide = self.instantiateGuideline()
-                guide.setDataFromSerialization(d)
-                guides.append(guide)
-            simple_set(key, guides)
-
         setters = [(name, simple_set) for name in self._properties]
-        setters.append(('guidelines', set_guidelines))
 
-        self._identifiers = set()
         for name, setter in setters:
             if name not in data:
                 continue

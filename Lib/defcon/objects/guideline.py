@@ -31,14 +31,13 @@ class Guideline(BaseDictObject):
     changeNotificationName = "Guideline.Changed"
     representationFactories = {}
 
-    def __init__(self, fontInfo=None, glyph=None, guidelineDict=None):
+    def __init__(self, font=None, glyph=None, guidelineDict=None):
         self._font = None
-        self._fontInfo = None
         self._layerSet = None
         self._layer = None
         self._glyph = None
-        if fontInfo is not None:
-            self.fontInfo = fontInfo
+        if font is not None:
+            self.font = font
         if glyph is not None:
             self.glyph = glyph
         super(Guideline, self).__init__()
@@ -57,8 +56,8 @@ class Guideline(BaseDictObject):
     # --------------
 
     def getParent(self):
-        if self._fontInfo is not None:
-            return self.fontInfo
+        if self._font is not None:
+            return self.font
         elif self._glyph is not None:
             return self.glyph
         return None
@@ -66,11 +65,8 @@ class Guideline(BaseDictObject):
     def _get_font(self):
         font = None
         if self._font is None:
-            fontInfo = self.fontInfo
             layerSet = self.layerSet
-            if fontInfo is not None:
-                font = fontInfo.font
-            elif layerSet is not None:
+            if layerSet is not None:
                 font = layerSet.font
             if font is not None:
                 self._font = weakref.ref(font)
@@ -78,21 +74,14 @@ class Guideline(BaseDictObject):
             font = self._font()
         return font
 
-    font = property(_get_font, doc="The :class:`Font` that this object belongs to.")
-
-    def _get_fontInfo(self):
-        if self._fontInfo is not None:
-            return self._fontInfo()
-        return None
-
-    def _set_fontInfo(self, fontInfo):
-        assert self._fontInfo is None
+    def _set_font(self, font):
+        assert self._font is None
         assert self._glyph is None
-        if fontInfo is not None:
-            fontInfo = weakref.ref(fontInfo)
-        self._fontInfo = fontInfo
+        if font is not None:
+            font = weakref.ref(font)
+        self._font = font
 
-    fontInfo = property(_get_fontInfo, _set_fontInfo, doc="The :class:`Info` that this object belongs to (if it is a font info guideline). This should not be set externally.")
+    font = property(_get_font, _set_font, doc="The :class:`Font` that this object belongs to.")
 
     def _get_layerSet(self):
         layerSet = None
@@ -128,7 +117,7 @@ class Guideline(BaseDictObject):
         return None
 
     def _set_glyph(self, glyph):
-        assert self._fontInfo is None
+        assert self._font is None
         assert self._glyph is None
         if glyph is not None:
             glyph = weakref.ref(glyph)
@@ -222,7 +211,7 @@ class Guideline(BaseDictObject):
         identifiers = None
         parent = self.glyph
         if parent is None:
-            parent = self.fontInfo
+            parent = self.font
         if parent is not None:
             identifiers = parent.identifiers
         if identifiers is None:

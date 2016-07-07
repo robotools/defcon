@@ -1,7 +1,7 @@
 import unittest
 import os
 import glob
-from defcon import Font, Glyph, LayerSet
+from defcon import Font, Glyph, LayerSet, Guideline
 from defcon.tools.notifications import NotificationCenter
 from defcon.test.testTools import (
     getTestFontPath, getTestFontCopyPath, makeTestFontCopy,
@@ -297,6 +297,90 @@ class FontTest(unittest.TestCase):
         self.assertEqual(font.glyphOrder, ["test"])
         font.updateGlyphOrder(removedGlyph="test")
         self.assertEqual(font.glyphOrder, [])
+
+    def test_guidelines(self):
+        font = Font(getTestFontPath())
+        self.assertEqual(font.guidelines, [])
+        guideline1 = Guideline(guidelineDict={"x": 100})
+        guideline2 = Guideline(guidelineDict={"y": 200})
+        font.guidelines = [guideline1, guideline2]
+        self.assertEqual(font.guidelines, [guideline1, guideline2])
+
+    def test_instantiateGuideline(self):
+        font = Font(getTestFontPath())
+        guideline = font.instantiateGuideline()
+        self.assertIsInstance(guideline, Guideline)
+        guideline = font.instantiateGuideline(guidelineDict={"x": 100})
+        self.assertEqual(guideline, {'x': 100})
+
+    def test_beginSelfGuidelineNotificationObservation(self):
+        font = Font(getTestFontPath())
+        guideline = font.instantiateGuideline()
+        self.assertFalse(guideline.dispatcher.hasObserver(
+            font, "Guideline.Changed", guideline))
+        font.beginSelfGuidelineNotificationObservation(guideline)
+        self.assertTrue(guideline.dispatcher.hasObserver(
+            font, "Guideline.Changed", guideline))
+
+    def test_endSelfGuidelineNotificationObservation(self):
+        font = Font(getTestFontPath())
+        guideline = font.instantiateGuideline()
+        font.beginSelfGuidelineNotificationObservation(guideline)
+        self.assertTrue(guideline.hasObserver(
+            font, "Guideline.Changed"))
+        font.endSelfGuidelineNotificationObservation(guideline)
+        self.assertIsNone(guideline.dispatcher)
+        self.assertFalse(guideline.hasObserver(
+            font, "Guideline.Changed"))
+
+    def test_appendGuideline(self):
+        font = Font(getTestFontPath())
+        guideline1 = Guideline(guidelineDict={"x": 100})
+        font.appendGuideline(guideline1)
+        self.assertEqual(font.guidelines, [{'x': 100}])
+        guideline2 = Guideline(guidelineDict={"y": 200})
+        font.appendGuideline(guideline2)
+        self.assertEqual(font.guidelines, [{'x': 100}, {'y': 200}])
+        guideline3 = Guideline(guidelineDict={"y": 100})
+        font.appendGuideline(guideline3)
+        self.assertEqual(font.guidelines, [{'x': 100}, {'y': 200}, {'y': 100}])
+
+    def test_insertGuideline(self):
+        font = Font(getTestFontPath())
+        guideline1 = Guideline(guidelineDict={"x": 100})
+        font.insertGuideline(0, guideline1)
+        self.assertEqual(font.guidelines, [{'x': 100}])
+        guideline2 = Guideline(guidelineDict={"y": 200})
+        font.insertGuideline(0, guideline2)
+        self.assertEqual(font.guidelines, [{'y': 200}, {'x': 100}])
+        guideline3 = Guideline(guidelineDict={"y": 100})
+        font.insertGuideline(2, guideline3)
+        self.assertEqual(font.guidelines, [{'y': 200}, {'x': 100}, {'y': 100}])
+
+    def test_removeGuideline(self):
+        font = Font(getTestFontPath())
+        guideline1 = Guideline(guidelineDict={"x": 100})
+        guideline2 = Guideline(guidelineDict={"y": 200})
+        font.guidelines = [guideline1, guideline2]
+        font.removeGuideline(guideline1)
+        self.assertEqual(font.guidelines, [guideline2])
+
+    def test_guidelineIndex(self):
+        font = Font(getTestFontPath())
+        guideline1 = Guideline(guidelineDict={"x": 100})
+        guideline2 = Guideline(guidelineDict={"y": 200})
+        font.guidelines = [guideline1, guideline2]
+        self.assertEqual(font.guidelineIndex(guideline1), 0)
+        self.assertEqual(font.guidelineIndex(guideline2), 1)
+
+    def test_clearGuidelines(self):
+        font = Font(getTestFontPath())
+        guideline1 = Guideline(guidelineDict={"x": 100})
+        guideline2 = Guideline(guidelineDict={"y": 200})
+        font.guidelines = [guideline1, guideline2]
+        self.assertEqual(font.guidelines, [guideline1, guideline2])
+        font.clearGuidelines()
+        self.assertEqual(font.guidelines, [])
 
     def test_save(self):
         path = makeTestFontCopy()
