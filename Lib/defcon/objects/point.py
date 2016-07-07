@@ -80,6 +80,9 @@ class Point(object):
         return self._identifier
 
     def _set_identifier(self, value):
+        # don't allow overwritting an existing identifier
+        if self._identifier is not None:
+            return
         self._identifier = value
 
     identifier = property(_get_identifier, _set_identifier, doc="The identifier.")

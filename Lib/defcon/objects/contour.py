@@ -621,6 +621,9 @@ class Contour(BaseObject):
         return self._identifier
 
     def _set_identifier(self, value):
+        # don't allow overwritting an existing identifier
+        if self._identifier is not None:
+            return
         oldIdentifier = self.identifier
         if value == oldIdentifier:
             return
@@ -645,17 +648,21 @@ class Contour(BaseObject):
         Create a new, unique identifier for and assign it to the contour.
         This will post *Contour.IdentifierChanged* and *Contour.Changed* notifications.
         """
-        identifier = makeRandomIdentifier(existing=self.identifiers)
-        self.identifier = identifier
+        if self.identifier is None:
+            identifier = makeRandomIdentifier(existing=self.identifiers)
+            self.identifier = identifier
+        return self.identifier
 
     def generateIdentifierForPoint(self, point):
         """
-        Create a new, unique identifier for and assign it to the contour.
-        This will post *Contour.IdentifierChanged* and *Contour.Changed* notifications.
+        Create a new, unique identifier for and assign it to the point.
+        This will post *Contour.Changed* notification.
         """
-        identifier = makeRandomIdentifier(existing=self.identifiers)
-        point.identifier = identifier
-        self.dirty = True
+        if point.identifier is None:
+            identifier = makeRandomIdentifier(existing=self.identifiers)
+            point.identifier = identifier
+            self.dirty = True
+        return point.identifier
 
     # ------------------------
     # Notification Observation

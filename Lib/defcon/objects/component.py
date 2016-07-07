@@ -252,6 +252,9 @@ class Component(BaseObject):
         return self._identifier
 
     def _set_identifier(self, value):
+        # don't allow overwritting an existing identifier
+        if self._identifier is not None:
+            return
         oldIdentifier = self.identifier
         if value == oldIdentifier:
             return
@@ -276,8 +279,10 @@ class Component(BaseObject):
         Create a new, unique identifier for and assign it to the contour.
         This will post *Component.IdentifierChanged* and *Component.Changed* notifications.
         """
-        identifier = makeRandomIdentifier(existing=self.identifiers)
-        self.identifier = identifier
+        if self.identifier is None:
+            identifier = makeRandomIdentifier(existing=self.identifiers)
+            self.identifier = identifier
+        return self.identifier
 
     # ------------------------
     # Notification Observation

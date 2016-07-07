@@ -224,6 +224,9 @@ class Guideline(BaseDictObject):
         return self.get("identifier")
 
     def _set_identifier(self, value):
+        # don't allow overwritting an existing identifier
+        if self._identifier is not None:
+            return
         oldIdentifier = self.identifier
         if value == oldIdentifier:
             return
@@ -247,8 +250,10 @@ class Guideline(BaseDictObject):
         Create a new, unique identifier for and assign it to the guideline.
         This will post *Guideline.IdentifierChanged* and *Guideline.Changed* notifications.
         """
-        identifier = makeRandomIdentifier(existing=self.identifiers)
-        self.identifier = identifier
+        if self.identifier is None:
+            identifier = makeRandomIdentifier(existing=self.identifiers)
+            self.identifier = identifier
+        return self.identifier
 
     # ------------------------
     # Notification Observation
