@@ -144,7 +144,7 @@ class Glyph(BaseObject):
         self._pointClass = pointClass
         self._componentClass = componentClass
         self._anchorClass = anchorClass
-        self._guidelineClass = Guideline
+        self._guidelineClass = guidelineClass
         self._libClass = libClass
         self._imageClass = imageClass
 
