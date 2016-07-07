@@ -1070,7 +1070,6 @@ class Font(BaseObject):
     # data stamping
 
     def _stampFontDataState(self, obj, fileName, reader=None):
-        return
         # font is not on disk
         if self.path is None:
             return
