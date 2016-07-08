@@ -4,6 +4,7 @@ from warnings import warn
 from fontTools.misc.transform import Transform
 from defcon.objects.base import BaseObject
 from defcon.tools.identifiers import makeRandomIdentifier
+from defcon.tools.representations import componentBoundsRepresentationFactory, componentPointBoundsRepresentationFactory
 
 _defaultTransformation = (1, 0, 0, 1, 0, 0)
 
@@ -27,7 +28,16 @@ class Component(BaseObject):
     """
 
     changeNotificationName = "Component.Changed"
-    representationFactories = {}
+    representationFactories = {
+        "defcon.component.bounds" : dict(
+            factory=componentBoundsRepresentationFactory,
+            destructiveNotifications=("Component.TransformationChanged", "Component.BaseGlyphChanged")
+        ),
+        "defcon.component.controlPointBounds" : dict(
+            factory=componentPointBoundsRepresentationFactory,
+            destructiveNotifications=("Component.TransformationChanged", "Component.BaseGlyphChanged")
+        )
+    }
 
     def __init__(self, glyph=None):
         self._font = None
@@ -113,31 +123,13 @@ class Component(BaseObject):
 
     # bounds
 
-    def _getBounds(self, boundsAttr):
-        layer = self.layer
-        if layer is None:
-            return None
-        if self.baseGlyph not in layer:
-            return None
-        glyph = layer[self.baseGlyph]
-        bounds = getattr(glyph, boundsAttr)
-        if bounds is None:
-            return None
-        if self.transformation == _defaultTransformation:
-            return bounds
-        xMin, yMin, xMax, yMax = bounds
-        t = Transform(*self.transformation)
-        points = [(xMin, yMin), (xMax, yMax)]
-        (xMin, yMin), (xMax, yMax) = t.transformPoints(points)
-        return xMin, yMin, xMax, yMax
-
     def _get_bounds(self):
-        return self._getBounds("bounds")
+        return self.getRepresentation("defcon.component.bounds")
 
     bounds = property(_get_bounds, doc="The bounds of the components's outline expressed as a tuple of form (xMin, yMin, xMax, yMax).")
 
     def _get_controlPointBounds(self):
-        return self._getBounds("controlPointBounds")
+        return self.getRepresentation("defcon.component.controlPointBounds")
 
     controlPointBounds = property(_get_controlPointBounds, doc="The control bounds of all points in the components. This only measures the point positions, it does not measure curves. So, curves without points at the extrema will not be properly measured.")
 

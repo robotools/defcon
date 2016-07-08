@@ -60,3 +60,19 @@ def contourClockwiseRepresentationFactory(contour):
     pen.endPath = pen.closePath
     contour.draw(pen)
     return pen.value < 0
+
+# ---------
+# Component
+# ---------
+
+# bounds
+
+def componentBoundsRepresentationFactory(obj):
+    pen = BoundsPen(obj.font)
+    obj.draw(pen)
+    return pen.bounds
+
+def componentPointBoundsRepresentationFactory(obj):
+    pen = ControlBoundsPen(obj.font)
+    obj.draw(pen)
+    return pen.bounds
