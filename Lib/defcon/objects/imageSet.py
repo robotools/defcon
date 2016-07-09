@@ -2,8 +2,9 @@ from __future__ import absolute_import
 import os
 import hashlib
 import weakref
-from ufoLib import UFOReader, UFOLibError
 from defcon.objects.base import BaseObject
+from fontTools.misc.py23 import unicode
+from ufoLib import UFOReader, UFOLibError
 from ufoLib.filenames import userNameToFileName, illegalCharacters, reservedFileNames, maxFileNameLength
 from ufoLib.validators import pngSignature
 
@@ -222,14 +223,13 @@ class ImageSet(BaseObject):
         """
         Make a file system legal version of **fileName**.
         """
-        if not isinstance(fileName, str):
-            fileName = str(fileName)
+        fileName = unicode(fileName)
         suffix = ""
         if fileName.lower().endswith(".png"):
             suffix = fileName[-4:]
             fileName = fileName[:-4]
         existing = set([i.lower() for i in self.fileNames])
-        return unicode(userNameToFileName(fileName, existing, suffix=suffix))
+        return userNameToFileName(fileName, existing, suffix=suffix)
 
     def findDuplicateImage(self, data):
         """
@@ -396,7 +396,7 @@ def fileNameValidator(value):
         return False
     # must not be longer then the max fileName length
     if len(value) > maxFileNameLength:
-        return False    
+        return False
     for i, character in enumerate(value):
         # must not contain any illegal characters
         if character in illegalCharacters:
@@ -408,10 +408,10 @@ def fileNameValidator(value):
             if value[i+1] != "_":
                 return False
     # check reserved file names
-    for reservedFileName in reservedFileNames:  
+    for reservedFileName in reservedFileNames:
         # all reserved file names are being prefix with an _ (underscore)
-        # if the replaced value is the same there is no correct prefix      
-        if reservedFileName in value:   
+        # if the replaced value is the same there is no correct prefix
+        if reservedFileName in value:
             if value == value.replace("_%s" % reservedFileName, ""):
                 return False
     return True
