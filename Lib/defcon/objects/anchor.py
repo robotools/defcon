@@ -186,7 +186,7 @@ class Anchor(BaseDictObject):
 
     def _set_identifier(self, value):
         # don't allow overwritting an existing identifier
-        if self._identifier is not None:
+        if self.identifier is not None:
             return
         oldIdentifier = self.identifier
         if value == oldIdentifier:
