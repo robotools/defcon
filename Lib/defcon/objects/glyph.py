@@ -980,6 +980,9 @@ class Glyph(BaseObject):
 
     image = property(_get_image, _set_image, doc="The glyph's :class:`Image` object. Setting this posts *Glyph.ImageChanged* and *Glyph.Changed* notifications.")
 
+    def clearImage(self):
+        self.image = None
+
     def beginSelfImageNotificationObservation(self):
         if self._image.dispatcher is None:
             return
@@ -1074,6 +1077,7 @@ class Glyph(BaseObject):
         self.clearComponents()
         self.clearAnchors()
         self.clearGuidelines()
+        self.clearImage()
         self.releaseHeldNotifications()
 
     # ----
