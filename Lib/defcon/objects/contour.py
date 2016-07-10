@@ -332,6 +332,12 @@ class Contour(BaseObject):
             and nextSegment[-1].segmentType == "line"):
             for point in segment:
                 self._points.remove(point)
+            # if we're removing a move segment, we need to forward the move to
+            # the next on curve
+            if segment[-1].segmentType == "move":
+                for point in nextSegment[:-1]:
+                    self._points.remove(point)
+                nextSegment[-1].segmentType = "move"
         # if have a curve, do the preservation
         else:
             # gather the needed points
