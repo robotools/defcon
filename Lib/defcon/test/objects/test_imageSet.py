@@ -1,7 +1,9 @@
+from __future__ import unicode_literals
 import unittest
 import os
 from ufoLib import UFOReader
 from defcon import Font
+from defcon.objects.imageSet import fileNameValidator
 from defcon.test.testTools import (
     getTestFontPath, getTestFontCopyPath, makeTestFontCopy,
     tearDownTestFontCopy)
@@ -168,6 +170,37 @@ class ImageSetTest(unittest.TestCase):
         image = font.images["image 1.png"]
         self.assertEqual(image, newImageData)
         tearDownTestFontCopy()
+
+    def test_fileNameValidator(self):
+        self.assertTrue(fileNameValidator('a'))
+        self.assertTrue(fileNameValidator('A_'))
+        self.assertTrue(fileNameValidator('A_E_'))
+        self.assertTrue(fileNameValidator('A_e'))
+        self.assertTrue(fileNameValidator('ae'))
+        self.assertTrue(fileNameValidator('aE_'))
+        self.assertTrue(fileNameValidator('a.alt'))
+        self.assertTrue(fileNameValidator('A_.alt'))
+        self.assertTrue(fileNameValidator('A_.A_lt'))
+        self.assertTrue(fileNameValidator('A_.aL_t'))
+        self.assertTrue(fileNameValidator('A_.alT_'))
+        self.assertTrue(fileNameValidator('T__H_'))
+        self.assertTrue(fileNameValidator('T__h'))
+        self.assertTrue(fileNameValidator('t_h'))
+        self.assertTrue(fileNameValidator('F__F__I_'))
+        self.assertTrue(fileNameValidator('f_f_i'))
+        self.assertTrue(fileNameValidator('A_acute_V_.swash'))
+        self.assertTrue(fileNameValidator('_notdef'))
+        self.assertTrue(fileNameValidator('_con'))
+        self.assertTrue(fileNameValidator('C_O_N_'))
+        self.assertTrue(fileNameValidator('_con.alt'))
+        self.assertTrue(fileNameValidator('alt._con'))
+        self.assertTrue(fileNameValidator('A_bC_dE_f'))
+
+        self.assertFalse(fileNameValidator(b'A'))
+        self.assertFalse(fileNameValidator('A'*256))
+        self.assertFalse(fileNameValidator('A'))
+        self.assertFalse(fileNameValidator('con'))
+        self.assertFalse(fileNameValidator('a/alt'))
 
 if __name__ == "__main__":
     unittest.main()
