@@ -84,9 +84,17 @@ class AnchorTest(unittest.TestCase):
 
     def test_identifier(self):
         self.assertIsNone(self.anchor.identifier)
-        self.anchor.generateIdentifier()
+        identifier = self.anchor.generateIdentifier()
+        self.assertEqual(identifier, self.anchor.identifier)
         self.assertIsNotNone(self.anchor.identifier)
+
+    def test_identifier_set(self):
+        self.assertIsNone(self.anchor.identifier)
         self.anchor.identifier = "foo"
+        self.assertEqual(self.anchor.identifier, "foo")
+        self.anchor.identifier = "bar"
+        self.assertEqual(self.anchor.identifier, "foo")
+        self.anchor.identifier = None
         self.assertEqual(self.anchor.identifier, "foo")
 
     def test_instance(self):
