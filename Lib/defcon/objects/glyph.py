@@ -841,7 +841,7 @@ class Glyph(BaseObject):
             guideline = self.instantiateGuideline(guidelineDict=guideline)
         assert guideline.glyph in (self, None), "This guideline belongs to another glyph."
         if guideline.glyph is None:
-            assert guideline.fontInfo is None, "This guideline belongs to a font."
+            assert guideline.font is None, "This guideline belongs to a font."
         if guideline.glyph is None:
             if guideline.identifier is not None:
                 identifiers = self._identifiers

@@ -372,13 +372,11 @@ class ContourTest(unittest.TestCase):
         contour.identifier = "contour 2"
         self.assertEqual(sorted(glyph.identifiers), ["contour 1", "contour 2"])
         contour.identifier = "not contour 2 anymore"
-        self.assertEqual(contour.identifier, "not contour 2 anymore")
-        self.assertEqual(sorted(glyph.identifiers),
-                         ["contour 1", "not contour 2 anymore"])
+        self.assertEqual(contour.identifier, "contour 2")
+        self.assertEqual(sorted(glyph.identifiers), ["contour 1", "contour 2"])
         contour.identifier = None
-        self.assertIsNone(contour.identifier)
-        self.assertEqual(sorted(glyph.identifiers), ["contour 1"])
-
+        self.assertEqual(contour.identifier, "contour 2")
+        self.assertEqual(sorted(glyph.identifiers), ["contour 1", "contour 2"])
 
 if __name__ == "__main__":
     unittest.main()

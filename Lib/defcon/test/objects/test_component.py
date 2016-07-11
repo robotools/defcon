@@ -105,10 +105,12 @@ class ComponentTest(unittest.TestCase):
         )
 
     def test_identifier(self):
+        self.assertIsNone(self.component.identifier)
         self.component.identifier = "component 1"
         self.assertEqual(self.component.identifier, "component 1")
 
     def test_identifiers(self):
+        self.assertEqual(sorted(self.glyph.identifiers), [])
         self.component.identifier = "component 1"
         self.assertEqual(sorted(self.glyph.identifiers), ["component 1"])
 
@@ -124,13 +126,13 @@ class ComponentTest(unittest.TestCase):
         self.assertEqual(sorted(glyph.identifiers),
                          ["component 1", "component 2"])
         component.identifier = "not component 2 anymore"
-        self.assertEqual(component.identifier,
-                         "not component 2 anymore")
+        self.assertEqual(component.identifier, "component 2")
         self.assertEqual(sorted(glyph.identifiers),
-                         ["component 1", "not component 2 anymore"])
+                         ["component 1", "component 2"])
         component.identifier = None
+        self.assertEqual(component.identifier, "component 2")
         self.assertEqual(sorted(glyph.identifiers),
-                         ["component 1"])
+                         ["component 1", "component 2"])
 
 
 class ComponentNotificationTest(unittest.TestCase):
