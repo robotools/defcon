@@ -287,9 +287,11 @@ class Info(BaseObject):
         from functools import partial
 
         simple_get = partial(getattr, self)
-        serialize = lambda item: item.getDataForSerialization()
-        serialized_get = lambda key: serialize(simple_get(key))
+        # not sure, but these are not necessary
+        # serialize = lambda item: item.getDataForSerialization()
+        # serialized_get = lambda key: serialize(simple_get(key))
 
+        getters = []
         for name in self._properties:
             if getattr(self, '_' + name) is None:
                 continue
