@@ -153,6 +153,38 @@ class GlyphTest(unittest.TestCase):
         self.assertEqual(glyph.width, 800)
         self.assertTrue(glyph.dirty)
 
+    def test_bottomMargin_get(self):
+        font = Font(getTestFontPath())
+        glyph = font["A"]
+        self.assertEqual(glyph.bottomMargin, 0)
+        glyph = font["B"]
+        self.assertEqual(glyph.bottomMargin, 0)
+
+    def test_bottomMargin_set(self):
+        font = Font(getTestFontPath())
+        glyph = font["A"]
+        glyph.bottomMargin = 100
+        self.assertEqual(glyph.bottomMargin, 100)
+        self.assertEqual(glyph.height, 600)
+        self.assertTrue(glyph.dirty)
+
+    def test_topMargin_get(self):
+        from defcon.test.testTools import getTestFontPath
+        from defcon.objects.font import Font
+        font = Font(getTestFontPath())
+        glyph = font["A"]
+        self.assertEqual(glyph.topMargin, -200)
+
+    def test_topMargin_set(self):
+        from defcon.test.testTools import getTestFontPath
+        from defcon.objects.font import Font
+        font = Font(getTestFontPath())
+        glyph = font["A"]
+        glyph.topMargin = 100
+        self.assertEqual(glyph.topMargin, 100)
+        self.assertEqual(glyph.height, 800)
+        self.assertTrue(glyph.dirty)
+
     def test_width_get(self):
         font = Font(getTestFontPath())
         glyph = font["A"]

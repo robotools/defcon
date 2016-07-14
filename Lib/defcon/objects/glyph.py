@@ -300,6 +300,46 @@ class Glyph(BaseObject):
 
     rightMargin = property(_get_rightMargin, _set_rightMargin, doc="The right margin of the glyph. Setting this posts *Glyph.WidthChanged* and *Glyph.Changed* notifications among others.")
 
+    def _get_bottomMargin(self):
+        bounds = self.bounds
+        if bounds is None:
+            return None
+        xMin, yMin, xMax, yMax = bounds
+        return yMin
+
+    def _set_bottomMargin(self, value):
+        bounds = self.bounds
+        if bounds is None:
+            return
+        xMin, yMin, xMax, yMax = bounds
+        oldValue = yMin
+        diff = value - yMin
+        if value != oldValue:
+            self.move((0, diff))
+            self.height += diff
+            self.dirty = True
+
+    bottomMargin = property(_get_bottomMargin, _set_bottomMargin, doc="The bottom margin of the glyph. Setting this post *Glyph.HeightChanged* and *Glyph.Changed* notifications among others.")
+
+    def _get_topMargin(self):
+        bounds = self.bounds
+        if bounds is None:
+            return None
+        xMin, yMin, xMax, yMax = bounds
+        return self._height - yMax
+
+    def _set_topMargin(self, value):
+        bounds = self.bounds
+        if bounds is None:
+            return
+        xMin, yMin, xMax, yMax = bounds
+        oldValue = self._height - yMax
+        if oldValue != value:
+            self.height = yMax + value
+            self.dirty = True
+
+    topMargin = property(_get_topMargin, _set_topMargin, doc="The top margin of the glyph. Setting this posts *Glyph.HeightChanged* and *Glyph.Changed* notifications among others.")
+
     # width
 
     def _get_width(self):
