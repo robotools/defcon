@@ -214,7 +214,7 @@ class GlyphTest(unittest.TestCase):
         font = Font()
         font.newGlyph("A")
         glyph = font["A"]
-        glyph.markColor
+        self.assertIsNone(glyph.markColor)
         glyph.markColor = "1,0,1,0"
         self.assertEqual(glyph.markColor, "1,0,1,0")
         glyph.markColor = "1,0,1,0"
