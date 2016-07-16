@@ -59,6 +59,7 @@ class Glyph(BaseObject):
     Glyph.GuidelineWillBeDeleted
     Glyph.GuidelinesChanged
     Glyph.MarkColorChanged
+    Glyph.VerticalOriginChanged
     ============================
 
     The Glyph object has list like behavior. This behavior allows you to interact
@@ -400,6 +401,28 @@ class Glyph(BaseObject):
         self.postNotification(notification="Glyph.MarkColorChanged", data=dict(oldValue=oldValue, newValue=value))
 
     markColor = property(_get_markColor, _set_markColor, doc="The glyph's mark color. When setting, the value can be a UFO color string, a sequence of (r, g, b, a) or a :class:`Color` object. Setting this posts *Glyph.MarkColorChanged* and *Glyph.Changed* notifications.")
+
+    # vertical origin
+
+    def _get_verticalOrigin(self):
+        value = self.lib.get("public.verticalOrigin")
+        return value
+
+    def _set_verticalOrigin(self, value):
+        # don't write if there is no change
+        oldValue = self.lib.get("public.verticalOrigin")
+        if value == oldValue:
+            return
+        # remove
+        if value is None:
+            if "public.verticalOrigin" in self.lib:
+                del self.lib["public.verticalOrigin"]
+        # store
+        else:
+            self.lib["public.verticalOrigin"] = value
+        self.postNotification(notification="Glyph.VerticalOriginChanged", data=dict(oldValue=oldValue, newValue=value))
+
+    verticalOrigin = property(_get_verticalOrigin, _set_verticalOrigin, doc="The glyph's vertical origin. Setting this posts *Glyph.VerticalOriginChanged* and *Glyph.Changed* notifications.")
 
     # -------
     # Pen API

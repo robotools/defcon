@@ -222,6 +222,44 @@ class GlyphTest(unittest.TestCase):
         glyph.markColor = None
         self.assertIsNone(glyph.markColor)
 
+    def test_verticalOrigin(self):
+        from defcon.test.testTools import getTestFontPath
+        from defcon.objects.font import Font
+        font = Font()
+        font.newGlyph("A")
+        glyph = font["A"]
+        self.assertIsNone(glyph.verticalOrigin)
+        self.assertEqual(glyph.height, 0)
+        glyph.verticalOrigin = 1000
+        self.assertEqual(glyph.verticalOrigin, 1000)
+        self.assertEqual(glyph.height, 0)
+        glyph.verticalOrigin = 0
+        self.assertEqual(glyph.verticalOrigin, 0)
+        self.assertEqual(glyph.height, 0)
+        glyph.verticalOrigin = -10
+        self.assertEqual(glyph.verticalOrigin, -10)
+        self.assertEqual(glyph.height, 0)
+        glyph.verticalOrigin = None
+        self.assertIsNone(glyph.verticalOrigin)
+        self.assertEqual(glyph.height, 0)
+
+        font = Font(getTestFontPath())
+        glyph = font["A"]
+        self.assertIsNone(glyph.verticalOrigin)
+        self.assertEqual(glyph.height, 500)
+        glyph.verticalOrigin = 1000
+        self.assertEqual(glyph.verticalOrigin, 1000)
+        self.assertEqual(glyph.height, 500)
+        glyph.verticalOrigin = 0
+        self.assertEqual(glyph.verticalOrigin, 0)
+        self.assertEqual(glyph.height, 500)
+        glyph.verticalOrigin = -10
+        self.assertEqual(glyph.verticalOrigin, -10)
+        self.assertEqual(glyph.height, 500)
+        glyph.verticalOrigin = None
+        self.assertIsNone(glyph.verticalOrigin)
+        self.assertEqual(glyph.height, 500)
+
     def test_appendContour(self):
         glyph = Glyph()
         glyph.dirty = False
