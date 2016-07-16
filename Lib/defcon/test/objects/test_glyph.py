@@ -159,6 +159,9 @@ class GlyphTest(unittest.TestCase):
         self.assertEqual(glyph.bottomMargin, 0)
         glyph = font["B"]
         self.assertEqual(glyph.bottomMargin, 0)
+        # empty glyph
+        glyph = font.newGlyph("D")
+        self.assertIsNone(glyph.bottomMargin)
 
     def test_bottomMargin_set(self):
         font = Font(getTestFontPath())
@@ -166,7 +169,23 @@ class GlyphTest(unittest.TestCase):
         glyph.bottomMargin = 100
         self.assertEqual(glyph.bottomMargin, 100)
         self.assertEqual(glyph.height, 600)
+        self.assertEqual(glyph.verticalOrigin, 500)
         self.assertTrue(glyph.dirty)
+        # now glyph.verticalOrigin is defined
+        glyph.bottomMargin = 50
+        self.assertEqual(glyph.bottomMargin, 50)
+        self.assertEqual(glyph.height, 550)
+        self.assertEqual(glyph.verticalOrigin, 500)
+        self.assertTrue(glyph.dirty)
+        # empty glyph
+        glyph = font.newGlyph("D")
+        glyph.dirty = False
+        glyph.bottomMargin = 10
+        self.assertIsNone(glyph.bottomMargin)
+        self.assertEqual(glyph.height, 0)
+        self.assertIsNone(glyph.verticalOrigin)
+        self.assertFalse(glyph.dirty)
+
 
     def test_topMargin_get(self):
         from defcon.test.testTools import getTestFontPath
@@ -174,6 +193,9 @@ class GlyphTest(unittest.TestCase):
         font = Font(getTestFontPath())
         glyph = font["A"]
         self.assertEqual(glyph.topMargin, -200)
+        # empty glyph
+        glyph = font.newGlyph("D")
+        self.assertIsNone(glyph.topMargin)
 
     def test_topMargin_set(self):
         from defcon.test.testTools import getTestFontPath
@@ -183,7 +205,23 @@ class GlyphTest(unittest.TestCase):
         glyph.topMargin = 100
         self.assertEqual(glyph.topMargin, 100)
         self.assertEqual(glyph.height, 800)
+        self.assertEqual(glyph.verticalOrigin, 800)
         self.assertTrue(glyph.dirty)
+        # now glyph.verticalOrigin is defined
+        glyph.topMargin = 50
+        self.assertEqual(glyph.topMargin, 50)
+        self.assertEqual(glyph.height, 750)
+        self.assertEqual(glyph.verticalOrigin, 750)
+        self.assertTrue(glyph.dirty)
+        # empty glyph
+        glyph = font.newGlyph("D")
+        glyph.dirty = False
+        glyph.topMargin = 10
+        self.assertIsNone(glyph.topMargin)
+        self.assertEqual(glyph.height, 0)
+        self.assertIsNone(glyph.verticalOrigin)
+        self.assertFalse(glyph.dirty)
+
 
     def test_width_get(self):
         font = Font(getTestFontPath())
@@ -207,6 +245,7 @@ class GlyphTest(unittest.TestCase):
         glyph = font["A"]
         glyph.height = 100
         self.assertEqual(glyph.height, 100)
+        self.assertEqual(glyph.verticalOrigin, None)
         self.assertTrue(glyph.dirty)
 
     def test_markColor(self):

@@ -306,17 +306,23 @@ class Glyph(BaseObject):
         if bounds is None:
             return None
         xMin, yMin, xMax, yMax = bounds
-        return yMin
+        if self.verticalOrigin is None:
+            return yMin
+        else:
+            return yMin - (self.verticalOrigin - self.height)
 
     def _set_bottomMargin(self, value):
         bounds = self.bounds
         if bounds is None:
             return
         xMin, yMin, xMax, yMax = bounds
-        oldValue = yMin
-        diff = value - yMin
+        if self.verticalOrigin is None:
+            oldValue = yMin
+            self.verticalOrigin = self.height
+        else:
+            oldValue = yMin - (self.verticalOrigin - self.height)
+        diff = value - oldValue
         if value != oldValue:
-            self.move((0, diff))
             self.height += diff
             self.dirty = True
 
@@ -327,19 +333,27 @@ class Glyph(BaseObject):
         if bounds is None:
             return None
         xMin, yMin, xMax, yMax = bounds
-        return self._height - yMax
+        if self.verticalOrigin is None:
+            return self._height - yMax
+        else:
+            return self.verticalOrigin - yMax
 
     def _set_topMargin(self, value):
         bounds = self.bounds
         if bounds is None:
             return
         xMin, yMin, xMax, yMax = bounds
-        oldValue = self._height - yMax
+        if self.verticalOrigin is None:
+            oldValue = self._height - yMax
+        else:
+            oldValue = self.verticalOrigin - yMax
+        diff = value - oldValue
         if oldValue != value:
-            self.height = yMax + value
+            self.verticalOrigin = yMax + value
+            self.height += diff
             self.dirty = True
 
-    topMargin = property(_get_topMargin, _set_topMargin, doc="The top margin of the glyph. Setting this posts *Glyph.HeightChanged* and *Glyph.Changed* notifications among others.")
+    topMargin = property(_get_topMargin, _set_topMargin, doc="The top margin of the glyph. Setting this posts *Glyph.HeightChanged*, *Glyph.VerticalOriginChanged* and *Glyph.Changed* notifications among others.")
 
     # width
 
