@@ -33,6 +33,8 @@ class LayerSet(BaseObject):
     +-------------------------------+
     |LayerSet.LayerWillBeDeleted    |
     +-------------------------------+
+    |LayerSet.LayerNameChanged      |
+    +-------------------------------+
 
     This object behaves like a dict. For example, to get a particular
     layer::
@@ -358,6 +360,7 @@ class LayerSet(BaseObject):
         self._layerOrder.pop(index)
         self._layerOrder.insert(index, newName)
         self._layerActionHistory.append(dict(action="rename", oldName=oldName, newName=newName))
+        self.postNotification("LayerSet.LayerNameChanged")
 
     # ---------------------
     # External Edit Support
