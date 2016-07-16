@@ -960,7 +960,7 @@ class Font(BaseObject):
             self._identifiers.remove(guideline.identifier)
         self._guidelines.remove(guideline)
         self.endSelfGuidelineNotificationObservation(guideline)
-        self.postNotification("Info.GuidelinesChanged")
+        self.postNotification("Font.GuidelinesChanged")
         self.info.dirty = True
         self.dirty = True
 
