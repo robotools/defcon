@@ -642,6 +642,7 @@ class Glyph(BaseObject):
         if component.dispatcher is None:
             return
         component.removeObserver(observer=self, notification="Component.Changed")
+        component.removeObserver(observer=self, notification="Component.BaseGlyphDataChanged")
         component.endSelfNotificationObservation()
 
     def appendComponent(self, component):
