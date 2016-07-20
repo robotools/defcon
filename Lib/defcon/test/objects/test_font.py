@@ -1,7 +1,8 @@
 import unittest
 import os
 import glob
-from defcon import Font
+from defcon import Font, Glyph, LayerSet, Guideline
+from defcon.tools.notifications import NotificationCenter
 from defcon.test.testTools import (
     getTestFontPath, getTestFontCopyPath, makeTestFontCopy,
     tearDownTestFontCopy)
@@ -11,6 +12,25 @@ try:
 except ImportError:
     from plistlib import readPlist as load, writePlist as dump
 
+testFeaturesText = """
+@class1 = [a b c d];
+
+feature liga {
+    sub f i by fi;
+} liga;
+
+@class2 = [x y z];
+
+feature salt {
+    sub a by a.alt;
+} salt; feature ss01 {sub x by x.alt} ss01;
+
+feature ss02 {sub y by y.alt} ss02;
+
+# feature calt {
+#     sub a b' by b.alt;
+# } calt;
+"""
 
 class FontTest(unittest.TestCase):
 
@@ -26,12 +46,26 @@ class FontTest(unittest.TestCase):
         glyph = font["A"]
         self.assertEqual(id(glyph.getParent()), id(font))
 
+    def test_dispatcher(self):
+        font = Font()
+        self.assertIsInstance(font.dispatcher, NotificationCenter)
+        with self.assertRaises(AttributeError):
+            self.font.dispatcher = "foo"
+
     def test_newGlyph(self):
         font = Font(getTestFontPath())
         glyph = font.newGlyph("NewGlyphTest")
         self.assertEqual(glyph.name, "NewGlyphTest")
         self.assertTrue(glyph.dirty)
         self.assertTrue(font.dirty)
+        self.assertEqual(sorted(font.keys()), ["A", "B", "C", "NewGlyphTest"])
+
+    def test_insertGlyph(self):
+        font = Font(getTestFontPath())
+        glyph = Glyph()
+        glyph.name = "NewGlyphTest"
+        self.assertEqual(sorted(font.keys()), ["A", "B", "C"])
+        font.insertGlyph(glyph)
         self.assertEqual(sorted(font.keys()), ["A", "B", "C", "NewGlyphTest"])
 
     def test_iter(self):
@@ -135,9 +169,6 @@ class FontTest(unittest.TestCase):
         font.newGlyph("A")
         self.assertEqual(sorted(font.keys()), ["A"])
 
-    # def test_newLayer(self):
-    #     pass  # XXX
-
     def test_path_get(self):
         path = getTestFontPath()
         font = Font(path)
@@ -154,12 +185,6 @@ class FontTest(unittest.TestCase):
         font.path = path2
         self.assertEqual(font.path, path2)
         shutil.rmtree(path2)
-
-    # def test_ufoFormatVersion(self):
-    #     pass  # XXX
-
-    # def test_kerningGroupConversionRenameMaps(self):
-    #     pass  # XXX
 
     def test_glyphsWithOutlines(self):
         font = Font(getTestFontPath())
@@ -182,6 +207,63 @@ class FontTest(unittest.TestCase):
         font = Font(getTestFontPath())
         self.assertEqual(font.controlPointBounds, (0, 0, 700, 700))
 
+    def test_beginSelfLayerSetNotificationObservation(self):
+        font = Font()
+        self.assertTrue(font.dispatcher.hasObserver(
+            font, "LayerSet.Changed", font.layers))
+        self.assertTrue(font.dispatcher.hasObserver(
+            font, "LayerSet.LayerAdded", font.layers))
+        self.assertTrue(font.dispatcher.hasObserver(
+            font, "LayerSet.LayerWillBeDeleted", font.layers))
+
+        font.layers.removeObserver(
+            observer=self, notification="LayerSet.Changed")
+        font.layers.removeObserver(
+            observer=self, notification="LayerSet.LayerAdded")
+        font.layers.removeObserver(
+            observer=self, notification="LayerSet.LayerWillBeDeleted")
+        font.layers.endSelfNotificationObservation()
+
+        font.beginSelfLayerSetNotificationObservation()
+        self.assertTrue(font.dispatcher.hasObserver(
+            font, "LayerSet.Changed", font.layers))
+        self.assertTrue(font.dispatcher.hasObserver(
+            font, "LayerSet.LayerAdded", font.layers))
+        self.assertTrue(font.dispatcher.hasObserver(
+            font, "LayerSet.LayerWillBeDeleted", font.layers))
+
+    def test_endSelfLayerSetNotificationObservation(self):
+        font = Font()
+        font.endSelfLayerSetNotificationObservation()
+        self.assertFalse(font.dispatcher.hasObserver(
+            font, "LayerSet.Changed", font.layers))
+        self.assertFalse(font.dispatcher.hasObserver(
+            font, "LayerSet.LayerAdded", font.layers))
+        self.assertFalse(font.dispatcher.hasObserver(
+            font, "LayerSet.LayerWillBeDeleted", font.layers))
+
+    def test_layers(self):
+        font = Font(getTestFontPath())
+        self.assertIsInstance(font.layers, LayerSet)
+        self.assertEqual(font.layers.layerOrder,
+                         ["public.default", "public.background", "Layer 1"])
+        self.assertTrue(font.layers.hasObserver(font, "LayerSet.Changed"))
+        self.assertTrue(font.layers.hasObserver(font, "LayerSet.LayerAdded"))
+        self.assertTrue(font.layers.hasObserver(font,
+                                                "LayerSet.LayerWillBeDeleted"))
+
+    def test_font_observes_new_layer(self):
+        font = Font()
+        font.layers.newLayer("test_layer")
+        layer = font.layers["test_layer"]
+        self.assertTrue(layer.hasObserver(font, "Layer.GlyphAdded"))
+
+    def test_font_observes_loaded_layers(self):
+        font = Font(getTestFontPath())
+        for layername in font.layers.layerOrder:
+            layer = font.layers[layername]
+            self.assertTrue(layer.hasObserver(font, "Layer.GlyphAdded"))
+
     def test_glyphOrder(self):
         font = Font(getTestFontPath())
         self.assertEqual(font.glyphOrder, [])
@@ -195,6 +277,110 @@ class FontTest(unittest.TestCase):
         self.assertEqual(font.glyphOrder, ["A", "B", "C", "X"])
         del layer["X"]
         self.assertEqual(font.glyphOrder, ["A", "B", "C"])
+
+    def test_updateGlyphOrder_none(self):
+        font = Font(getTestFontPath())
+        self.assertEqual(font.glyphOrder, [])
+        font.updateGlyphOrder()
+        self.assertEqual(font.glyphOrder, [])
+
+    def test_updateGlyphOrder_add(self):
+        font = Font(getTestFontPath())
+        self.assertEqual(font.glyphOrder, [])
+        font.updateGlyphOrder(addedGlyph="test")
+        self.assertEqual(font.glyphOrder, ["test"])
+
+    def test_updateGlyphOrder_remove(self):
+        font = Font(getTestFontPath())
+        self.assertEqual(font.glyphOrder, [])
+        font.glyphOrder = ["test"]
+        self.assertEqual(font.glyphOrder, ["test"])
+        font.updateGlyphOrder(removedGlyph="test")
+        self.assertEqual(font.glyphOrder, [])
+
+    def test_guidelines(self):
+        font = Font(getTestFontPath())
+        self.assertEqual(font.guidelines, [])
+        guideline1 = Guideline(guidelineDict={"x": 100})
+        guideline2 = Guideline(guidelineDict={"y": 200})
+        font.guidelines = [guideline1, guideline2]
+        self.assertEqual(font.guidelines, [guideline1, guideline2])
+
+    def test_instantiateGuideline(self):
+        font = Font(getTestFontPath())
+        guideline = font.instantiateGuideline()
+        self.assertIsInstance(guideline, Guideline)
+        guideline = font.instantiateGuideline(guidelineDict={"x": 100})
+        self.assertEqual(guideline, {'x': 100})
+
+    def test_beginSelfGuidelineNotificationObservation(self):
+        font = Font(getTestFontPath())
+        guideline = font.instantiateGuideline()
+        self.assertFalse(guideline.dispatcher.hasObserver(
+            font, "Guideline.Changed", guideline))
+        font.beginSelfGuidelineNotificationObservation(guideline)
+        self.assertTrue(guideline.dispatcher.hasObserver(
+            font, "Guideline.Changed", guideline))
+
+    def test_endSelfGuidelineNotificationObservation(self):
+        font = Font(getTestFontPath())
+        guideline = font.instantiateGuideline()
+        font.beginSelfGuidelineNotificationObservation(guideline)
+        self.assertTrue(guideline.hasObserver(
+            font, "Guideline.Changed"))
+        font.endSelfGuidelineNotificationObservation(guideline)
+        self.assertIsNone(guideline.dispatcher)
+        self.assertFalse(guideline.hasObserver(
+            font, "Guideline.Changed"))
+
+    def test_appendGuideline(self):
+        font = Font(getTestFontPath())
+        guideline1 = Guideline(guidelineDict={"x": 100})
+        font.appendGuideline(guideline1)
+        self.assertEqual(font.guidelines, [{'x': 100}])
+        guideline2 = Guideline(guidelineDict={"y": 200})
+        font.appendGuideline(guideline2)
+        self.assertEqual(font.guidelines, [{'x': 100}, {'y': 200}])
+        guideline3 = Guideline(guidelineDict={"y": 100})
+        font.appendGuideline(guideline3)
+        self.assertEqual(font.guidelines, [{'x': 100}, {'y': 200}, {'y': 100}])
+
+    def test_insertGuideline(self):
+        font = Font(getTestFontPath())
+        guideline1 = Guideline(guidelineDict={"x": 100})
+        font.insertGuideline(0, guideline1)
+        self.assertEqual(font.guidelines, [{'x': 100}])
+        guideline2 = Guideline(guidelineDict={"y": 200})
+        font.insertGuideline(0, guideline2)
+        self.assertEqual(font.guidelines, [{'y': 200}, {'x': 100}])
+        guideline3 = Guideline(guidelineDict={"y": 100})
+        font.insertGuideline(2, guideline3)
+        self.assertEqual(font.guidelines, [{'y': 200}, {'x': 100}, {'y': 100}])
+
+    def test_removeGuideline(self):
+        font = Font(getTestFontPath())
+        guideline1 = Guideline(guidelineDict={"x": 100})
+        guideline2 = Guideline(guidelineDict={"y": 200})
+        font.guidelines = [guideline1, guideline2]
+        font.removeGuideline(guideline1)
+        self.assertEqual(font.guidelines, [guideline2])
+
+    def test_guidelineIndex(self):
+        font = Font(getTestFontPath())
+        guideline1 = Guideline(guidelineDict={"x": 100})
+        guideline2 = Guideline(guidelineDict={"y": 200})
+        font.guidelines = [guideline1, guideline2]
+        self.assertEqual(font.guidelineIndex(guideline1), 0)
+        self.assertEqual(font.guidelineIndex(guideline2), 1)
+
+    def test_clearGuidelines(self):
+        font = Font(getTestFontPath())
+        guideline1 = Guideline(guidelineDict={"x": 100})
+        guideline2 = Guideline(guidelineDict={"y": 200})
+        font.guidelines = [guideline1, guideline2]
+        self.assertEqual(font.guidelines, [guideline1, guideline2])
+        font.clearGuidelines()
+        self.assertEqual(font.guidelines, [])
 
     def test_save(self):
         path = makeTestFontCopy()
@@ -331,9 +517,6 @@ class FontTest(unittest.TestCase):
         f.write(t)
         f.close()
 
-    # def test_reloadFeatures(self):
-    #     pass  # XXX
-
     def test_reloadLib(self):
         path = getTestFontPath("TestExternalEditing.ufo")
         font = Font(path)
@@ -384,38 +567,20 @@ class FontTest(unittest.TestCase):
         f.write(t)
         f.close()
 
-    # TODO: fix _splitFeaturesForConversion
-    # def test_splitFeaturesForConversion(self):
-    #     testText = '''
-    #     @class1 = [a b c d];
-    #
-    #     feature liga {
-    #         sub f i by fi;
-    #         } liga;
-    #
-    #     @class2 = [x y z];
-    #
-    #     feature salt {
-    #     sub a by a.alt;
-    #     } salt; feature ss01 {sub x by x.alt} ss01;
-    #
-    #     feature ss02 {sub y by y.alt} ss02;
-    #
-    #     # feature calt {
-    #     #     sub a b' by b.alt;
-    #     # } calt;
-    #     '''
-    #     font = Font()
-    #     self.assertEqual(
-    #         font._splitFeaturesForConversion(testText),
-    #         ("\n@class1 = [a b c d];\n",
-    #          [("liga", "\nfeature liga {\n    sub f i by fi;\n} liga;\n\n"
-    #            "@class2 = [x y z];\n"),
-    #           ("salt", "\nfeature salt {\n    sub a by a.alt;\n} salt; "
-    #            "feature ss01 {sub x by x.alt} ss01;\n"),
-    #           ("ss02", "\nfeature ss02 {sub y by y.alt} ss02;\n\n"
-    #            "# feature calt {\n#     sub a b' by b.alt;\n# } calt;\n")])
-    #     )
+    def test_splitFeaturesForConversion(self):
+        font = Font()
+        self.assertEqual(
+            font._splitFeaturesForConversion(testFeaturesText),
+            (
+                "\n@class1 = [a b c d];\n",
+                [("liga", "\nfeature liga {\n    sub f i by fi;\n} liga;\n\n"
+                  "@class2 = [x y z];\n"),
+                 ("salt", "\nfeature salt {\n    sub a by a.alt;\n} salt; "
+                  "feature ss01 {sub x by x.alt} ss01;\n"),
+                 ("ss02", "\nfeature ss02 {sub y by y.alt} ss02;\n\n"
+                  "# feature calt {\n#     sub a b' by b.alt;\n# } calt;\n")]
+            )
+        )
 
     def test_glyph_name_change(self):
         font = Font(getTestFontPath())

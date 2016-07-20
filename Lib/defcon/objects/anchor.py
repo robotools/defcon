@@ -185,6 +185,9 @@ class Anchor(BaseDictObject):
         return self.get("identifier")
 
     def _set_identifier(self, value):
+        # don't allow overwritting an existing identifier
+        if self.identifier is not None:
+            return
         oldIdentifier = self.identifier
         if value == oldIdentifier:
             return
@@ -208,8 +211,10 @@ class Anchor(BaseDictObject):
         Create a new, unique identifier for and assign it to the guideline.
         This will post *Anchor.IdentifierChanged* and *Anchor.Changed* notifications.
         """
-        identifier = makeRandomIdentifier(existing=self.identifiers)
-        self.identifier = identifier
+        if self.identifier is None:
+            identifier = makeRandomIdentifier(existing=self.identifiers)
+            self.identifier = identifier
+        return self.identifier
 
     # ----
     # Move

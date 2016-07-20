@@ -18,6 +18,7 @@ from defcon.objects.features import Features
 from defcon.objects.lib import Lib
 from defcon.objects.imageSet import ImageSet
 from defcon.objects.dataSet import DataSet
+from defcon.objects.guideline import Guideline
 from defcon.tools.notifications import NotificationCenter
 
 
@@ -40,6 +41,8 @@ class Font(BaseObject):
     Font.Changed
     Font.ReloadedGlyphs
     Font.GlyphOrderChanged
+    Font.GuidelinesChanged
+    Font.GuidelineWillBeDeleted
     ======================
 
     The Font object has some dict like behavior. For example, to get a glyph::
@@ -92,6 +95,8 @@ class Font(BaseObject):
             imageSetClass = ImageSet
         if dataSetClass is None:
             dataSetClass = DataSet
+        if guidelineClass is None:
+            guidelineClass = Guideline
         self._unicodeDataClass = unicodeDataClass
         self._layerSetClass = layerSetClass
         self._layerClass = layerClass
@@ -127,6 +132,9 @@ class Font(BaseObject):
         self.beginSelfImageSetNotificationObservation()
         self._data = self.instantiateDataSet()
         self.beginSelfDataSetNotificationObservation()
+
+        self._guidelines = []
+        self._identifiers = set()
 
         self._dirty = False
 
@@ -342,7 +350,6 @@ class Font(BaseObject):
     def instantiateInfo(self):
         info = self._infoClass(
             font=self,
-            guidelineClass=self._guidelineClass
         )
         return info
 
@@ -855,6 +862,125 @@ class Font(BaseObject):
         if progressBar is not None:
             progressBar.update()
 
+    # -----------
+    # Identifiers
+    # -----------
+
+    def _get_identifiers(self):
+        return self._identifiers
+
+    identifiers = property(_get_identifiers, doc="Set of identifiers for the info. This is primarily for internal use.")
+
+    # ----------
+    # Guidelines
+    # ----------
+
+    # Note: Guidelines are stored in fontinfo.plist in UFOs,
+    # thus any change to guidelines needs to set the info
+    # object as dirty.
+
+    def _get_guidelines(self):
+        return list(self._guidelines)
+
+    def _set_guidelines(self, value):
+        self.clearGuidelines()
+        self.holdNotifications()
+        for guideline in value:
+            self.appendGuideline(guideline)
+        self.releaseHeldNotifications()
+
+    guidelines = property(_get_guidelines, _set_guidelines, doc="An ordered list of :class:`Guideline` objects stored in the font. Setting this will post a *Font.Changed* notification along with any notifications posted by the :py:meth:`Font.appendGuideline` and :py:meth:`Font.clearGuidelines` methods.")
+
+    def instantiateGuideline(self, guidelineDict=None):
+        guideline = self._guidelineClass(
+            font=self,
+            guidelineDict=guidelineDict
+        )
+        return guideline
+
+    def beginSelfGuidelineNotificationObservation(self, guideline):
+        if guideline.dispatcher is None:
+            return
+        guideline.addObserver(observer=self, methodName="_guidelineChanged", notification="Guideline.Changed")
+
+    def endSelfGuidelineNotificationObservation(self, guideline):
+        if guideline.dispatcher is None:
+            return
+        guideline.endSelfNotificationObservation()
+        guideline.removeObserver(observer=self, notification="Guideline.Changed")
+
+    def appendGuideline(self, guideline):
+        """
+        Append **guideline** to the font. The guideline must be a defcon
+        :class:`Guideline` object or a subclass of that object. An error
+        will be raised if the guideline's identifier conflicts with any of
+        the identifiers within the font.
+
+        This will post *Font.GuidelinesChanged* and *Font.Changed* notifications.
+        """
+        self.insertGuideline(len(self._guidelines), guideline)
+
+    def insertGuideline(self, index, guideline):
+        """
+        Insert **guideline** into the font at index. The guideline
+        must be a defcon :class:`Guideline` object or a subclass
+        of that object. An error will be raised if the guideline's
+        identifier conflicts with any of the identifiers within
+        the font.
+
+        This will post *Font.GuidelinesChanged* and *Font.Changed* notifications.
+        """
+        if not isinstance(guideline, self._guidelineClass):
+            guideline = self.instantiateGuideline(guidelineDict=guideline)
+        assert guideline.font in (self, None), "This guideline belongs to another font."
+        if guideline.font is None:
+            assert guideline.glyph is None, "This guideline belongs to a glyph."
+        if guideline.font is None:
+            if guideline.identifier is not None:
+                identifiers = self._identifiers
+                assert guideline.identifier not in identifiers
+                if guideline.identifier is not None:
+                    identifiers.add(guideline.identifier)
+            guideline.font = self
+            guideline.beginSelfNotificationObservation()
+        self.beginSelfGuidelineNotificationObservation(guideline)
+        self._guidelines.insert(index, guideline)
+        self.postNotification("Font.GuidelinesChanged")
+        self.info.dirty = True
+        self.dirty = True
+
+    def removeGuideline(self, guideline):
+        """
+        Remove **guideline** from the font.
+
+        This will post *Font.GuidelineWillBeDeleted*, *Font.GuidelinesChanged* and *Font.Changed* notifications.
+        """
+        self.postNotification(notification="Font.GuidelineWillBeDeleted", data=dict(object=guideline))
+        if guideline.identifier is not None:
+            self._identifiers.remove(guideline.identifier)
+        self._guidelines.remove(guideline)
+        self.endSelfGuidelineNotificationObservation(guideline)
+        self.postNotification("Font.GuidelinesChanged")
+        self.info.dirty = True
+        self.dirty = True
+
+    def guidelineIndex(self, guideline):
+        """
+        Get the index for **guideline**.
+        """
+        return self._guidelines.index(guideline)
+
+    def clearGuidelines(self):
+        """
+        Clear all guidelines from the font.
+
+        This posts a *Font.Changed* notification.
+        """
+        self.holdNotifications()
+        for guideline in reversed(self._guidelines):
+            self.removeGuideline(guideline)
+        self.releaseHeldNotifications()
+
     # ------------------------
     # Notification Observation
     # ------------------------
@@ -871,6 +997,8 @@ class Font(BaseObject):
         self.endSelfFeaturesNotificationObservation()
         self.endSelfImageSetNotificationObservation()
         self.endSelfDataSetNotificationObservation()
+        for guideline in self.guidelines:
+            self.endSelfGuidelineNotificationObservation(guideline)
         super(Font, self).endSelfNotificationObservation()
 
     def _objectDirtyStateChange(self, notification):
@@ -930,6 +1058,10 @@ class Font(BaseObject):
         if not oldStillExists:
             self.updateGlyphOrder(removedGlyph=oldName)
         self.updateGlyphOrder(addedGlyph=newName)
+
+    def _guidelineChanged(self, notification):
+        self.postNotification("Font.GuidelinesChanged")
+        self.dirty = True
 
     # ---------------------
     # External Edit Support
@@ -1420,6 +1552,7 @@ class Font(BaseObject):
         simple_get = partial(getattr, self)
         serialize = lambda item: item.getDataForSerialization()
         serialized_get = lambda key: serialize(simple_get(key))
+        serialized_list_get = lambda key: [serialize(item) for item in simple_get(key)]
 
         getters = (
             ('_ufoFormatVersion', simple_get),
@@ -1436,7 +1569,8 @@ class Font(BaseObject):
             ('info',  serialized_get),
             ('kerning', serialized_get),
             ('layers',  serialized_get),
-            ('lib', serialized_get)
+            ('lib', serialized_get),
+            ('guidelines', serialized_list_get)
         )
 
         return self._serialize(getters, **kwargs)
@@ -1470,6 +1604,13 @@ class Font(BaseObject):
             self.beginSelfImageSetNotificationObservation()
             self._images.setDataFromSerialization(data)
 
+        def set_guidelines(key, data):
+            guides = []
+            for d in data:
+                guide = self.instantiateGuideline()
+                guide.setDataFromSerialization(d)
+                guides.append(guide)
+            set_attr(key, guides)
 
         # TODO: fill the rest of setDataFromSerialization/getDataForSerialization pairs
         setters = (
@@ -1482,7 +1623,8 @@ class Font(BaseObject):
             ('info', single_update),
             ('kerning', single_update),
             ('layers', init_set_layers),
-            ('lib', single_update)
+            ('lib', single_update),
+            ('guidelines', set_guidelines)
         )
 
         for key, setter in setters:

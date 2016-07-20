@@ -1,7 +1,7 @@
 from __future__ import absolute_import
+from fontTools.pens.areaPen import AreaPen
 from fontTools.pens.boundsPen import ControlBoundsPen, BoundsPen
 from fontTools.misc.arrayTools import unionRect
-from defcon.pens.clockwiseTestPointPen import ClockwiseTestPointPen
 
 # -----
 # Glyph
@@ -56,6 +56,23 @@ def contourControlPointBoundsRepresentationFactory(obj):
 # winding direction
 
 def contourClockwiseRepresentationFactory(contour):
-    pen = ClockwiseTestPointPen()
-    contour.drawPoints(pen)
-    return pen.getIsClockwise()
+    pen = AreaPen()
+    pen.endPath = pen.closePath
+    contour.draw(pen)
+    return pen.value < 0
+
+# ---------
+# Component
+# ---------
+
+# bounds
+
+def componentBoundsRepresentationFactory(obj):
+    pen = BoundsPen(obj.font)
+    obj.draw(pen)
+    return pen.bounds
+
+def componentPointBoundsRepresentationFactory(obj):
+    pen = ControlBoundsPen(obj.font)
+    obj.draw(pen)
+    return pen.bounds

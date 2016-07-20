@@ -59,6 +59,7 @@ class Glyph(BaseObject):
     Glyph.GuidelineWillBeDeleted
     Glyph.GuidelinesChanged
     Glyph.MarkColorChanged
+    Glyph.VerticalOriginChanged
     ============================
 
     The Glyph object has list like behavior. This behavior allows you to interact
@@ -99,8 +100,10 @@ class Glyph(BaseObject):
         guidelineClass=None, libClass=None, imageClass=None):
         layerSet = font = None
         if layer is not None:
-            font = weakref.ref(layer.layerSet.font)
-            layerSet = weakref.ref(layer.layerSet)
+            layerSet = layer.layerSet
+            if layerSet is not None:
+                font = weakref.ref(layer.layerSet.font)
+                layerSet = weakref.ref(layer.layerSet)
             layer = weakref.ref(layer)
         self._font = font
         self._layerSet = layerSet
@@ -142,7 +145,7 @@ class Glyph(BaseObject):
         self._pointClass = pointClass
         self._componentClass = componentClass
         self._anchorClass = anchorClass
-        self._guidelineClass = Guideline
+        self._guidelineClass = guidelineClass
         self._libClass = libClass
         self._imageClass = imageClass
 
@@ -298,6 +301,60 @@ class Glyph(BaseObject):
 
     rightMargin = property(_get_rightMargin, _set_rightMargin, doc="The right margin of the glyph. Setting this posts *Glyph.WidthChanged* and *Glyph.Changed* notifications among others.")
 
+    def _get_bottomMargin(self):
+        bounds = self.bounds
+        if bounds is None:
+            return None
+        xMin, yMin, xMax, yMax = bounds
+        if self.verticalOrigin is None:
+            return yMin
+        else:
+            return yMin - (self.verticalOrigin - self.height)
+
+    def _set_bottomMargin(self, value):
+        bounds = self.bounds
+        if bounds is None:
+            return
+        xMin, yMin, xMax, yMax = bounds
+        if self.verticalOrigin is None:
+            oldValue = yMin
+            self.verticalOrigin = self.height
+        else:
+            oldValue = yMin - (self.verticalOrigin - self.height)
+        diff = value - oldValue
+        if value != oldValue:
+            self.height += diff
+            self.dirty = True
+
+    bottomMargin = property(_get_bottomMargin, _set_bottomMargin, doc="The bottom margin of the glyph. Setting this post *Glyph.HeightChanged* and *Glyph.Changed* notifications among others.")
+
+    def _get_topMargin(self):
+        bounds = self.bounds
+        if bounds is None:
+            return None
+        xMin, yMin, xMax, yMax = bounds
+        if self.verticalOrigin is None:
+            return self._height - yMax
+        else:
+            return self.verticalOrigin - yMax
+
+    def _set_topMargin(self, value):
+        bounds = self.bounds
+        if bounds is None:
+            return
+        xMin, yMin, xMax, yMax = bounds
+        if self.verticalOrigin is None:
+            oldValue = self._height - yMax
+        else:
+            oldValue = self.verticalOrigin - yMax
+        diff = value - oldValue
+        if oldValue != value:
+            self.verticalOrigin = yMax + value
+            self.height += diff
+            self.dirty = True
+
+    topMargin = property(_get_topMargin, _set_topMargin, doc="The top margin of the glyph. Setting this posts *Glyph.HeightChanged*, *Glyph.VerticalOriginChanged* and *Glyph.Changed* notifications among others.")
+
     # width
 
     def _get_width(self):
@@ -358,6 +415,28 @@ class Glyph(BaseObject):
         self.postNotification(notification="Glyph.MarkColorChanged", data=dict(oldValue=oldValue, newValue=value))
 
     markColor = property(_get_markColor, _set_markColor, doc="The glyph's mark color. When setting, the value can be a UFO color string, a sequence of (r, g, b, a) or a :class:`Color` object. Setting this posts *Glyph.MarkColorChanged* and *Glyph.Changed* notifications.")
+
+    # vertical origin
+
+    def _get_verticalOrigin(self):
+        value = self.lib.get("public.verticalOrigin")
+        return value
+
+    def _set_verticalOrigin(self, value):
+        # don't write if there is no change
+        oldValue = self.lib.get("public.verticalOrigin")
+        if value == oldValue:
+            return
+        # remove
+        if value is None:
+            if "public.verticalOrigin" in self.lib:
+                del self.lib["public.verticalOrigin"]
+        # store
+        else:
+            self.lib["public.verticalOrigin"] = value
+        self.postNotification(notification="Glyph.VerticalOriginChanged", data=dict(oldValue=oldValue, newValue=value))
+
+    verticalOrigin = property(_get_verticalOrigin, _set_verticalOrigin, doc="The glyph's vertical origin. Setting this posts *Glyph.VerticalOriginChanged* and *Glyph.Changed* notifications.")
 
     # -------
     # Pen API
@@ -563,6 +642,7 @@ class Glyph(BaseObject):
         if component.dispatcher is None:
             return
         component.removeObserver(observer=self, notification="Component.Changed")
+        component.removeObserver(observer=self, notification="Component.BaseGlyphDataChanged")
         component.endSelfNotificationObservation()
 
     def appendComponent(self, component):
@@ -839,7 +919,7 @@ class Glyph(BaseObject):
             guideline = self.instantiateGuideline(guidelineDict=guideline)
         assert guideline.glyph in (self, None), "This guideline belongs to another glyph."
         if guideline.glyph is None:
-            assert guideline.fontInfo is None, "This guideline belongs to a font."
+            assert guideline.font is None, "This guideline belongs to a font."
         if guideline.glyph is None:
             if guideline.identifier is not None:
                 identifiers = self._identifiers
@@ -978,6 +1058,9 @@ class Glyph(BaseObject):
 
     image = property(_get_image, _set_image, doc="The glyph's :class:`Image` object. Setting this posts *Glyph.ImageChanged* and *Glyph.Changed* notifications.")
 
+    def clearImage(self):
+        self.image = None
+
     def beginSelfImageNotificationObservation(self):
         if self._image.dispatcher is None:
             return
@@ -1072,6 +1155,7 @@ class Glyph(BaseObject):
         self.clearComponents()
         self.clearAnchors()
         self.clearGuidelines()
+        self.clearImage()
         self.releaseHeldNotifications()
 
     # ----

@@ -23,6 +23,62 @@ class ContourTest(unittest.TestCase):
         del self.glyph
         del self.font
 
+    def test_getParent(self):
+        self.assertIsNone(self.contour.getParent())
+        self.contour = Contour(self.glyph)
+        self.assertEqual(self.contour.getParent(), self.glyph)
+
+    def test_font(self):
+        self.assertIsNone(self.contour.font)
+        self.contour = Contour(self.glyph)
+        self.assertEqual(self.contour.font, self.font)
+        with self.assertRaises(AttributeError):
+            self.contour.font = "foo"
+
+    def test_layerSet(self):
+        self.assertIsNone(self.contour.layerSet)
+        self.contour = Contour(self.glyph)
+        self.assertIsNotNone(self.contour.layerSet)
+        self.assertEqual(self.contour.layerSet, self.glyph.layerSet)
+        with self.assertRaises(AttributeError):
+            self.contour.layerSet = "foo"
+
+    def test_layer(self):
+        self.assertIsNone(self.contour.layer)
+        self.contour = Contour(self.glyph)
+        self.assertIsNotNone(self.contour.layer)
+        self.assertEqual(self.contour.layer, self.glyph.layer)
+        with self.assertRaises(AttributeError):
+            self.contour.layer = "foo"
+
+    def test_glyph(self):
+        self.assertIsNone(self.contour.glyph)
+        self.contour = Contour(self.glyph)
+        self.assertEqual(self.contour.glyph, self.glyph)
+        glyph = Glyph()
+        self.contour = Contour()
+        self.contour.glyph = glyph
+        self.assertEqual(self.contour.glyph, glyph)
+        with self.assertRaises(AssertionError):
+            self.contour.glyph = self.glyph
+
+    def test_list_behavior(self):
+        font = Font(getTestFontPath())
+        glyph = font["A"]
+        contour = glyph[0]
+        with self.assertRaises(IndexError):
+            contour[len(contour) + 1]
+        self.assertEqual(contour[len(contour):len(contour)], [])
+        self.assertEqual(contour[len(contour) + 1:len(contour) + 2], [])
+        self.assertNotEqual(contour[0:len(contour) + 1], [])
+        self.assertEqual([(point.x, point.y) for point in contour[0:]],
+                         [(point.x, point.y)
+                          for point in contour[0:len(contour) + 1]])
+        self.assertEqual([(point.x, point.y) for point in contour[0:]],
+                         [(0, 0), (700, 0), (700, 700), (0, 700)])
+        self.assertEqual([(point.x, point.y) for point in contour],
+                         [(0, 0), (700, 0), (700, 700), (0, 700)])
+
     def test_onCurvePoints(self):
         font = Font(getTestFontPath())
         glyph = font["A"]
@@ -37,6 +93,57 @@ class ContourTest(unittest.TestCase):
         self.assertEqual([(point.x, point.y)
                           for point in contour.onCurvePoints],
                          [(0, 350), (350, 0), (700, 350), (350, 700)])
+
+    def test_appendPoint(self):
+        pointA = Point((0, 5))
+        self.assertFalse(self.contour.dirty)
+        self.contour.appendPoint(pointA)
+        self.assertTrue(self.contour.dirty)
+        self.assertEqual([(point.x, point.y)
+                          for point in self.contour],
+                         [(0, 5)])
+        pointB = Point((6, 7))
+        self.contour.appendPoint(pointB)
+        self.assertEqual([(point.x, point.y)
+                          for point in self.contour],
+                         [(0, 5), (6, 7)])
+
+    def test_insertPoint(self):
+        pointA = Point((0, 5))
+        pointB = Point((6, 7))
+        pointC = Point((8, 9))
+        self.assertFalse(self.contour.dirty)
+        self.contour.insertPoint(0, pointA)
+        self.assertTrue(self.contour.dirty)
+        self.assertEqual([(point.x, point.y)
+                          for point in self.contour],
+                         [(0, 5)])
+        self.contour.insertPoint(0, pointB)
+        self.assertEqual([(point.x, point.y)
+                          for point in self.contour],
+                         [(6, 7), (0, 5)])
+        self.contour.insertPoint(1, pointC)
+        self.assertEqual([(point.x, point.y)
+                          for point in self.contour],
+                         [(6, 7), (8, 9), (0, 5)])
+
+    def test_removePoint(self):
+        font = Font(getTestFontPath())
+        contour = font["A"][0]
+        self.assertFalse(contour.dirty)
+        contour.removePoint(contour[1])
+        self.assertTrue(contour.dirty)
+        self.assertEqual([(point.x, point.y)
+                          for point in contour],
+                         [(0, 0), (700, 700), (0, 700)])
+        contour.removePoint(contour[0])
+        self.assertEqual([(point.x, point.y)
+                          for point in contour],
+                         [(700, 700), (0, 700)])
+        contour.removePoint(contour[1])
+        self.assertEqual([(point.x, point.y)
+                          for point in contour],
+                         [(700, 700)])
 
     def test_setStartPoint(self):
         font = Font(getTestFontPath())
@@ -67,17 +174,11 @@ class ContourTest(unittest.TestCase):
         contour = font["B"][0]
         self.assertEqual(len(contour), 12)
 
-    # def test_getitem(self):
-    #     pass  # XXX
-
     def test_iter(self):
         font = Font(getTestFontPath())
         contour = font["A"][0]
         self.assertEqual([(point.x, point.y) for point in contour],
                          [(0, 0), (700, 0), (700, 700), (0, 700)])
-
-    # def test_clear(self):
-    #     pass  # XXX
 
     def test_index(self):
         font = Font(getTestFontPath())
@@ -110,6 +211,62 @@ class ContourTest(unittest.TestCase):
              [(543, 0, None), (700, 157, None), (700, 350, "curve")],
              [(700, 543, None), (543, 700, None), (350, 700, "curve")],
              [(157, 700, None), (0, 543, None), (0, 350, "curve")]])
+
+    def test_removeSegment_lines(self):
+        font = Font(getTestFontPath())
+        glyph = font["A"]
+        contour = glyph[0]
+        contour.removeSegment(len(contour.segments) - 2)
+        self.assertEqual(
+            [simpleSegment(segment) for segment in contour.segments],
+            [[(700, 0, "line")], [(700, 700, "line")],
+             [(0, 0, "line")]])
+        contour.removeSegment(len(contour.segments) - 1)
+        self.assertEqual(
+            [simpleSegment(segment) for segment in contour.segments],
+            [[(700, 700, "line")], [(700, 0, "line")]])
+
+    def test_removeSegment_first_segment(self):
+        font = Font(getTestFontPath())
+        glyph = font["A"]
+        contour = glyph[0]
+        contour.removeSegment(0)
+        self.assertEqual(
+            [simpleSegment(segment) for segment in contour.segments],
+            [[(700, 700, "line")], [(0, 700, "line")],
+             [(0, 0, "line")]])
+
+    def test_removeSegment_last_segment(self):
+        font = Font(getTestFontPath())
+        glyph = font["A"]
+        contour = glyph[0]
+        contour.removeSegment(len(contour.segments) - 1)
+        self.assertEqual(
+            [simpleSegment(segment) for segment in contour.segments],
+            [[(700, 700, "line")], [(0, 700, "line")],
+             [(700, 0, "line")]])
+
+    def test_removeSegment_curves(self):
+        font = Font(getTestFontPath())
+        glyph = font["B"]
+        contour = glyph[0]
+        contour.removeSegment(len(contour.segments) - 2)
+        self.assertEqual(
+            [simpleSegment(segment) for segment in contour.segments],
+            [[(0, 157, None), (157, 0, None), (350, 0, "curve")],
+             [(543, 0, None), (700, 157, None), (700, 350, "curve")],
+             [(157, 700, None), (0, 543, None), (0, 350, "curve")]])
+
+    def test_removeSegment_curves_preserveCurve(self):
+        font = Font(getTestFontPath())
+        glyph = font["B"]
+        contour = glyph[0]
+        contour.removeSegment(len(contour.segments) - 2, preserveCurve=True)
+        self.assertEqual(
+            [simpleSegment(segment) for segment in contour.segments],
+            [[(0, 157, None), (157, 0, None), (350, 0, "curve")],
+             [(543, 0, None), (700, 157, None), (700, 350, "curve")],
+             [(700.0, 736.0, None), (0.0, 736.0, None), (0, 350, "curve")]])
 
     def test_clockwise_get(self):
         font = Font(getTestFontPath())
@@ -215,13 +372,11 @@ class ContourTest(unittest.TestCase):
         contour.identifier = "contour 2"
         self.assertEqual(sorted(glyph.identifiers), ["contour 1", "contour 2"])
         contour.identifier = "not contour 2 anymore"
-        self.assertEqual(contour.identifier, "not contour 2 anymore")
-        self.assertEqual(sorted(glyph.identifiers),
-                         ["contour 1", "not contour 2 anymore"])
+        self.assertEqual(contour.identifier, "contour 2")
+        self.assertEqual(sorted(glyph.identifiers), ["contour 1", "contour 2"])
         contour.identifier = None
-        self.assertIsNone(contour.identifier)
-        self.assertEqual(sorted(glyph.identifiers), ["contour 1"])
-
+        self.assertEqual(contour.identifier, "contour 2")
+        self.assertEqual(sorted(glyph.identifiers), ["contour 1", "contour 2"])
 
 if __name__ == "__main__":
     unittest.main()

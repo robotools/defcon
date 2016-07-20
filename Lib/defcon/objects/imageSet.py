@@ -2,9 +2,10 @@ from __future__ import absolute_import
 import os
 import hashlib
 import weakref
-from ufoLib import UFOReader, UFOLibError
 from defcon.objects.base import BaseObject
-from ufoLib.filenames import userNameToFileName
+from fontTools.misc.py23 import unicode
+from ufoLib import UFOReader, UFOLibError
+from ufoLib.filenames import userNameToFileName, illegalCharacters, reservedFileNames, maxFileNameLength
 from ufoLib.validators import pngSignature
 
 
@@ -126,7 +127,10 @@ class ImageSet(BaseObject):
 
     def __setitem__(self, fileName, data):
         if fileName not in self._data:
-            assert fileName == self.makeFileName(fileName)
+            test = fileName
+            if fileName.lower().endswith(".png"):
+                test = os.path.splitext(fileName)[0]
+            assert fileNameValidator(test)
         assert data.startswith(pngSignature), "Image does not begin with the PNG signature."
         isNewImage = fileName not in self._data
         onDisk = False
@@ -219,8 +223,7 @@ class ImageSet(BaseObject):
         """
         Make a file system legal version of **fileName**.
         """
-        if not isinstance(fileName, str):
-            fileName = str(fileName)
+        fileName = unicode(fileName)
         suffix = ""
         if fileName.lower().endswith(".png"):
             suffix = fileName[-4:]
@@ -330,6 +333,88 @@ def _makeDigest(data):
     m.update(data)
     return m.digest()
 
+def fileNameValidator(value):
+    """
+    >>> fileNameValidator(u'a')
+    True
+    >>> fileNameValidator(u'A_')
+    True
+    >>> fileNameValidator(u'A_E_')
+    True
+    >>> fileNameValidator(u'A_e')
+    True
+    >>> fileNameValidator(u'ae')
+    True
+    >>> fileNameValidator(u'aE_')
+    True
+    >>> fileNameValidator(u'a.alt')
+    True
+    >>> fileNameValidator(u'A_.alt')
+    True
+    >>> fileNameValidator(u'A_.A_lt')
+    True
+    >>> fileNameValidator(u'A_.aL_t')
+    True
+    >>> fileNameValidator(u'A_.alT_')
+    True
+    >>> fileNameValidator(u'T__H_')
+    True
+    >>> fileNameValidator(u'T__h')
+    True
+    >>> fileNameValidator(u't_h')
+    True
+    >>> fileNameValidator(u'F__F__I_')
+    True
+    >>> fileNameValidator(u'f_f_i')
+    True
+    >>> fileNameValidator(u'A_acute_V_.swash')
+    True
+    >>> fileNameValidator(u'_notdef')
+    True
+    >>> fileNameValidator(u'_con')
+    True
+    >>> fileNameValidator(u'C_O_N_')
+    True
+    >>> fileNameValidator(u'_con.alt')
+    True
+    >>> fileNameValidator(u'alt._con')
+    True
+    >>> fileNameValidator('A')
+    False
+    >>> fileNameValidator(u'A'*256)
+    False
+    >>> fileNameValidator(u'A')
+    False
+    >>> fileNameValidator(u'con')
+    False
+    >>> fileNameValidator(u'a/alt')
+    False
+    >>> fileNameValidator(u"A_bC_dE_f")
+    """
+    # must be a unicode
+    if not isinstance(value, unicode):
+        return False
+    # must not be longer then the max fileName length
+    if len(value) > maxFileNameLength:
+        return False
+    for i, character in enumerate(value):
+        # must not contain any illegal characters
+        if character in illegalCharacters:
+            return False
+        # its a capital and it should be followed by an _ (underscore)
+        elif character != character.lower():
+            if i == len(value)-1:
+                return False
+            if value[i+1] != "_":
+                return False
+    # check reserved file names
+    for reservedFileName in reservedFileNames:
+        # all reserved file names are being prefix with an _ (underscore)
+        # if the replaced value is the same there is no correct prefix
+        if reservedFileName in value:
+            if value == value.replace("_%s" % reservedFileName, ""):
+                return False
+    return True
 
 if __name__ == "__main__":
     import doctest
