@@ -892,10 +892,7 @@ class Font(BaseObject):
     guidelines = property(_get_guidelines, _set_guidelines, doc="An ordered list of :class:`Guideline` objects stored in the font. Setting this will post a *Font.Changed* notification along with any notifications posted by the :py:meth:`Font.appendGuideline` and :py:meth:`Font.clearGuidelines` methods.")
 
     def instantiateGuideline(self, guidelineDict=None):
-        guideline = self._guidelineClass(
-            font=self,
-            guidelineDict=guidelineDict
-        )
+        guideline = self._guidelineClass(guidelineDict=guidelineDict)
         return guideline
 
     def beginSelfGuidelineNotificationObservation(self, guideline):
