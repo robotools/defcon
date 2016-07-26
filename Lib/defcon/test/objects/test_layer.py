@@ -301,7 +301,7 @@ class LayerTest(unittest.TestCase):
         self.assertEqual(component.dispatcher, font.dispatcher)
         glyph = font.layers["Layer 1"]["A"]
         guideline = glyph.guidelines[0]
-        self.assertEqual(guideline.getParent(), font)
+        self.assertEqual(guideline.getParent(), glyph)
         self.assertEqual(guideline.dispatcher, font.dispatcher)
 
     def test_glyph_dispatcher_new(self):
@@ -328,7 +328,7 @@ class LayerTest(unittest.TestCase):
         self.assertEqual(anchor.dispatcher, font.dispatcher)
         guideline = Guideline()
         glyph.appendGuideline(guideline)
-        self.assertEqual(guideline.getParent(), font)
+        self.assertEqual(guideline.getParent(), glyph)
         self.assertEqual(guideline.dispatcher, font.dispatcher)
 
     def test_glyph_dispatcher_inserted(self):

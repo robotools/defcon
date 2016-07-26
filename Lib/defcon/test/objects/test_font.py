@@ -316,6 +316,7 @@ class FontTest(unittest.TestCase):
     def test_beginSelfGuidelineNotificationObservation(self):
         font = Font(getTestFontPath())
         guideline = font.instantiateGuideline()
+        guideline.font = font
         self.assertFalse(guideline.dispatcher.hasObserver(
             font, "Guideline.Changed", guideline))
         font.beginSelfGuidelineNotificationObservation(guideline)
@@ -325,6 +326,7 @@ class FontTest(unittest.TestCase):
     def test_endSelfGuidelineNotificationObservation(self):
         font = Font(getTestFontPath())
         guideline = font.instantiateGuideline()
+        guideline.font = font
         font.beginSelfGuidelineNotificationObservation(guideline)
         self.assertTrue(guideline.hasObserver(
             font, "Guideline.Changed"))
