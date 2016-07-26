@@ -56,10 +56,10 @@ class Guideline(BaseDictObject):
     # --------------
 
     def getParent(self):
-        if self._font is not None:
-            return self.font
-        elif self._glyph is not None:
+        if self._glyph is not None:
             return self.glyph
+        elif self._font is not None:
+            return self.font
         return None
 
     def _get_font(self):
