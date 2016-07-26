@@ -903,8 +903,8 @@ class Font(BaseObject):
     def endSelfGuidelineNotificationObservation(self, guideline):
         if guideline.dispatcher is None:
             return
-        guideline.endSelfNotificationObservation()
         guideline.removeObserver(observer=self, notification="Guideline.Changed")
+        guideline.endSelfNotificationObservation()
 
     def appendGuideline(self, guideline):
         """
