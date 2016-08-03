@@ -1,5 +1,5 @@
 [![Travis Build Status](https://travis-ci.org/typesupply/defcon.svg?branch=master)](https://travis-ci.org/typesupply/defcon)
-[![Appveyor Build Status](https://ci.appveyor.com/api/projects/status/xxxxx/branch/master?svg=true)](https://ci.appveyor.com/project/typesupply/defcon/branch/master)
+[![Appveyor Build Status](https://ci.appveyor.com/api/projects/status/github/typesupply/defcon?branch=master&svg=true)](https://ci.appveyor.com/project/typesupply/defcon/branch/master)
 [![Coverage Status](https://coveralls.io/repos/typesupply/defcon/badge.svg?branch=master&service=github)](https://coveralls.io/github/typesupply/defcon?branch=master)
 ![Python Versions](https://img.shields.io/badge/python-2.7%2C%203.4%2C%203.5-blue.svg)
 
