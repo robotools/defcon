@@ -914,7 +914,7 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
-        assert guideline not in self.guidelines
+        assert id(guideline) not in [id(guide) for guide in self.guidelines]
         if not isinstance(guideline, self._guidelineClass):
             guideline = self.instantiateGuideline(guidelineDict=guideline)
         assert guideline.glyph in (self, None), "This guideline belongs to another glyph."
