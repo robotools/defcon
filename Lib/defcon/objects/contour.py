@@ -666,6 +666,8 @@ class Contour(BaseObject):
         """
         if point.identifier is None:
             identifier = makeRandomIdentifier(existing=self.identifiers)
+            if identifier is not None:
+                self.identifiers.add(identifier)
             point.identifier = identifier
             self.dirty = True
         return point.identifier
