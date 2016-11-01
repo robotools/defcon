@@ -15,6 +15,17 @@ needed, the
 `ufo2-deprecated <https://github.com/typesupply/defcon/tree/ufo2-deprecated>`_
 branch has the older, UFO2, version of Defcon.
 
+Install
+~~~~~~~
+
+To download and install the latest stable release of defcon from the
+`Python Package Index <https://pypi.python.org/pypi/defcon>`_, use the
+`pip <https://pip.pypa.io/en/stable/installing/>`_ command line tool:
+
+.. code::
+
+  pip install --upgrade defcon
+
 Documentation
 ~~~~~~~~~~~~~
 
