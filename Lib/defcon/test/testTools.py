@@ -1,12 +1,14 @@
 from __future__ import print_function
 import os
 import shutil
+from pkg_resources import resource_filename
+
+
+TESTDATA_DIR = resource_filename("defcon.test", 'testdata')
 
 
 def getTestFontPath(fileName='TestFont.ufo'):
-    testDirectory = os.path.join(os.path.dirname(os.path.dirname(
-        os.path.dirname(os.path.dirname(__file__)))), 'testData')
-    return os.path.join(testDirectory, fileName)
+    return os.path.join(TESTDATA_DIR, fileName)
 
 
 def getTestFontCopyPath(testFontPath=None):
