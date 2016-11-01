@@ -1,54 +1,46 @@
 #!/usr/bin/env python
-from __future__ import print_function
+from setuptools import setup, find_packages
 import sys
-from setuptools import setup
 
-try:
-    import fontTools
-except:
-    print("*** Warning: defcon requires fontTools, see:")
-    print("    https://github.com/behdad/fonttools")
+needs_sphinx = {'build_sphinx', 'dist'}.intersection(sys.argv)
+sphinx = ['sphinx'] if needs_sphinx else []
+needs_pytest = {'pytest', 'test'}.intersection(sys.argv)
+pytest_runner = ['pytest_runner'] if needs_pytest else []
+needs_wheel = {'bdist_wheel'}.intersection(sys.argv)
+wheel = ['wheel'] if needs_wheel else []
 
-try:
-    import ufoLib
-except:
-    print("*** Warning: defcon requires ufoLib, see:")
-    print("    https://github.com/unified-font-object/ufoLib")
+with open('README.rst', 'r') as f:
+    long_description = f.read()
 
-if "sdist" in sys.argv:
-    try:
-        import os
-        import subprocess
-        import shutil
-        docFolder = os.path.join(os.getcwd(), "documentation")
-        # remove existing
-        doctrees = os.path.join(docFolder, "build", "doctrees")
-        if os.path.exists(doctrees):
-            shutil.rmtree(doctrees)
-        # compile
-        p = subprocess.Popen(["make", "html"], cwd=docFolder)
-        p.wait()
-        # remove doctrees
-        shutil.rmtree(doctrees)
-    except:
-        print("*** Warning: could not make html documentation")
-
-
-
-setup(name="defcon",
+setup(
+    name="defcon",
     version="0.1",
     description="A set of flexible objects for representing UFO data.",
+    long_description=long_description,
     author="Tal Leming",
     author_email="tal@typesupply.com",
     url="http://code.typesupply.com",
     license="MIT",
-    packages=[
-        "defcon",
-        "defcon.objects",
-        "defcon.pens",
-        "defcon.test",
-        "defcon.tools"
+    package_dir={"": "Lib"},
+    packages=find_packages("Lib"),
+    include_package_data=True,
+    setup_requires=pytest_runner + sphinx + wheel,
+    tests_require=[
+        'pytest>=3.0.3',
     ],
-    package_dir={"":"Lib"},
-    test_suite="defcon.test",
+    install_requires=[
+        "fonttools>=3.1.2",
+        "ufoLib>=2.0.0",
+    ],
+    classifiers=[
+        'Development Status :: 4 - Beta',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 3',
+        'Topic :: Multimedia :: Graphics :: Editors :: Vector-Based',
+        'Topic :: Software Development :: Libraries :: Python Modules',
+    ],
 )
