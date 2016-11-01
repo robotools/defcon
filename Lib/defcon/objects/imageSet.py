@@ -390,6 +390,7 @@ def fileNameValidator(value):
     >>> fileNameValidator(u'a/alt')
     False
     >>> fileNameValidator(u"A_bC_dE_f")
+    True
     """
     # must be a unicode
     if not isinstance(value, unicode):
