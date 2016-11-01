@@ -9,28 +9,21 @@
 	<key>descender</key>
 	<integer>-250</integer>
 	<key>guidelines</key>
-	<array>
-	</array>
+	<array/>
 	<key>italicAngle</key>
 	<integer>0</integer>
 	<key>postscriptBlueValues</key>
-	<array>
-	</array>
+	<array/>
 	<key>postscriptFamilyBlues</key>
-	<array>
-	</array>
+	<array/>
 	<key>postscriptFamilyOtherBlues</key>
-	<array>
-	</array>
+	<array/>
 	<key>postscriptOtherBlues</key>
-	<array>
-	</array>
+	<array/>
 	<key>postscriptStemSnapH</key>
-	<array>
-	</array>
+	<array/>
 	<key>postscriptStemSnapV</key>
-	<array>
-	</array>
+	<array/>
 	<key>unitsPerEm</key>
 	<integer>1000</integer>
 	<key>versionMajor</key>
