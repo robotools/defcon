@@ -49,6 +49,6 @@ names from PostScript and the OpenType FDK, copyright
    :target: https://travis-ci.org/typesupply/defcon
 .. |Appveyor Build Status| image:: https://ci.appveyor.com/api/projects/status/github/typesupply/defcon?branch=master&svg=true
    :target: https://ci.appveyor.com/project/typesupply/defcon/branch/master
-.. |Coverage Status| image:: https://coveralls.io/repos/typesupply/defcon/badge.svg?branch=master&service=github
+.. |Coverage Status| image:: https://coveralls.io/repos/github/typesupply/defcon/badge.svg?branch=master
    :target: https://coveralls.io/github/typesupply/defcon?branch=master
 .. |Python Versions| image:: https://img.shields.io/badge/python-2.7%2C%203.5-blue.svg
