@@ -1,5 +1,7 @@
 include License.txt
-include Install.txt
+include requirements.txt dev-requirements.txt
+include tox.ini
+include .coveragerc
 recursive-include documentation *
-recursive-include testData *
-recursive-include Lib *.py
+recursive-include Lib/defcon/test/testdata *
+recursive-include tools *.py *.txt

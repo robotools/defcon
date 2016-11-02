@@ -1,7 +1,11 @@
-To compile this documentation, use Sphinx. In the shell, move to the documentation folder and enter the following:
+To compile this documentation, use Sphinx. In the shell, move to the root source folder where `setup.py` file is, and enter the following:
 
-  make html
+    python setup.py build_sphinx
 
-You may already have Sphinx installed. If not, you can get it here:
+Alternatively, if the `make` command is available, you can move to the `documentation` folder where the `Makefile` is located, and run:
 
-  http://sphinx.pocoo.org
+    make html
+
+For more info about Sphinx:
+
+    http://www.sphinx-doc.org/

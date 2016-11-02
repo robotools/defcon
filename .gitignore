@@ -5,15 +5,18 @@ __pycache__/
 
 # Packaging
 *.egg-info
+*.eggs
 MANIFEST
 build/*
 documentation/build/*
+dist
 
 # Unit test and coverage files
 .cache
 .coverage
 .coverage.*
 .tox
+htmlcov
 
 # OS X Finder
 .DS_Store
