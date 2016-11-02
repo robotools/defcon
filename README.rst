@@ -1,5 +1,5 @@
 |Travis Build Status| |Appveyor Build Status| |Coverage Status|
-|Python Versions|
+|Python Versions| |PyPI Version|
 
 Defcon
 ======
@@ -52,3 +52,5 @@ names from PostScript and the OpenType FDK, copyright
 .. |Coverage Status| image:: https://coveralls.io/repos/github/typesupply/defcon/badge.svg?branch=master
    :target: https://coveralls.io/github/typesupply/defcon?branch=master
 .. |Python Versions| image:: https://img.shields.io/badge/python-2.7%2C%203.5-blue.svg
+.. |PyPI Version| image:: https://img.shields.io/pypi/v/defcon.svg
+   :target: https://pypi.org/project/defcon/)
