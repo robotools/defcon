@@ -53,4 +53,4 @@ names from PostScript and the OpenType FDK, copyright
    :target: https://coveralls.io/github/typesupply/defcon?branch=master
 .. |Python Versions| image:: https://img.shields.io/badge/python-2.7%2C%203.5-blue.svg
 .. |PyPI Version| image:: https://img.shields.io/pypi/v/defcon.svg
-   :target: https://pypi.org/project/defcon/)
+   :target: https://pypi.org/project/defcon/
