@@ -580,7 +580,7 @@ class Contour(BaseObject):
         This should not be used externally.
         """
         (x, y) = values
-        point = self._pointClass((x, y), segmentType=segmentType, smooth=smooth, name=name, identifier=identifier)
+        point = self._pointClass((x, y), segmentType=segmentType, smooth=smooth, name=name, identifier=identifier, **kwargs)
         self.insertPoint(len(self._points), point)
 
     def draw(self, pen):
