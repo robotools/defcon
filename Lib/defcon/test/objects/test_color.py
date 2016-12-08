@@ -72,12 +72,6 @@ class ColorTest(unittest.TestCase):
                 msg="The color for a (2) is not between 0 and 1."):
             Color((0, 0, 0, 2))
 
-    def test_compare(self):
-        self.assertTrue(Color((0, 0, 0, 0)) < Color((1, 1, 1, 1)))
-        self.assertTrue(Color((0, 0, 0, 0)) < Color((0, 1, 1, 1)))
-        self.assertTrue(Color((0, 0, 0, 0)) < Color((1, 0, 0, 0)))
-        self.assertTrue(Color((0, 1, 1, 1)) < Color((1, 0, 0, 0)))
-
     def test_iterate_component_attributes(self):
         color = Color((0.1, 0.2, 0.3, 0.4))
         expected_values = (0.10000000000000001, 0.20000000000000001,

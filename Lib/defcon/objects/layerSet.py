@@ -214,11 +214,8 @@ class LayerSet(BaseObject):
     # -------------
 
     def __iter__(self):
-        names = self.layerOrder
-        while names:
-            name = names[0]
+        for name in self.layerOrder:
             yield self[name]
-            names = names[1:]
 
     def __getitem__(self, name):
         if name is None:
