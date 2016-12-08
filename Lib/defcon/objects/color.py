@@ -38,11 +38,6 @@ class Color(str):
         value = _stringToSequence(self)
         return iter(value)
 
-    def __cmp__(self, other):
-        if not isinstance(other, Color):
-            return -1
-        return cmp(tuple(self), tuple(other))
-
     def _get_r(self):
         return _stringToSequence(self)[0]
 
