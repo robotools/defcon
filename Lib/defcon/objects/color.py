@@ -36,10 +36,7 @@ class Color(str):
 
     def __iter__(self):
         value = _stringToSequence(self)
-        while value:
-            v = value[0]
-            yield v
-            value = value[1:]
+        return iter(value)
 
     def __cmp__(self, other):
         if not isinstance(other, Color):
