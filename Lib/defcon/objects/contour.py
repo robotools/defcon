@@ -273,10 +273,8 @@ class Contour(BaseObject):
         self.drawPoints(reversePen)
         # clear the points in this contour
         self._clear(postNotification=False)
-        # draw the points back into this contour
-        self.disableNotifications()
-        otherContour.drawPoints(self)
-        self.enableNotifications()
+        # set the points back into this contour
+        self._points = otherContour._points
         # post a notification
         self.postNotification("Contour.WindingDirectionChanged", data=dict(oldValue=oldDirection, newValue=self.clockwise))
         self.postNotification("Contour.PointsChanged")
