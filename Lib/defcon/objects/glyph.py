@@ -50,12 +50,16 @@ class Glyph(BaseObject):
     Glyph.LibChanged
     Glyph.ImageChanged
     Glyph.ImageWillBeDeleted
+    Glyph.ContourWillBeAdded
     Glyph.ContourWillBeDeleted
     Glyph.ContoursChanged
+    Glyph.ComponentWillBeAdded
     Glyph.ComponentWillBeDeleted
     Glyph.ComponentsChanged
+    Glyph.AnchorWillBeAdded
     Glyph.AnchorWillBeDeleted
     Glyph.AnchorsChanged
+    Glyph.GuidelineWillBeAdded
     Glyph.GuidelineWillBeDeleted
     Glyph.GuidelinesChanged
     Glyph.MarkColorChanged
@@ -559,6 +563,7 @@ class Glyph(BaseObject):
         """
         assert contour not in self
         assert contour.glyph in (self, None), "This contour belongs to another glyph."
+        self.postNotification(notification="Glyph.ContourWillBeAdded")
         if contour.glyph is None:
             identifiers = self._identifiers
             if contour.identifier is not None:
@@ -668,6 +673,7 @@ class Glyph(BaseObject):
         """
         assert component not in self._components
         assert component.glyph in (self, None), "This component belongs to another glyph."
+        self.postNotification(notification="Glyph.ComponentWillBeAdded")
         if component.glyph is None:
             if component.identifier is not None:
                 identifiers = self._identifiers
@@ -813,6 +819,7 @@ class Glyph(BaseObject):
             assert anchor.glyph is None
         except AttributeError:
             pass
+        self.postNotification(notification="Glyph.AnchorWillBeAdded")
         if not isinstance(anchor, self._anchorClass):
             anchor = self.instantiateAnchor(anchorDict=anchor)
         if anchor.identifier is not None:
@@ -915,6 +922,7 @@ class Glyph(BaseObject):
         This will post a *Glyph.Changed* notification.
         """
         assert id(guideline) not in [id(guide) for guide in self.guidelines]
+        self.postNotification(notification="Glyph.GuidelineWillBeAdded")
         if not isinstance(guideline, self._guidelineClass):
             guideline = self.instantiateGuideline(guidelineDict=guideline)
         assert guideline.glyph in (self, None), "This guideline belongs to another glyph."
