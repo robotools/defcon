@@ -293,8 +293,8 @@ class LayerSet(BaseObject):
                         # this will be handled by the creation of the glyph set
                         continue
                     # both are in the file, so do the renames
-                    writer.renameGlyphSet(oldDefault, defaultLayer=False)
-                    writer.renameGlyphSet(newDefault, defaultLayer=False)
+                    writer.renameGlyphSet(newDefault, unicode(newDefault), defaultLayer=True)
+                    writer.renameGlyphSet(oldDefault, unicode(oldDefault), defaultLayer=False)
                 elif action == "new":
                     # this will be handled by the creation of the glyph set
                     pass
