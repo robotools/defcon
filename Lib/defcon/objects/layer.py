@@ -2,6 +2,7 @@ from __future__ import absolute_import
 import os
 import weakref
 from fontTools.misc.arrayTools import unionRect, calcBounds
+from fontTools.misc.py23 import tounicode
 from defcon.objects.base import BaseObject
 from defcon.objects.glyph import Glyph
 from defcon.objects.lib import Lib
@@ -307,6 +308,7 @@ class Layer(BaseObject):
     # name
 
     def _set_name(self, value):
+        value = tounicode(value)
         oldName = self._name
         if oldName != value:
             self._name = value
