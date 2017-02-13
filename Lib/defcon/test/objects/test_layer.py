@@ -105,9 +105,9 @@ class LayerTest(unittest.TestCase):
 
         font = Font()
         layer = font.layers["public.default"]
-        self.assertEqual(layer.keys(), [])
+        self.assertEqual(layer.keys(), set())
         layer.newGlyph("A")
-        self.assertEqual(layer.keys(), ["A"])
+        self.assertEqual(layer.keys(), {"A"})
 
     def test_color(self):
         font = Font(getTestFontPath())
