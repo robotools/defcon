@@ -165,7 +165,7 @@ class FontTest(unittest.TestCase):
         font.newGlyph("A")
         self.assertEqual(sorted(font.keys()), ["A", "B", "C"])
         font = Font()
-        self.assertEqual(font.keys(), [])
+        self.assertEqual(font.keys(), set())
         font.newGlyph("A")
         self.assertEqual(sorted(font.keys()), ["A"])
 

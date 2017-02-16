@@ -297,9 +297,9 @@ class Layer(BaseObject):
         """
         # this is not generated dynamically since we
         # support external editing. it must be fixed.
-        names = self._keys
-        names = names - set(self._scheduledForDeletion.keys())
-        return list(names)
+        if not self._scheduledForDeletion:
+            return self._keys
+        return self._keys - set(self._scheduledForDeletion.keys())
 
     # ----------
     # Attributes
