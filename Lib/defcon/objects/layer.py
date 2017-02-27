@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import collections
 import os
 import weakref
 from fontTools.misc.arrayTools import unionRect, calcBounds
@@ -8,6 +9,9 @@ from defcon.objects.glyph import Glyph
 from defcon.objects.lib import Lib
 from defcon.objects.uniData import UnicodeData
 from defcon.objects.color import Color
+
+def _consume(iterator):
+    collections.deque(iterator, maxlen=0)
 
 
 class Layer(BaseObject):
@@ -600,11 +604,10 @@ class Layer(BaseObject):
         Subclasses may override this method to implement custom saving behavior.
         """
         # for a save as operation, load all the glyphs
-        # and mark them as dirty. this could be more
-        # effeciently handled by os.copy...
+        # and treat them as dirty in saveGlyph. this could be more
+        # efficiently handled by os.copy...
         if saveAs:
-            for glyph in self:
-                glyph.dirty = True
+            _consume(self)
         for glyphName, glyph in sorted(self._glyphs.items()):
             self.saveGlyph(glyph, glyphSet, saveAs=saveAs)
         # remove deleted glyphs
@@ -621,7 +624,7 @@ class Layer(BaseObject):
         Save a glyph. This method should not be called externally.
         Subclasses may override this method to implement custom saving behavior.
         """
-        if glyph.dirty:
+        if glyph.dirty or saveAs:
             glyphSet.writeGlyph(glyph.name, glyph, glyph.drawPoints)
             self._stampGlyphDataState(glyph)
 
