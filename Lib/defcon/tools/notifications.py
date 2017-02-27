@@ -137,8 +137,7 @@ class NotificationCenter(object):
                     return
                 if key in self._holds:
                     n = (notification, observableRef, data)
-                    #if not self._holds[key]["notifications"] or self._holds[key]["notifications"][-1] != n:
-                    if n not in self._holds[key]["notifications"]:
+                    if not self._holds[key]["notifications"] or self._holds[key]["notifications"][-1] != n:
                         self._holds[key]["notifications"].append(n)
                     return
         # posting
@@ -151,7 +150,7 @@ class NotificationCenter(object):
             (None, observableRef),
             (None, None)
         )
-        for key in reversed(registryPossibilities):
+        for key in registryPossibilities:
             if key not in self._registry:
                 continue
             for observerRef, methodName in list(self._registry[key].items()):
