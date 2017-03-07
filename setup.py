@@ -14,7 +14,7 @@ with open('README.rst', 'r') as f:
 
 setup(
     name="defcon",
-    version="0.2.3.dev0",
+    version="0.2.3",
     description="A set of flexible objects for representing UFO data.",
     long_description=long_description,
     author="Tal Leming",
