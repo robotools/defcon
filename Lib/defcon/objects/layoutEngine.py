@@ -215,7 +215,9 @@ class LayoutEngine(BaseObject):
         for glyphRecord in glyphRecords:
             if glyphRecord.glyphName not in layer:
                 continue
-            glyphRecord.advanceWidth += layer[glyphRecord.glyphName].width
+            layerGlyph = layer[glyphRecord.glyphName]
+            glyphRecord.advanceWidth += layerGlyph.width
+            glyphRecord.advanceHeight += layerGlyph.height
             finalGlyphRecords.append(glyphRecord)
         return finalGlyphRecords
 
