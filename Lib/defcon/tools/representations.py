@@ -8,34 +8,14 @@ from fontTools.misc.arrayTools import unionRect
 # -----
 
 def glyphBoundsRepresentationFactory(glyph):
-    # base glyph
     pen = BoundsPen(glyph.getParent())
     glyph.draw(pen)
-    bounds = pen.bounds
-    # components
-    for component in glyph.components:
-        b = component.bounds
-        if b is not None:
-            if bounds is None:
-                bounds = b
-            else:
-                bounds = unionRect(bounds, b)
-    return bounds
+    return pen.bounds
 
 def glyphControlPointBoundsRepresentationFactory(glyph):
-    # base glyph
     pen = ControlBoundsPen(glyph.getParent())
     glyph.draw(pen)
-    bounds = pen.bounds
-    # components
-    for component in glyph.components:
-        b = component.controlPointBounds
-        if b is not None:
-            if bounds is None:
-                bounds = b
-            else:
-                bounds = unionRect(bounds, b)
-    return bounds
+    return pen.bounds
 
 # -------
 # Contour

@@ -438,63 +438,15 @@ class Layer(BaseObject):
     # control point bounds
 
     def _get_controlPointBounds(self):
-        from fontTools.misc.transform import Transform
-        # storage
-        glyphRects = {}
-        componentReferences = {}
-        # scan loaded glyphs
-        for glyphName, glyph in self._glyphs.items():
-            if glyphName in self._scheduledForDeletion:
-                continue
-            glyphRect = glyph.controlPointBounds
-            if glyphRect:
-                glyphRects[glyphName] = glyphRect
-        # scan glyphs that have not been loaded
-        if self._glyphSet is not None:
-            for glyphName, fileName in self._glyphSet.contents.items():
-                if glyphName in self._glyphs or glyphName in self._scheduledForDeletion:
-                    continue
-                glif = self._glyphSet.getGLIF(glyphName)
-                points, components = _fetchControlPointBoundsData(glif)
-                if points:
-                    glyphRects[glyphName] = calcBounds(points)
-                for base, transformation in components:
-                    xScale, xyScale, yxScale, yScale, xOffset, yOffset = transformation
-                    if glyphName not in componentReferences:
-                        componentReferences[glyphName] = []
-                    componentReferences[glyphName].append((base, xScale, xyScale, yxScale, yScale, xOffset, yOffset))
-        # get the transformed component bounding boxes and update the glyphs
-        for glyphName, components in componentReferences.items():
-            glyphRect = glyphRects.get(glyphName, (None, None, None, None))
-            # XXX this doesn't handle nested components
-            for base, xScale, xyScale, yxScale, yScale, xOffset, yOffset in components:
-                # base glyph doesn't exist
-                if base not in glyphRects:
-                    continue
-                baseRect = glyphRects[base]
-                # base glyph has no points
-                if None in baseRect:
-                    continue
-                # transform the base rect
-                transform = Transform(xx=xScale, xy=xyScale, yx=yxScale, yy=yScale, dx=xOffset, dy=yOffset)
-                xMin, yMin, xMax, yMax = baseRect
-                (xMin, yMin), (xMax, yMax) = transform.transformPoints([(xMin, yMin), (xMax, yMax)])
-                componentRect = (xMin, yMin, xMax, yMax)
-                # update the glyph rect
-                if None in glyphRect:
-                    glyphRect = componentRect
-                else:
-                    glyphRect = unionRect(glyphRect, componentRect)
-            # store the updated rect
-            glyphRects[glyphName] = glyphRect
-        # work out the unified rect
         fontRect = None
-        for glyphRect in glyphRects.values():
+        for glyph in self:
+            glyphRect = glyph.controlPointBounds
+            if glyphRect is None:
+                continue
             if fontRect is None:
                 fontRect = glyphRect
-            elif glyphRect is not None:
+            else:
                 fontRect = unionRect(fontRect, glyphRect)
-        # done
         return fontRect
 
     controlPointBounds = property(_get_controlPointBounds, doc="The control bounds of all glyphs in the layer. This only measures the point positions, it does not measure curves. So, curves without points at the extrema will not be properly measured. This is an expensive operation.")
