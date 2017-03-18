@@ -268,7 +268,7 @@ class ImageSet(BaseObject):
         addedImages = []
         deletedImages = []
         for fileName in set(filesOnDisk) - set(self.fileNames):
-            if not fileName in self._scheduledForDeletion:
+            if fileName not in self._scheduledForDeletion:
                 addedImages.append(fileName)
             elif not self._scheduledForDeletion[fileName]["onDisk"]:
                 addedImages.append(fileName)

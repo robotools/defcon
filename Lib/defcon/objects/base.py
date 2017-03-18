@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 import weakref
-from defcon.tools.notifications import NotificationCenter
 import pickle
 
 class BaseObject(object):
@@ -465,8 +464,6 @@ class BaseObject(object):
                 continue
             data[key] = getter(key)
         return data
-
-
 
 
 class BaseDictObject(dict, BaseObject):

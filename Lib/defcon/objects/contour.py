@@ -527,7 +527,7 @@ class Contour(BaseObject):
             x = x1 + (x2 - x1) * t
             y = y1 + (y2 - y1) * t
             pointsToInsert = [((x, y), "line", False)]
-            insertionPoint =  (x, y)
+            insertionPoint = (x, y)
             pointWillBeSmooth = False
         elif segmentType == "curve":
             pt1, pt2, pt3, pt4 = segment
