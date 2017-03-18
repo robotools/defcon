@@ -480,8 +480,6 @@ class LayerSet(BaseObject):
         return self._serialize(getters, **kwargs)
 
     def setDataFromSerialization(self, data):
-        from functools import partial
-
         if 'layers' not in data:
             return
         for name, data, isDefault in data['layers']:

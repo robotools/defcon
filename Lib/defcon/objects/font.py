@@ -1,16 +1,11 @@
 from __future__ import absolute_import
 import os
 import re
-import weakref
-from copy import deepcopy
 import tempfile
 import shutil
-from fontTools.misc.arrayTools import unionRect
 from ufoLib import UFOReader, UFOWriter
-from defcon.errors import DefconError
 from defcon.objects.base import BaseObject
 from defcon.objects.layerSet import LayerSet
-from defcon.objects.layer import Layer
 from defcon.objects.info import Info
 from defcon.objects.kerning import Kerning
 from defcon.objects.groups import Groups
@@ -124,7 +119,6 @@ class Font(BaseObject):
         self._features = None
         self._lib = None
         self._kerningGroupConversionRenameMaps = None
-
 
         self._layers = self.instantiateLayerSet()
         self.beginSelfLayerSetNotificationObservation()

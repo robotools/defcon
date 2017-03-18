@@ -1,7 +1,6 @@
 from __future__ import absolute_import
-import os
 import weakref
-from fontTools.misc.arrayTools import unionRect, calcBounds
+from fontTools.misc.arrayTools import unionRect
 from fontTools.misc.py23 import tounicode
 from defcon.objects.base import BaseObject
 from defcon.objects.glyph import Glyph

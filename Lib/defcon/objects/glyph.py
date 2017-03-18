@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 import weakref
 from warnings import warn
-from fontTools.misc import arrayTools
 from fontTools.misc.py23 import basestring
 from defcon.objects.base import BaseObject
 from defcon.objects.contour import Contour
@@ -1259,7 +1258,6 @@ class Glyph(BaseObject):
     # Serialization/Deserialization
     # -----------------------------
 
-
     def getDataForSerialization(self, **kwargs):
         from functools import partial
 
@@ -1282,9 +1280,9 @@ class Glyph(BaseObject):
         ]
 
         if self._shallowLoadedContours is not None:
-            getters.append( ('_shallowLoadedContours', simple_get) )
+            getters.append(('_shallowLoadedContours', simple_get))
         else:
-            getters.append( ('_contours', serialized_list_get) )
+            getters.append(('_contours', serialized_list_get))
 
         return self._serialize(getters, **kwargs)
 
@@ -1329,7 +1327,7 @@ class Glyph(BaseObject):
             ('_contours', init_set(list_init, self.instantiateContour, set_each(self.appendContour, True))),
             ('components', init_set(list_init, self._componentClass, set_each(self.appendComponent, True))),
             ('guidelines', init_set(list_init, self._guidelineClass, set_attr)),
-            ('anchors',init_set(list_init, self._anchorClass, set_attr)),
+            ('anchors', init_set(list_init, self._anchorClass, set_attr)),
             ('image', init_set(single_init, self.instantiateImage, set_attr))
         )
 

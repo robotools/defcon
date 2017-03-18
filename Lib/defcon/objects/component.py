@@ -353,7 +353,6 @@ class Component(BaseObject):
         layer.removeObserver(self, "Layer.GlyphAdded")
 
     def baseGlyphNameChangedNotificationCallback(self, notification):
-        oldName = notification.data["oldValue"]
         newName = notification.data["newValue"]
         layer = self.layer
         notBaseGlyph = layer[newName]
