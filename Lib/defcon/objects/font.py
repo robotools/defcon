@@ -624,6 +624,9 @@ class Font(BaseObject):
                 index = order.index(removedGlyph)
             except ValueError:
                 pass
+            else:
+                if removedGlyph == addedGlyph:
+                    return
         if addedGlyph is not None:
             if addedGlyph not in order:
                 if index is not None:
