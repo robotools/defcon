@@ -622,17 +622,23 @@ class Font(BaseObject):
         by subclasses as needed.
         """
         order = self.glyphOrder
+        index = None
+        if removedGlyph is not None:
+            # if removed glyph is present, store its index.
+            # we'll either replace it with added glyph or delete it
+            try:
+                index = order.index(removedGlyph)
+            except ValueError:
+                pass
         if addedGlyph is not None:
             if addedGlyph not in order:
-                order.append(addedGlyph)
-        elif removedGlyph is not None:
-            if removedGlyph in order:
-                count = order.count(removedGlyph)
-                if count == 1:
-                    order.remove(removedGlyph)
+                if index is not None:
+                    order[index] = addedGlyph
+                    index = None
                 else:
-                    for i in range(count):
-                        order.remove(removedGlyph)
+                    order.append(addedGlyph)
+        if index is not None:
+            del order[index]
         self.glyphOrder = order
 
     # -------
@@ -1052,9 +1058,8 @@ class Font(BaseObject):
             if oldName in layer:
                 oldStillExists = True
                 break
-        if not oldStillExists:
-            self.updateGlyphOrder(removedGlyph=oldName)
-        self.updateGlyphOrder(addedGlyph=newName)
+        removedGlyph = oldName if not oldStillExists else None
+        self.updateGlyphOrder(addedGlyph=newName, removedGlyph=removedGlyph)
 
     def _guidelineChanged(self, notification):
         self.postNotification("Font.GuidelinesChanged")

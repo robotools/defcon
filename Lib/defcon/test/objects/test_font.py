@@ -269,7 +269,7 @@ class FontTest(unittest.TestCase):
         self.assertEqual(font.glyphOrder, [])
         font.glyphOrder = sorted(font.keys())
         self.assertEqual(font.glyphOrder, ["A", "B", "C"])
-        layer = font.layers["public.default"]
+        layer = font.layers.defaultLayer
         layer.newGlyph("X")
         self.assertEqual(sorted(layer.keys()), ["A", "B", "C", "X"])
         self.assertEqual(font.glyphOrder, ["A", "B", "C", "X"])
@@ -277,6 +277,8 @@ class FontTest(unittest.TestCase):
         self.assertEqual(font.glyphOrder, ["A", "B", "C", "X"])
         del layer["X"]
         self.assertEqual(font.glyphOrder, ["A", "B", "C"])
+        layer["B"].name = "Y"
+        self.assertEqual(font.glyphOrder, ["A", "Y", "C"])
 
     def test_updateGlyphOrder_none(self):
         font = Font(getTestFontPath())
@@ -297,6 +299,14 @@ class FontTest(unittest.TestCase):
         self.assertEqual(font.glyphOrder, ["test"])
         font.updateGlyphOrder(removedGlyph="test")
         self.assertEqual(font.glyphOrder, [])
+
+    def test_updateGlyphOrder_rename(self):
+        font = Font(getTestFontPath())
+        self.assertEqual(font.glyphOrder, [])
+        font.glyphOrder = sorted(font.keys())
+        self.assertEqual(font.glyphOrder, ["A", "B", "C"])
+        font.updateGlyphOrder(addedGlyph="new", removedGlyph="B")
+        self.assertEqual(font.glyphOrder, ["A", "new", "C"])
 
     def test_guidelines(self):
         font = Font(getTestFontPath())
