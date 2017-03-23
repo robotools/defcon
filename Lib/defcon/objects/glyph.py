@@ -1325,9 +1325,9 @@ class Glyph(BaseObject):
             ('lib',  set_attr),
             ('_shallowLoadedContours', set_attr),
             ('_contours', init_set(list_init, self.instantiateContour, set_each(self.appendContour, True))),
-            ('components', init_set(list_init, self._componentClass, set_each(self.appendComponent, True))),
-            ('guidelines', init_set(list_init, self._guidelineClass, set_attr)),
-            ('anchors', init_set(list_init, self._anchorClass, set_attr)),
+            ('components', init_set(list_init, self.instantiateComponent, set_each(self.appendComponent, True))),
+            ('guidelines', init_set(list_init, self.instantiateGuideline, set_attr)),
+            ('anchors', init_set(list_init, self.instantiateAnchor, set_attr)),
             ('image', init_set(single_init, self.instantiateImage, set_attr))
         )
 

@@ -516,13 +516,10 @@ class BaseDictObject(dict, BaseObject):
     # -----------------------------
 
     def getDataForSerialization(self, **kwargs):
-        from copy import deepcopy
-
-        deep_get = lambda k: deepcopy(self[k])
+        deep_get = lambda k: self[k]
 
         getters = []
         for k in self.keys():
-            k = deepcopy(k)  # needed?
             getters.append((k, deep_get))
 
         return self._serialize(getters, **kwargs)
