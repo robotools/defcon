@@ -249,74 +249,45 @@ class BaseObject(object):
     undoManager = property(_get_undoManager, _set_undoManager,
                            doc="The undo manager assigned to this object.")
 
-    # state registration
-
-    def prepareUndo(self, *args, **kwargs):
-        self.undoManager.prepareTarget(*args, **kwargs)
-
     # undo
 
     def canUndo(self):
-        manager = self.undoManager
-        if manager is None:
-            raise NotImplementedError
-        return manager.canUndo()
+        """
+        Returns a boolean indicating whether the undo manager is able to
+        perform an undo.
+        """
+        return self.undoManager.canUndo()
 
-    def getUndoTitle(self, index=None):
-        manager = self.undoManager
-        if manager is None:
-            raise NotImplementedError
-        if index is None:
-            index = -1
-        return manager.getUndoTitle(index)
-
-    def _undo(self, index):
-        if index is None:
-            index = -1
-        self.undoManager.undo(index)
-
-    def undo(self, index=None):
-        manager = self.undoManager
-        if manager is None:
-            raise NotImplementedError
-        dispatcher = self._dispatcher
-        if dispatcher is not None:
-            self.dispatcher.postNotification(notification=self.beginUndoNotificationName, observable=self)
-        self._undo(index)
-        if dispatcher is not None:
-            self.dispatcher.postNotification(notification=self.endUndoNotificationName, observable=self)
+    def undo(self):
+        """
+        Perform an undo if possible, or return.
+        If undo is performed, this will post *BaseObject.BeginUndo* and *BaseObject.EndUndo* notifications.
+        """
+        if not self.undoManager.canUndo():
+            return
+        self.postNotification(notification=self.beginUndoNotificationName)
+        self.undoManager.undo()
+        self.postNotification(notification=self.endUndoNotificationName)
 
     # redo
 
     def canRedo(self):
-        manager = self.undoManager
-        if manager is None:
-            raise NotImplementedError
-        return manager.canRedo()
+        """
+        Returns a boolean indicating whether the undo manager is able to
+        perform a redo.
+        """
+        return self.undoManager.canRedo()
 
-    def getRedoTitle(self, index=None):
-        manager = self.undoManager
-        if manager is None:
-            raise NotImplementedError
-        if index is None:
-            index = 0
-        return manager.getRedoTitle(index)
-
-    def _redo(self, index):
-        if index is None:
-            index = 0
-        self.undoManager.redo(index)
-
-    def redo(self, index=None):
-        manager = self.undoManager
-        if manager is None:
-            raise NotImplementedError
-        dispatcher = self._dispatcher
-        if dispatcher is not None:
-            self.dispatcher.postNotification(notification=self.beginRedoNotificationName, observable=self)
-        self._redo(index)
-        if dispatcher is not None:
-            self.dispatcher.postNotification(notification=self.endRedoNotificationName, observable=self)
+    def redo(self):
+        """
+        Perform a redo if possible, or return.
+        If redo is performed, this will post *BaseObject.BeginRedo* and *BaseObject.EndRedo* notifications.
+        """
+        if not self.undoManager.canRedo():
+            return
+        self.postNotification(notification=self.beginRedoNotificationName)
+        self.undoManager.redo()
+        self.postNotification(notification=self.endRedoNotificationName)
 
     # ---------------
     # Representations
@@ -545,13 +516,10 @@ class BaseDictObject(dict, BaseObject):
     # -----------------------------
 
     def getDataForSerialization(self, **kwargs):
-        from copy import deepcopy
-
-        deep_get = lambda k: deepcopy(self[k])
+        deep_get = lambda k: self[k]
 
         getters = []
         for k in self.keys():
-            k = deepcopy(k)  # needed?
             getters.append((k, deep_get))
 
         return self._serialize(getters, **kwargs)
