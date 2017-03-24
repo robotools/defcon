@@ -575,6 +575,7 @@ class Layer(BaseObject):
         if glyph.dirty or saveAs:
             glyphSet.writeGlyph(glyph.name, glyph, glyph.drawPoints)
             self._stampGlyphDataState(glyph)
+            glyph.dirty = False
 
     # ---------------------
     # External Edit Support
