@@ -144,11 +144,11 @@ class NotificationCenter(object):
         # -------
         notificationObj = Notification(notification, observableRef, data)
         registryPossibilities = (
-            # most specific -> least specific
-            (notification, observableRef),
-            (notification, None),
+            # least specific -> most specific
+            (None, None),
             (None, observableRef),
-            (None, None)
+            (notification, None),
+            (notification, observableRef),
         )
         for key in registryPossibilities:
             if key not in self._registry:
