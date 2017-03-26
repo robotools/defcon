@@ -7,6 +7,7 @@ from warnings import warn
 import ufoLib
 from defcon.objects.base import BaseObject
 from copy import copy
+from functools import partial
 
 def _guidelineDeprecation(message=None):
     msg = "Font level guidelines are now handled in the Font object."
@@ -284,12 +285,7 @@ class Info(BaseObject):
     # -----------------------------
 
     def getDataForSerialization(self, **kwargs):
-        from functools import partial
-
         simple_get = partial(getattr, self)
-        # not sure, but these are not necessary
-        # serialize = lambda item: item.getDataForSerialization()
-        # serialized_get = lambda key: serialize(simple_get(key))
 
         getters = []
         for name in self._properties:
@@ -300,8 +296,6 @@ class Info(BaseObject):
         return self._serialize(getters, **kwargs)
 
     def setDataFromSerialization(self, data):
-        from functools import partial
-
         simple_set = partial(setattr, self)
 
         setters = [(name, simple_set) for name in self._properties]

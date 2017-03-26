@@ -15,6 +15,7 @@ from defcon.objects.imageSet import ImageSet
 from defcon.objects.dataSet import DataSet
 from defcon.objects.guideline import Guideline
 from defcon.tools.notifications import NotificationCenter
+from functools import partial
 
 
 class Font(BaseObject):
@@ -1546,8 +1547,6 @@ class Font(BaseObject):
     # -----------------------------
 
     def getDataForSerialization(self, **kwargs):
-        from functools import partial
-
         simple_get = partial(getattr, self)
         serialize = lambda item: item.getDataForSerialization()
         serialized_get = lambda key: serialize(simple_get(key))
@@ -1575,8 +1574,6 @@ class Font(BaseObject):
         return self._serialize(getters, **kwargs)
 
     def setDataFromSerialization(self, data):
-        from functools import partial
-
         set_attr = partial(setattr, self) # key, data
 
         def single_update(key, data):

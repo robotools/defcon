@@ -516,11 +516,11 @@ class BaseDictObject(dict, BaseObject):
     # -----------------------------
 
     def getDataForSerialization(self, **kwargs):
-        deep_get = lambda k: self[k]
+        simple_get = lambda k: self[k]
 
         getters = []
         for k in self.keys():
-            getters.append((k, deep_get))
+            getters.append((k, simple_get))
 
         return self._serialize(getters, **kwargs)
 
