@@ -4,8 +4,6 @@ import weakref
 from ufoLib import UFOReader, UFOLibError
 from defcon.objects.base import BaseObject
 
-pngSignature = "\x89PNG\r\n\x1a\n"
-
 
 class DataSet(BaseObject):
 

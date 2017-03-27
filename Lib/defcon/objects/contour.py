@@ -706,56 +706,56 @@ class Contour(BaseObject):
 
 class Recorder(object):
     """
-        Records all method calls it receives in a list of tuples in the form of
-        [(:str:command, :list:args, :dict: kwargd)]
+    Records all method calls it receives in a list of tuples in the form of
+    [(:str:command, :list:args, :dict: kwargs)]
 
-        Method calls to be recorded must not start with an underscore.
+    Method calls to be recorded must not start with an underscore.
 
-        This class creates a callable object which can be used like a
-        function: "recorder(target)" because that way calls to all methods
-        that don't start with underscores can be recorded.
+    This class creates a callable object which can be used like a
+    function: "recorder(target)" because that way calls to all methods
+    that don't start with underscores can be recorded.
 
-        This is useful to record the commands of both pen protocols
-        and it may become useful for other things as well, like recording
-        undo commands.
+    This is useful to record the commands of both pen protocols
+    and it may become useful for other things as well, like recording
+    undo commands.
 
-        Example Session PointPen:
+    Example Session PointPen:
 
-        data_glyphA = []
-        recorderPointPen = Recorder(data_glyphA)
-        glyphA.drawPoints(recorderPointPen)
+    data_glyphA = []
+    recorderPointPen = Recorder(data_glyphA)
+    glyphA.drawPoints(recorderPointPen)
 
-        # The point data of the glyph is now stored within data
-        # we can either replay it immediately or take it away and use it
-        # to replay it later
+    # The point data of the glyph is now stored within data
+    # we can either replay it immediately or take it away and use it
+    # to replay it later
 
-        stored_data = pickle.dumps(data_glyphA)
-        restored_data_glyphA = pickle.loads(stored_data)
+    stored_data = pickle.dumps(data_glyphA)
+    restored_data_glyphA = pickle.loads(stored_data)
 
-        player = Recorder(restored_data_glyphA)
-        # The recorder behaves like glyphA.drawPoints
-        player(glyphB)
+    player = Recorder(restored_data_glyphA)
+    # The recorder behaves like glyphA.drawPoints
+    player(glyphB)
 
+    Example Session SegmentPen:
 
-        Example Session SegmentPen:
+    data_glyphA = []
+    recorderPen = Recorder(data_glyphA)
+    glyphA.draw(recorderPen)
 
-        data_glyphA = []
-        recorderPen = Recorder(data_glyphA)
-        glyphA.draw(recorderPen)
-
-        # reuse it immediately
-        # The recorder behaves like glyphA.draw
-        recorderPen(glyphB)
+    # reuse it immediately
+    # The recorder behaves like glyphA.draw
+    recorderPen(glyphB)
     """
     def __init__(self, data=None):
         self.__dict__['_data'] = data if data is not None else []
 
     def __call__(self, target):
-        """ Replay all methof calls this Recorder to target.
-            Public Method(!)
         """
-        for cmd, args, kwds in self._data:
-            getattr(target, cmd)(*args, **kwds)
+        Public API.
+        Replay all method calls to this Recorder to target.
+        """
+        for cmd, args, kwargs in self._data:
+            getattr(target, cmd)(*args, **kwargs)
 
     def __setattr__(self, name, value):
         raise AttributeError('It\'s not allowed to set attributes here.', name)
@@ -763,8 +763,9 @@ class Recorder(object):
     def __getattr__(self, name):
         if name.startswith('_'):
             raise AttributeError(name)
-        def command(*args, **kwds):
-            self._data.append((name, args, kwds))
+
+        def command(*args, **kwargs):
+            self._data.append((name, args, kwargs))
         # cache the method, don't use __setattr__
         self.__dict__[name] = command
         return command

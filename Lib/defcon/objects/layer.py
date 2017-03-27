@@ -7,6 +7,7 @@ from defcon.objects.glyph import Glyph
 from defcon.objects.lib import Lib
 from defcon.objects.uniData import UnicodeData
 from defcon.objects.color import Color
+from functools import partial
 
 
 class Layer(BaseObject):
@@ -721,7 +722,6 @@ class Layer(BaseObject):
     # -----------------------------
 
     def getDataForSerialization(self, **kwargs):
-        from functools import partial
         simple_get = partial(getattr, self)
         serialize = lambda item: item.getDataForSerialization()
         serialized_get = lambda key: serialize(simple_get(key))
@@ -729,14 +729,12 @@ class Layer(BaseObject):
         getters = (
             ('lib', serialized_get),
             ('color', simple_get),
-            ('glyphs', lambda _: {name:self[name].getDataForSerialization() for name in self.keys()})
+            ('glyphs', lambda _: {name: self[name].getDataForSerialization() for name in self.keys()})
         )
 
         return self._serialize(getters, **kwargs)
 
     def setDataFromSerialization(self, data):
-        from functools import partial
-
         set_attr = partial(setattr, self) # key, data
 
         def set_glyph(name, data):
