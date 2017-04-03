@@ -366,11 +366,20 @@ class Font(BaseObject):
             self.beginSelfInfoSetNotificationObservation()
             reader = None
             if self._path is not None:
+                # info also contains the _font_ guidelines, disable self notifications
+                # and bookkeep dirty
+                dirty = self.dirty
+                self.disableNotifications()
+                #
                 self._info.disableNotifications()
                 reader = UFOReader(self._path)
                 reader.readInfo(self._info)
                 self._info.dirty = False
                 self._info.enableNotifications()
+                #
+                self.dirty = dirty
+                self.enableNotifications()
+                #
             self._stampInfoDataState(reader)
         return self._info
 
@@ -884,6 +893,8 @@ class Font(BaseObject):
     # object as dirty.
 
     def _get_guidelines(self):
+        if self._info is None:
+            self.info
         return list(self._guidelines)
 
     def _set_guidelines(self, value):
