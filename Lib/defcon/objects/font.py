@@ -893,6 +893,8 @@ class Font(BaseObject):
     # object as dirty.
 
     def _get_guidelines(self):
+        if self._info is None:
+            self.info
         return list(self._guidelines)
 
     def _set_guidelines(self, value):
