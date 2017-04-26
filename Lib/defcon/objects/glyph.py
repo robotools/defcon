@@ -993,6 +993,11 @@ class Glyph(BaseObject):
     # Lib
     # ---
 
+    def _get_libClass(self):
+        return self._libClass
+
+    libClass = property(_get_libClass, doc="The class used for the lib.")
+
     def instantiateLib(self):
         lib = self._libClass(
             glyph=self
@@ -1029,6 +1034,11 @@ class Glyph(BaseObject):
     # -----
     # Image
     # -----
+
+    def _get_imageClass(self):
+        return self._imageClass
+
+    imageClass = property(_get_imageClass, doc="The class used for the image.")
 
     def instantiateImage(self):
         image = self._imageClass(
