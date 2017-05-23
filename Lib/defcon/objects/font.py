@@ -1009,7 +1009,7 @@ class Font(BaseObject):
         self.endSelfFeaturesNotificationObservation()
         self.endSelfImageSetNotificationObservation()
         self.endSelfDataSetNotificationObservation()
-        for guideline in self.guidelines:
+        for guideline in self._guidelines:
             self.endSelfGuidelineNotificationObservation(guideline)
         super(Font, self).endSelfNotificationObservation()
 
