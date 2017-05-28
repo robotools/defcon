@@ -311,7 +311,7 @@ class ImageSet(BaseObject):
     # -----------------------------
 
     def getDataForSerialization(self, **kwargs):
-        simple_get = lambda key: getattr(self, key)
+        simple_get = lambda k: self[k]
 
         getters = []
         for k in self.fileNames:
