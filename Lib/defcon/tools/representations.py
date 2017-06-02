@@ -8,12 +8,12 @@ from fontTools.misc.arrayTools import unionRect
 # -----
 
 def glyphBoundsRepresentationFactory(glyph):
-    pen = BoundsPen(glyph.getParent())
+    pen = BoundsPen(glyph.layer)
     glyph.draw(pen)
     return pen.bounds
 
 def glyphControlPointBoundsRepresentationFactory(glyph):
-    pen = ControlBoundsPen(glyph.getParent())
+    pen = ControlBoundsPen(glyph.layer)
     glyph.draw(pen)
     return pen.bounds
 
@@ -48,11 +48,11 @@ def contourClockwiseRepresentationFactory(contour):
 # bounds
 
 def componentBoundsRepresentationFactory(obj):
-    pen = BoundsPen(obj.font)
+    pen = BoundsPen(obj.layer)
     obj.draw(pen)
     return pen.bounds
 
 def componentPointBoundsRepresentationFactory(obj):
-    pen = ControlBoundsPen(obj.font)
+    pen = ControlBoundsPen(obj.layer)
     obj.draw(pen)
     return pen.bounds
