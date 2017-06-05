@@ -263,7 +263,7 @@ class Contour(BaseObject):
         This will post *Contour.WindingDirectionChanged*,
         *Contour.PointsChanged* and *Contour.Changed* notifications.
         """
-        from defcon.pens.reverseContourPointPen import ReverseContourPointPen
+        from ufoLib.pointPen import ReverseContourPointPen
         oldDirection = self.clockwise
         # put the current points in another contour
         otherContour = self.__class__(glyph=None, pointClass=self.pointClass)
