@@ -2702,7 +2702,7 @@ ABF0..ABF9    ; Meetei_Mayek # Nd  [10] MEETEI MAYEK DIGIT ZERO..MEETEI MAYEK DI
 _blocksText = """
 # Blocks-10.0.0.txt
 # Date: 2017-04-12, 17:30:00 GMT [KW]
-# Â© 2017 UnicodeÂ®, Inc.
+# © 2017 Unicode®, Inc.
 # For terms of use, see http://www.unicode.org/terms_of_use.html
 #
 # Unicode Character Database
@@ -3293,17 +3293,24 @@ FF63;HALFWIDTH RIGHT CORNER BRACKET;Pe
 # load the data
 
 
-def _parseRangeText(text):
+def _parseRangeText(text, doCategory=False):
     result = []
     orderedTags = []
     for line in text.splitlines():
-        line = line.split("#")[0]
+        if "#" in line:
+            line, comment = line.split("#")[0:2]
+            comment = comment.strip()
+            category = comment.split(" ")[0]
+            if not len(category) == 2:
+                category = None
         line = line.strip()
         if not line:
             continue
         valueRange, name = line.split(";")
         valueRange = valueRange.strip()
         name = name.strip()
+        if doCategory:
+            name = category
         if ".." in valueRange:
             minValue, maxValue = valueRange.split("..")
         else:
@@ -3318,6 +3325,7 @@ def _parseRangeText(text):
 
 scriptRanges, orderedScripts = _parseRangeText(_scriptsText)
 orderedScripts.append("Unknown")
+categoryRanges, orderedCategories = _parseRangeText(_scriptsText, doCategory=True)
 blockRanges, orderedBlocks = _parseRangeText(_blocksText)
 
 orderedCategories = """Lu
@@ -3408,14 +3416,10 @@ def closeRelative(value):
     return _openToClose.get(value)
 
 def category(value):
-    try:
-        c = unichr(value)
-        return unicodedata.category(c)
-    # values larger than Python can use to create a
-    # unichr will raise a value error. when this happens,
-    # return Cn.
-    except ValueError:
-        return "Cn"
+    categoryName = _searchRanges(value, categoryRanges)
+    if categoryName is None:
+        categoryName = "Cn"
+    return categoryName
 
 def script(value):
     scriptName = _searchRanges(value, scriptRanges)
