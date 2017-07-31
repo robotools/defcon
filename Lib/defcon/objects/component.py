@@ -333,12 +333,12 @@ class Component(BaseObject):
                 baseGlyph = layer[baseGlyph]
             else:
                 return
-        if not baseGlyph.hasObserver(self, "Glyph.NameChanged"):
-            return
-        baseGlyph.removeObserver(self, "Glyph.NameChanged")
-        baseGlyph.removeObserver(self, "Glyph.ContoursChanged")
-        baseGlyph.removeObserver(self, "Glyph.ComponentsChanged")
-        layer.removeObserver(self, "Layer.GlyphWillBeDeleted")
+        if baseGlyph.hasObserver(self, "Glyph.NameChanged"):
+            baseGlyph.removeObserver(self, "Glyph.NameChanged")
+            baseGlyph.removeObserver(self, "Glyph.ContoursChanged")
+            baseGlyph.removeObserver(self, "Glyph.ComponentsChanged")
+        if layer.hasObserver(self, "Layer.GlyphWillBeDeleted"):
+            layer.removeObserver(self, "Layer.GlyphWillBeDeleted")
 
     def _beginLayerObservations(self):
         layer = self.layer
