@@ -77,7 +77,10 @@ class NotificationCenter(object):
         key = (notification, observable)
         if key not in self._registry:
             self._registry[key] = OrderedDict()
-        assert observer not in self._registry[key], "An observer is only allowed to have one callback for a given notification + observable combination."
+        assert observer not in self._registry[key],\
+            "An observer is only allowed to have one callback for a given notification + observable combination. notification={notification}, observable={observable} , observer={observer}, existing method={method1}, adding method={method2}".format(
+                notification=key[0], observable=key[1](), observer=observer(), method1=self._registry[key][observer], method2=methodName
+            )
         self._registry[key][observer] = methodName
 
     def hasObserver(self, observer, notification, observable):
