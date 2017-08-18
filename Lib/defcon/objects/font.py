@@ -1360,7 +1360,7 @@ class Font(BaseObject):
         loading is complete, a *Font.ReloadedData* notification
         will be posted.
         """
-        self.images.reloadImages(fileNames)
+        self.data.reloadData(fileNames)
         self.postNotification(notification="Font.ReloadedData")
 
     def reloadGlyphs(self, glyphNames):
