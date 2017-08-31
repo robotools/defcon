@@ -140,7 +140,7 @@ class NotificationCenter(object):
                     return
                 if key in self._holds:
                     n = (notification, observableRef, data)
-                    if not self._holds[key]["notifications"] or self._holds[key]["notifications"][-1] != n:
+                    if n not in self._holds[key]["notifications"]:
                         self._holds[key]["notifications"].append(n)
                     return
         # posting
@@ -185,7 +185,7 @@ class NotificationCenter(object):
                             if holdKey in self._holds:
                                 hold = True
                                 n = (notification, observableRef, data)
-                                if not self._holds[holdKey]["notifications"] or self._holds[holdKey]["notifications"][-1] != n:
+                                if n not in self._holds[key]["notifications"]:
                                     self._holds[holdKey]["notifications"].append(n)
                                 break
                     if hold:
