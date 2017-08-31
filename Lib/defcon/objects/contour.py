@@ -196,6 +196,8 @@ class Contour(BaseObject):
         This will post *Contour.PointsChanged* and *Contour.Changed* notifications.
         """
         self._points.remove(point)
+        if point.identifier is not None:
+            self.identifiers.remove(point.identifier)
         self.postNotification("Contour.PointsChanged")
         self.dirty = True
 
