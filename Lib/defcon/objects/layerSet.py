@@ -286,15 +286,15 @@ class LayerSet(BaseObject):
                 elif action == "default":
                     newDefault = actionData["newDefault"]
                     oldDefault = actionData["oldDefault"]
-                    if oldDefault not in writer.layerContents:
-                        # this will be handled by the creation of the glyph set
-                        continue
-                    if newDefault not in writer.layerContents:
-                        # this will be handled by the creation of the glyph set
-                        continue
-                    # both are in the file, so do the renames
-                    writer.renameGlyphSet(newDefault, newDefault, defaultLayer=True)
-                    writer.renameGlyphSet(oldDefault, oldDefault, defaultLayer=False)
+                    # if either one is already in the writer.layerContents it should be renamed
+                    # otherwise it will be handled by the creation of the glyph set
+                    if oldDefault in writer.layerContents:
+                        # rename the old default layer by itself and unflag it as the default layer
+                        writer.renameGlyphSet(oldDefault, oldDefault, defaultLayer=False)
+                    if newDefault in writer.layerContents:
+                        # rename the new default layer by itself and flag it as the default layer
+                        writer.renameGlyphSet(newDefault, newDefault, defaultLayer=True)
+
                 elif action == "new":
                     # this will be handled by the creation of the glyph set
                     pass
