@@ -715,9 +715,10 @@ class Font(BaseObject):
         elif formatVersion is None:
             formatVersion = 3
         # if down-converting, use a temp directory
-        downConvertinginPlace = False
-        if path == self._path and formatVersion < self._ufoFormatVersion:
-            downConvertinginPlace = True
+        convertinginPlace = False
+        if path == self._path and formatVersion != self._ufoFormatVersion:
+            convertinginPlace = True
+            saveAs = True
             path = os.path.join(tempfile.mkdtemp(), "temp.ufo")
         try:
             # make a UFOWriter
@@ -748,12 +749,12 @@ class Font(BaseObject):
                 self.saveData(writer=writer, saveAs=saveAs, progressBar=progressBar)
             self.layers.save(writer, saveAs=saveAs, progressBar=progressBar)
             writer.setModificationTime()
-            if downConvertinginPlace:
+            if convertinginPlace:
                 shutil.rmtree(self._path)
                 shutil.move(path, self._path)
         finally:
             # if down converting in place, handle the temp
-            if downConvertinginPlace:
+            if convertinginPlace:
                 shutil.rmtree(os.path.dirname(path))
                 path = self._path
         # done
