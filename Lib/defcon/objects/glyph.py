@@ -13,6 +13,8 @@ from defcon.objects.image import Image
 from defcon.objects.color import Color
 from defcon.tools.representations import glyphBoundsRepresentationFactory, glyphControlPointBoundsRepresentationFactory
 from defcon.pens.decomposeComponentPointPen import DecomposeComponentPointPen
+from defcon.pens.glyphObjectPointPen import GlyphObjectPointPen, GlyphObjectLoadingPointPen
+from ufoLib.pointPen import SegmentToPointPen
 
 
 def addRepresentationFactory(name, factory):
@@ -480,14 +482,12 @@ class Glyph(BaseObject):
         """
         Get the pen used to draw into this glyph.
         """
-        from ufoLib.pointPen import SegmentToPointPen
         return SegmentToPointPen(self.getPointPen())
 
     def getPointPen(self):
         """
         Get the point pen used to draw into this glyph.
         """
-        from defcon.pens.glyphObjectPointPen import GlyphObjectPointPen, GlyphObjectLoadingPointPen
         if self._isLoading:
             self._shallowLoadedContours = []
             return GlyphObjectLoadingPointPen(self)
