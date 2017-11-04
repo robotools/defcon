@@ -460,9 +460,9 @@ class Glyph(BaseObject):
         if self._shallowLoadedContours:
             self._drawShallowLoadedContours(pointPen, self._shallowLoadedContours)
         else:
-            for contour in self._contours:
+            for contour in sorted(self._contours):
                 contour.drawPoints(pointPen)
-        for component in self._components:
+        for component in sorted(self._components):
             component.drawPoints(pointPen)
 
     def _drawShallowLoadedContours(self, pointPen, contours):
