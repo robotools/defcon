@@ -788,6 +788,10 @@ class Glyph(BaseObject):
             for anchor in value:
                 anchor = self.instantiateAnchor(anchorDict=anchor)
                 self.beginSelfAnchorNotificationObservation(anchor)
+                if anchor.identifier is not None:
+                    identifiers = self._identifiers
+                    assert anchor.identifier not in identifiers
+                    identifiers.add(anchor.identifier)
                 anchors.append(anchor)
             self._anchors = anchors
         else:
@@ -844,12 +848,13 @@ class Glyph(BaseObject):
         if not isinstance(anchor, self._anchorClass):
             anchor = self.instantiateAnchor(anchorDict=anchor)
         assert anchor.glyph in (self, None), "This anchor belongs to another glyph."
+        if anchor.glyph is None:
+            anchor.glyph = self
+            anchor.beginSelfNotificationObservation()
         if anchor.identifier is not None:
             identifiers = self._identifiers
             assert anchor.identifier not in identifiers
             identifiers.add(anchor.identifier)
-        anchor.glyph = self
-        anchor.beginSelfNotificationObservation()
         self.beginSelfAnchorNotificationObservation(anchor)
         self._anchors.insert(index, anchor)
         self.postNotification(notification="Glyph.AnchorsChanged")
@@ -905,6 +910,10 @@ class Glyph(BaseObject):
             for guideline in value:
                 guideline = self.instantiateGuideline(guidelineDict=guideline)
                 self.beginSelfGuidelineNotificationObservation(guideline)
+                if guideline.identifier is not None:
+                    identifiers = self._identifiers
+                    assert guideline.identifier not in identifiers
+                    identifiers.add(guideline.identifier)
                 guidelines.append(guideline)
             self._guidelines = guidelines
         else:
@@ -964,13 +973,12 @@ class Glyph(BaseObject):
         if guideline.glyph is None:
             assert guideline.font is None, "This guideline belongs to a font."
         if guideline.glyph is None:
-            if guideline.identifier is not None:
-                identifiers = self._identifiers
-                assert guideline.identifier not in identifiers
-                if guideline.identifier is not None:
-                    identifiers.add(guideline.identifier)
             guideline.glyph = self
             guideline.beginSelfNotificationObservation()
+        if guideline.identifier is not None:
+            identifiers = self._identifiers
+            assert guideline.identifier not in identifiers
+            identifiers.add(guideline.identifier)
         self.beginSelfGuidelineNotificationObservation(guideline)
         self._guidelines.insert(index, guideline)
         self.postNotification(notification="Glyph.GuidelinesChanged")
