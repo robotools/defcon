@@ -57,7 +57,7 @@ class Image(BaseDictObject):
         #     if glyph.image:
         # fileName is required, so if that isn't defined
         # return 0. this tells glifLib to skip the image.
-        if self["fileName"] is None:
+        if self.get("fileName") is None:
             return 0
         return super(Image, self).__len__()
 
@@ -133,7 +133,7 @@ class Image(BaseDictObject):
     # file name
 
     def _get_fileName(self):
-        return self["fileName"]
+        return self.get("fileName")
 
     def _set_fileName(self, fileName):
         oldFileName = self.get("fileName")
