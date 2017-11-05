@@ -450,8 +450,11 @@ class BaseDictObject(dict, BaseObject):
     clearNotificationName = None
     updateNotificationName = None
 
-    def __init__(self):
-        super(BaseDictObject, self).__init__()
+    def __init__(self, mapping=None):
+        if mapping is not None:
+            super(BaseDictObject, self).__init__(mapping)
+        else:
+            super(BaseDictObject, self).__init__()
         self._init()
         self._dirty = False
 

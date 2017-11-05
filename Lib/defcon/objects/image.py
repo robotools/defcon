@@ -44,12 +44,8 @@ class Image(BaseDictObject):
         self._layer = None
         self._glyph = None
         self.glyph = glyph
-        super(Image, self).__init__()
+        super(Image, self).__init__(imageDict)
         self.beginSelfNotificationObservation()
-        self["fileName"] = None
-        self["color"] = None
-        if imageDict is not None:
-            self.update(imageDict)
         for key, value in _defaultTransformation.items():
             if self.get(key) is None:
                 self[key] = value
