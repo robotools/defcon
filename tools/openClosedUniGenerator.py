@@ -13,19 +13,12 @@ openValue = None
 for line in text.splitlines():
     line = line.split(";")
     value, name, category = line[:3]
-    if category in ("Ps", "Pe", "Pi", "Pf"):
-        if openValue is None:
-            #assert category in ("Ps", "Pi")
-            openValue = (value, name, category)
-        else:
-            #assert category in ("Pe", "Pf")
-            if category not in ("Pe", "Pf"):
-                result.append("#%s;%s;%s" % (value, name, category))
-                result.append("")
-            else:
-                result.append("%s;%s;%s" % openValue)
-                result.append("%s;%s;%s" % (value, name, category))
-                result.append("")
-                openValue = None
+    if category in ("Ps", "Pi"):
+        openValue = (value, name, category)
+    elif category in ("Pe", "Pf") and openValue is not None:
+        result.append("%s;%s;%s" % openValue)
+        result.append("%s;%s;%s" % (value, name, category))
+        result.append("")
+        openValue = None
 
 print("\n".join(result))
