@@ -14,8 +14,7 @@ for line in text.splitlines():
     line = line.split(";")
     value, name, category = line[:3]
     if category in ("Ps", "Pi"):
-            #assert category in ("Ps", "Pi")
-            openValue = (value, name, category)
+        openValue = (value, name, category)
     elif category in ("Pe", "Pf") and openValue is not None:
         result.append("%s;%s;%s" % openValue)
         result.append("%s;%s;%s" % (value, name, category))
