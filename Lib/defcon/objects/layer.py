@@ -174,7 +174,7 @@ class Layer(BaseObject):
         Load a glyph from the glyph set. This should not be called
         externally, but subclasses may override it for custom behavior.
         """
-        if self._glyphSet is None or name not in self._glyphSet:
+        if self._glyphSet is None or name not in self._glyphSet or name in self._scheduledForDeletion:
             raise KeyError("%s not in layer" % name)
         glyph = self.instantiateGlyphObject()
         glyph.disableNotifications()
