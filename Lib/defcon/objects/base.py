@@ -508,7 +508,7 @@ class BaseDictObject(dict, BaseObject):
     def update(self, other):
         super(BaseDictObject, self).update(other)
         if self.updateNotificationName is not None:
-            self.postNotification(self.updateNotificationName)
+            self.postNotification(self.updateNotificationName, data=dict(other=other))
         self.dirty = True
 
     # -----------------------------
