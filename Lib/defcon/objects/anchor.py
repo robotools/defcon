@@ -36,15 +36,9 @@ class Anchor(BaseDictObject):
         self._layer = None
         self._glyph = None
         self.glyph = glyph
-        super(Anchor, self).__init__()
+        super(Anchor, self).__init__(anchorDict)
         self.beginSelfNotificationObservation()
         self._dirty = False
-        if anchorDict is not None:
-            self.x = anchorDict.get("x")
-            self.y = anchorDict.get("y")
-            self.name = anchorDict.get("name")
-            self.color = anchorDict.get("color")
-            self.identifier = anchorDict.get("identifier")
 
     # parents
 

@@ -13,6 +13,8 @@ from defcon.objects.image import Image
 from defcon.objects.color import Color
 from defcon.tools.representations import glyphBoundsRepresentationFactory, glyphControlPointBoundsRepresentationFactory
 from defcon.pens.decomposeComponentPointPen import DecomposeComponentPointPen
+from defcon.pens.glyphObjectPointPen import GlyphObjectPointPen, GlyphObjectLoadingPointPen
+from ufoLib.pointPen import SegmentToPointPen
 
 
 def addRepresentationFactory(name, factory):
@@ -203,12 +205,15 @@ class Glyph(BaseObject):
     # name
 
     def _set_name(self, value):
-        oldName = self._name
-        if oldName != value:
-            self.postNotification(notification="Glyph.NameWillChange", data=dict(oldValue=oldName, newValue=value))
+        if self._isLoading:
             self._name = value
-            self.postNotification(notification="Glyph.NameChanged", data=dict(oldValue=oldName, newValue=value))
-            self.dirty = True
+        else:
+            oldName = self._name
+            if oldName != value:
+                self.postNotification(notification="Glyph.NameWillChange", data=dict(oldValue=oldName, newValue=value))
+                self._name = value
+                self.postNotification(notification="Glyph.NameChanged", data=dict(oldValue=oldName, newValue=value))
+                self.dirty = True
 
     def _get_name(self):
         return self._name
@@ -221,11 +226,14 @@ class Glyph(BaseObject):
         return list(self._unicodes)
 
     def _set_unicodes(self, value):
-        oldValue = self.unicodes
-        if oldValue != value:
+        if self._isLoading:
             self._unicodes = value
-            self.postNotification(notification="Glyph.UnicodesChanged", data=dict(oldValue=oldValue, newValue=value))
-            self.dirty = True
+        else:
+            oldValue = self.unicodes
+            if oldValue != value:
+                self._unicodes = value
+                self.postNotification(notification="Glyph.UnicodesChanged", data=dict(oldValue=oldValue, newValue=value))
+                self.dirty = True
 
     unicodes = property(_get_unicodes, _set_unicodes, doc="The list of unicode values assigned to the glyph. Setting this posts *Glyph.UnicodesChanged* and *Glyph.Changed* notifications.")
 
@@ -364,11 +372,14 @@ class Glyph(BaseObject):
         return self._width
 
     def _set_width(self, value):
-        oldValue = self._width
-        if oldValue != value:
+        if self._isLoading:
             self._width = value
-            self.postNotification(notification="Glyph.WidthChanged", data=dict(oldValue=oldValue, newValue=value))
-            self.dirty = True
+        else:
+            oldValue = self._width
+            if oldValue != value:
+                self._width = value
+                self.postNotification(notification="Glyph.WidthChanged", data=dict(oldValue=oldValue, newValue=value))
+                self.dirty = True
 
     width = property(_get_width, _set_width, doc="The width of the glyph. Setting this posts *Glyph.WidthChanged* and *Glyph.Changed* notifications.")
 
@@ -378,11 +389,14 @@ class Glyph(BaseObject):
         return self._height
 
     def _set_height(self, value):
-        oldValue = self._height
-        if oldValue != value:
+        if self._isLoading:
             self._height = value
-            self.postNotification(notification="Glyph.HeightChanged", data=dict(oldValue=oldValue, newValue=value))
-            self.dirty = True
+        else:
+            oldValue = self._height
+            if oldValue != value:
+                self._height = value
+                self.postNotification(notification="Glyph.HeightChanged", data=dict(oldValue=oldValue, newValue=value))
+                self.dirty = True
 
     height = property(_get_height, _set_height, doc="The height of the glyph. Setting this posts *Glyph.HeightChanged* and *Glyph.Changed* notifications.")
 
@@ -480,14 +494,12 @@ class Glyph(BaseObject):
         """
         Get the pen used to draw into this glyph.
         """
-        from ufoLib.pointPen import SegmentToPointPen
         return SegmentToPointPen(self.getPointPen())
 
     def getPointPen(self):
         """
         Get the point pen used to draw into this glyph.
         """
-        from defcon.pens.glyphObjectPointPen import GlyphObjectPointPen, GlyphObjectLoadingPointPen
         if self._isLoading:
             self._shallowLoadedContours = []
             return GlyphObjectLoadingPointPen(self)
@@ -770,16 +782,32 @@ class Glyph(BaseObject):
         return list(self._anchors)
 
     def _set_anchors(self, value):
-        self.clearAnchors()
-        self.holdNotifications()
-        for anchor in value:
-            self.appendAnchor(anchor)
-        self.releaseHeldNotifications()
+        if self._isLoading:
+            assert not self._anchors
+            anchors = []
+            for anchor in value:
+                anchor = self.instantiateAnchor(anchorDict=anchor)
+                self.beginSelfAnchorNotificationObservation(anchor)
+                if anchor.identifier is not None:
+                    identifiers = self._identifiers
+                    assert anchor.identifier not in identifiers
+                    identifiers.add(anchor.identifier)
+                anchors.append(anchor)
+            self._anchors = anchors
+        else:
+            self.clearAnchors()
+            self.holdNotifications()
+            for anchor in value:
+                self.appendAnchor(anchor)
+            self.releaseHeldNotifications()
 
     anchors = property(_get_anchors, _set_anchors, doc="An ordered list of :class:`Anchor` objects stored in the glyph.")
 
     def instantiateAnchor(self, anchorDict=None):
-        anchor = self._anchorClass(anchorDict=anchorDict)
+        anchor = self._anchorClass(
+            glyph=self,
+            anchorDict=anchorDict
+        )
         return anchor
 
     def beginSelfAnchorNotificationObservation(self, anchor):
@@ -814,19 +842,19 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
-        try:
-            assert anchor.glyph is None
-        except AttributeError:
-            pass
+        for anchor_ in self._anchors:
+            assert anchor is not anchor_
         self.postNotification(notification="Glyph.AnchorWillBeAdded")
         if not isinstance(anchor, self._anchorClass):
             anchor = self.instantiateAnchor(anchorDict=anchor)
+        assert anchor.glyph in (self, None), "This anchor belongs to another glyph."
+        if anchor.glyph is None:
+            anchor.glyph = self
+            anchor.beginSelfNotificationObservation()
         if anchor.identifier is not None:
             identifiers = self._identifiers
             assert anchor.identifier not in identifiers
             identifiers.add(anchor.identifier)
-        anchor.glyph = self
-        anchor.beginSelfNotificationObservation()
         self.beginSelfAnchorNotificationObservation(anchor)
         self._anchors.insert(index, anchor)
         self.postNotification(notification="Glyph.AnchorsChanged")
@@ -876,16 +904,32 @@ class Glyph(BaseObject):
         return list(self._guidelines)
 
     def _set_guidelines(self, value):
-        self.clearGuidelines()
-        self.holdNotifications()
-        for guideline in value:
-            self.appendGuideline(guideline)
-        self.releaseHeldNotifications()
+        if self._isLoading:
+            assert not self._guidelines
+            guidelines = []
+            for guideline in value:
+                guideline = self.instantiateGuideline(guidelineDict=guideline)
+                self.beginSelfGuidelineNotificationObservation(guideline)
+                if guideline.identifier is not None:
+                    identifiers = self._identifiers
+                    assert guideline.identifier not in identifiers
+                    identifiers.add(guideline.identifier)
+                guidelines.append(guideline)
+            self._guidelines = guidelines
+        else:
+            self.clearGuidelines()
+            self.holdNotifications()
+            for guideline in value:
+                self.appendGuideline(guideline)
+            self.releaseHeldNotifications()
 
     guidelines = property(_get_guidelines, _set_guidelines, doc="An ordered list of :class:`Guideline` objects stored in the glyph. Setting this will post a *Glyph.Changed* notification along with any notifications posted by the :py:meth:`Glyph.appendGuideline` and :py:meth:`Glyph.clearGuidelines` methods.")
 
     def instantiateGuideline(self, guidelineDict=None):
-        guideline = self._guidelineClass(guidelineDict=guidelineDict)
+        guideline = self._guidelineClass(
+            glyph=self,
+            guidelineDict=guidelineDict
+        )
         return guideline
 
     def beginSelfGuidelineNotificationObservation(self, guideline):
@@ -920,7 +964,8 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
-        assert id(guideline) not in [id(guide) for guide in self.guidelines]
+        for guide in self._guidelines:
+            assert guideline is not guide
         self.postNotification(notification="Glyph.GuidelineWillBeAdded")
         if not isinstance(guideline, self._guidelineClass):
             guideline = self.instantiateGuideline(guidelineDict=guideline)
@@ -928,13 +973,12 @@ class Glyph(BaseObject):
         if guideline.glyph is None:
             assert guideline.font is None, "This guideline belongs to a font."
         if guideline.glyph is None:
-            if guideline.identifier is not None:
-                identifiers = self._identifiers
-                assert guideline.identifier not in identifiers
-                if guideline.identifier is not None:
-                    identifiers.add(guideline.identifier)
             guideline.glyph = self
             guideline.beginSelfNotificationObservation()
+        if guideline.identifier is not None:
+            identifiers = self._identifiers
+            assert guideline.identifier not in identifiers
+            identifiers.add(guideline.identifier)
         self.beginSelfGuidelineNotificationObservation(guideline)
         self._guidelines.insert(index, guideline)
         self.postNotification(notification="Glyph.GuidelinesChanged")
@@ -979,13 +1023,16 @@ class Glyph(BaseObject):
         return self._note
 
     def _set_note(self, value):
-        if value is not None:
-            assert isinstance(value, basestring)
-        oldValue = self._note
-        if oldValue != value:
+        if self._isLoading:
             self._note = value
-            self.postNotification(notification="Glyph.NoteChanged", data=dict(oldValue=oldValue, newValue=value))
-            self.dirty = True
+        else:
+            if value is not None:
+                assert isinstance(value, basestring)
+            oldValue = self._note
+            if oldValue != value:
+                self._note = value
+                self.postNotification(notification="Glyph.NoteChanged", data=dict(oldValue=oldValue, newValue=value))
+                self.dirty = True
 
     note = property(_get_note, _set_note, doc="An arbitrary note for the glyph. Setting this will post a *Glyph.Changed* notification.")
 
@@ -998,9 +1045,10 @@ class Glyph(BaseObject):
 
     libClass = property(_get_libClass, doc="The class used for the lib.")
 
-    def instantiateLib(self):
+    def instantiateLib(self, libDict=None):
         lib = self._libClass(
-            glyph=self
+            glyph=self,
+            libDict=libDict,
         )
         return lib
 
@@ -1011,10 +1059,15 @@ class Glyph(BaseObject):
         return self._lib
 
     def _set_lib(self, value):
-        lib = self.lib
-        lib.clear()
-        lib.update(value)
-        self.dirty = True
+        if self._isLoading:
+            assert self._lib is None
+            self._lib = self.instantiateLib(libDict=value)
+            self.beginSelfLibNotificationObservation()
+        else:
+            lib = self.lib
+            lib.clear()
+            lib.update(value)
+            self.dirty = True
 
     lib = property(_get_lib, _set_lib, doc="The glyph's :class:`Lib` object. Setting this will clear any existing lib data and post a *Glyph.Changed* notification if data was replaced.")
 
@@ -1040,9 +1093,10 @@ class Glyph(BaseObject):
 
     imageClass = property(_get_imageClass, doc="The class used for the image.")
 
-    def instantiateImage(self):
+    def instantiateImage(self, imageDict=None):
         image = self._imageClass(
-            glyph=self
+            glyph=self,
+            imageDict=imageDict
         )
         return image
 
@@ -1053,6 +1107,11 @@ class Glyph(BaseObject):
         return self._image
 
     def _set_image(self, image):
+        if self._isLoading:
+            assert self._image is None
+            self._image = self.instantiateImage(imageDict=image)
+            self.beginSelfImageNotificationObservation()
+            return
         # removing image
         if image is None:
             if self._image is not None:

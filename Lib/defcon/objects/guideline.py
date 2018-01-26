@@ -40,16 +40,9 @@ class Guideline(BaseDictObject):
             self.font = font
         if glyph is not None:
             self.glyph = glyph
-        super(Guideline, self).__init__()
+        super(Guideline, self).__init__(guidelineDict)
         self.beginSelfNotificationObservation()
         self._dirty = False
-        if guidelineDict is not None:
-            self.x = guidelineDict.get("x")
-            self.y = guidelineDict.get("y")
-            self.angle = guidelineDict.get("angle")
-            self.name = guidelineDict.get("name")
-            self.color = guidelineDict.get("color")
-            self.identifier = guidelineDict.get("identifier")
 
     # --------------
     # Parent Objects

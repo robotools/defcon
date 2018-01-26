@@ -56,7 +56,7 @@ class Lib(BaseDictObject):
     updateNotificationName = "Lib.Updated"
     representationFactories = {}
 
-    def __init__(self, font=None, layer=None, glyph=None):
+    def __init__(self, font=None, layer=None, glyph=None, libDict=None):
         self._font = None
         self._layerSet = None
         self._layer = None
@@ -67,7 +67,7 @@ class Lib(BaseDictObject):
             self.layer = layer
         if glyph is not None:
             self.glyph = glyph
-        super(Lib, self).__init__()
+        super(Lib, self).__init__(libDict)
         self.beginSelfNotificationObservation()
 
     # --------------
@@ -84,15 +84,14 @@ class Lib(BaseDictObject):
         return None
 
     def _get_font(self):
+        if self._font is not None:
+            return self._font()
         font = None
-        if self._font is None:
-            layerSet = self.layerSet
-            if layerSet is not None:
-                font = layerSet.font
-                if font is not None:
-                    self._font = weakref.ref(font)
-        else:
-            font = self._font()
+        layerSet = self.layerSet
+        if layerSet is not None:
+            font = layerSet.font
+            if font is not None:
+                self._font = weakref.ref(font)
         return font
 
     def _set_font(self, font):
