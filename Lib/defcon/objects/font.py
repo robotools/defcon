@@ -3,7 +3,7 @@ import os
 import re
 import tempfile
 import shutil
-from ufoLib import UFOReader, UFOWriter
+from ufoLib import UFOReader, UFOWriter, UFOLibError
 from defcon.objects.base import BaseObject
 from defcon.objects.layerSet import LayerSet
 from defcon.objects.info import Info
@@ -722,7 +722,15 @@ class Font(BaseObject):
             path = os.path.join(tempfile.mkdtemp(), "temp.ufo")
         try:
             # make a UFOWriter
-            writer = UFOWriter(path, formatVersion=formatVersion)
+            try:
+                writer = UFOWriter(path, formatVersion=formatVersion)
+            except UFOLibError as error:
+                if os.path.exists(path):
+                    shutil.rmtree(path)
+                    saveAs = True
+                    writer = UFOWriter(path, formatVersion=formatVersion)
+                else:
+                    raise error
             # if changing ufo format versions, flag all objects
             # as dirty so that they will be saved
             if self._ufoFormatVersion != formatVersion:
