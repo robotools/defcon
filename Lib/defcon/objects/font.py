@@ -716,20 +716,29 @@ class Font(BaseObject):
         elif formatVersion is None:
             formatVersion = 3
         # if down-converting, use a temp directory
-        convertinginPlace = False
+        convertinginPlace = None
         if path == self._path and formatVersion != self._ufoFormatVersion:
-            convertinginPlace = True
+            # store the destination path
+            convertinginPlace = path
+            # flag it as a save as operation
             saveAs = True
+            # create a temp ufo path
             path = os.path.join(tempfile.mkdtemp(), "temp.ufo")
         try:
             # make a UFOWriter
             try:
                 writer = UFOWriter(path, formatVersion=formatVersion)
             except UFOLibError as error:
+                # trying to overwrite an existing invalid ufo with the same ufoFormatVersion
                 if os.path.exists(path):
                     warn("Invalid ufo found '%s', the existing ufo will be removed. Save will be handled as save-as." % path, UserWarning)
-                    shutil.rmtree(path)
+                    # store the destination path
+                    convertinginPlace = path
+                    # flag it as a save as operation
                     saveAs = True
+                    # create a temp ufo path
+                    path = os.path.join(tempfile.mkdtemp(), "temp.ufo")
+                    # initiate a new UFOWriter
                     writer = UFOWriter(path, formatVersion=formatVersion)
                 else:
                     raise error
@@ -759,14 +768,14 @@ class Font(BaseObject):
                 self.saveData(writer=writer, saveAs=saveAs, progressBar=progressBar)
             self.layers.save(writer, saveAs=saveAs, progressBar=progressBar)
             writer.setModificationTime()
-            if convertinginPlace:
-                shutil.rmtree(self._path)
-                shutil.move(path, self._path)
+            if convertinginPlace is not None:
+                shutil.rmtree(convertinginPlace)
+                shutil.move(path, convertinginPlace)
         finally:
             # if down converting in place, handle the temp
-            if convertinginPlace:
+            if convertinginPlace is not None:
                 shutil.rmtree(os.path.dirname(path))
-                path = self._path
+                path = convertinginPlace
         # done
         self._path = path
         self._ufoFormatVersion = formatVersion
