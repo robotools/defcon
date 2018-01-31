@@ -3,6 +3,7 @@ import os
 import re
 import tempfile
 import shutil
+from warnings import warn
 from ufoLib import UFOReader, UFOWriter, UFOLibError
 from defcon.objects.base import BaseObject
 from defcon.objects.layerSet import LayerSet
@@ -726,6 +727,7 @@ class Font(BaseObject):
                 writer = UFOWriter(path, formatVersion=formatVersion)
             except UFOLibError as error:
                 if os.path.exists(path):
+                    warn("Invalid ufo found '%s', the existing ufo will be removed. Save will be handled as save-as." % path, UserWarning)
                     shutil.rmtree(path)
                     saveAs = True
                     writer = UFOWriter(path, formatVersion=formatVersion)
