@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from fontTools.pens.areaPen import AreaPen
 from fontTools.pens.boundsPen import ControlBoundsPen, BoundsPen
 from fontTools.misc.arrayTools import unionRect
+from fontPens.flattenPen import FlattenPen
 
 # -----
 # Glyph
@@ -43,15 +44,7 @@ def contourControlPointBoundsRepresentationFactory(obj):
 def contourAreaRepresentationFactory(contour):
     pen = AreaPen()
     contour.draw(pen)
-    return abs(pen.value)
-
-# winding direction
-
-def contourClockwiseRepresentationFactory(contour):
-    pen = AreaPen()
-    pen.endPath = pen.closePath
-    contour.draw(pen)
-    return pen.value < 0
+    return pen.value
 
 # flattened
 

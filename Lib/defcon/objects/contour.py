@@ -7,7 +7,7 @@ from defcon.objects.base import BaseObject
 from defcon.tools import bezierMath
 from defcon.tools.representations import contourBoundsRepresentationFactory,\
     contourControlPointBoundsRepresentationFactory, contourAreaRepresentationFactory,\
-    contourClockwiseRepresentationFactory, contourFlattenedRepresentationFactor
+    contourFlattenedRepresentationFactor
 from defcon.tools.identifiers import makeRandomIdentifier
 
 
@@ -56,10 +56,6 @@ class Contour(BaseObject):
         ),
         "defcon.contour.area" : dict(
             factory=contourAreaRepresentationFactory,
-            destructiveNotifications=("Contour.PointsChanged")
-        ),
-        "defcon.contour.clockwise" : dict(
-            factory=contourClockwiseRepresentationFactory,
             destructiveNotifications=("Contour.PointsChanged", "Contour.WindingDirectionChanged")
         ),
         "defcon.contour.flattened" : dict(
@@ -415,7 +411,8 @@ class Contour(BaseObject):
     # clockwise
 
     def _get_clockwise(self):
-        return self.getRepresentation("defcon.contour.clockwise")
+        area = self.getRepresentation("defcon.contour.area")
+        return area < 0
 
     def _set_clockwise(self, value):
         if self.clockwise != value:
@@ -452,7 +449,7 @@ class Contour(BaseObject):
     # ----
 
     def _get_area(self):
-        return self.getRepresentation("defcon.contour.area")
+        return abs(self.getRepresentation("defcon.contour.area"))
 
     area = property(_get_area, doc="The area of the contour's outline.")
 
