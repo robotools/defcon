@@ -17,6 +17,11 @@ def glyphControlPointBoundsRepresentationFactory(glyph):
     glyph.draw(pen)
     return pen.bounds
 
+def glyphAreaRepresentationFactory(glyph):
+    pen = AreaPen()
+    glyph.draw(pen)
+    return abs(pen.value)
+
 # -------
 # Contour
 # -------
@@ -33,6 +38,13 @@ def contourControlPointBoundsRepresentationFactory(obj):
     obj.draw(pen)
     return pen.bounds
 
+# area
+
+def contourAreaRepresentationFactory(contour):
+    pen = AreaPen()
+    contour.draw(pen)
+    return abs(pen.value)
+
 # winding direction
 
 def contourClockwiseRepresentationFactory(contour):
@@ -40,6 +52,18 @@ def contourClockwiseRepresentationFactory(contour):
     pen.endPath = pen.closePath
     contour.draw(pen)
     return pen.value < 0
+
+# flattened
+
+def contourFlattenedRepresentationFactor(contour, approximateSegmentLength=5):
+    from defcon.objects.glyph import Glyph
+    contourClass = contour.__class__
+    glyph = Glyph(contourClass=contourClass)
+    outputPen = glyph.getPen()
+    flattenPen = FlattenPen(outputPen, approximateSegmentLength=approximateSegmentLength)
+    contour.draw(flattenPen)
+    output = glyph[0]
+    return output
 
 # ---------
 # Component

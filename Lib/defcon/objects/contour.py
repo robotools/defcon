@@ -2,10 +2,12 @@ from __future__ import absolute_import
 import weakref
 from warnings import warn
 from fontTools.misc import bezierTools
+from fontTools.misc import arrayTools
 from defcon.objects.base import BaseObject
 from defcon.tools import bezierMath
 from defcon.tools.representations import contourBoundsRepresentationFactory,\
-    contourControlPointBoundsRepresentationFactory, contourClockwiseRepresentationFactory
+    contourControlPointBoundsRepresentationFactory, contourAreaRepresentationFactory,\
+    contourClockwiseRepresentationFactory, contourFlattenedRepresentationFactor
 from defcon.tools.identifiers import makeRandomIdentifier
 
 
@@ -52,10 +54,18 @@ class Contour(BaseObject):
             factory=contourControlPointBoundsRepresentationFactory,
             destructiveNotifications=("Contour.PointsChanged")
         ),
+        "defcon.contour.area" : dict(
+            factory=contourAreaRepresentationFactory,
+            destructiveNotifications=("Contour.PointsChanged")
+        ),
         "defcon.contour.clockwise" : dict(
             factory=contourClockwiseRepresentationFactory,
             destructiveNotifications=("Contour.PointsChanged", "Contour.WindingDirectionChanged")
         ),
+        "defcon.contour.flattened" : dict(
+            factory=contourFlattenedRepresentationFactor,
+            destructiveNotifications=("Contour.PointsChanged", "Contour.WindingDirectionChanged")
+        )
     }
 
     def __init__(self, glyph=None, pointClass=None):
@@ -438,6 +448,15 @@ class Contour(BaseObject):
     controlPointBounds = property(_get_controlPointBounds, doc="The control bounds of all points in the contour. This only measures the point positions, it does not measure curves. So, curves without points at the extrema will not be properly measured.")
 
     # ----
+    # Area
+    # ----
+
+    def _get_area(self):
+        return self.getRepresentation("defcon.contour.area")
+
+    area = property(_get_area, doc="The area of the contour's outline.")
+
+    # ----
     # Move
     # ----
 
@@ -494,6 +513,55 @@ class Contour(BaseObject):
         pen = PointInsidePen(glyphSet=None, testPoint=(x, y), evenOdd=evenOdd)
         self.draw(pen)
         return pen.getResult()
+
+    # --------------
+    # Contour Inside
+    # --------------
+
+    def contourInside(self, other, segmentLength=10):
+        """
+        Returns a boolean indicating if **other** is in the
+        "black" area of the contour. This uses a flattened
+        version of other's curves to calculate the location
+        of the curves within this contour. **segmentLength**
+        defines the desired length for the flattening process.
+        A lower value will yeild higher accuracy but will require
+        more computation time.
+        """
+        # test bounding boxes for intersection
+        rect1 = self.bounds
+        rect2 = other.bounds
+        if not arrayTools.sectRect(rect1, rect2)[0]:
+            return False
+        # test existing on curves
+        testedPoints = set()
+        haveOffCurves = False
+        for point in other:
+            if point.segmentType is None:
+                haveOffCurves = True
+                continue
+            pt = (point.x, point.y)
+            if pt in testedPoints:
+                continue
+            if not self.pointInside(pt):
+                return False
+            testedPoints.add(pt)
+        # if there aren't any off curves,
+        # there isn't anything left to test
+        if not haveOffCurves:
+            return True
+        # flatten curves and test new points
+        if segmentLength < 1:
+            segmentLength = 1
+        flat2 = other.getRepresentation("defcon.contour.flattened", approximateSegmentLength=segmentLength)
+        for point in flat2:
+            pt = (point.x, point.y)
+            if pt in testedPoints:
+                continue
+            if not self.pointInside(pt):
+                return False
+            testedPoints.add(pt)
+        return True
 
     # ---------
     # Splitting
