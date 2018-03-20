@@ -32,6 +32,9 @@ setup(
         "fonttools>=3.1.2",
         "ufoLib>=2.1.0",
     ],
+    extras_require={
+        'pens': ["fontPens>=0.1.0", ],
+    },
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
