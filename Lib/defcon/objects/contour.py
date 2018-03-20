@@ -525,6 +525,8 @@ class Contour(BaseObject):
         A lower value will yeild higher accuracy but will require
         more computation time.
         """
+        if segmentLength < 1:
+            segmentLength = 1
         # test bounding boxes for intersection
         rect1 = self.bounds
         rect2 = other.bounds
@@ -532,10 +534,8 @@ class Contour(BaseObject):
             return False
         # test existing on curves
         testedPoints = set()
-        haveOffCurves = False
         for point in other:
             if point.segmentType is None:
-                haveOffCurves = True
                 continue
             pt = (point.x, point.y)
             if pt in testedPoints:
@@ -543,14 +543,8 @@ class Contour(BaseObject):
             if not self.pointInside(pt):
                 return False
             testedPoints.add(pt)
-        # if there aren't any off curves,
-        # there isn't anything left to test
-        if not haveOffCurves:
-            return True
-        # flatten curves and test new points
-        if segmentLength < 1:
-            segmentLength = 1
-        flat2 = other.getRepresentation("defcon.contour.flattened", approximateSegmentLength=segmentLength)
+        # flatten into line and test new points
+        flat2 = other.getRepresentation("defcon.contour.flattened", approximateSegmentLength=segmentLength, segmentLines=True)
         for point in flat2:
             pt = (point.x, point.y)
             if pt in testedPoints:

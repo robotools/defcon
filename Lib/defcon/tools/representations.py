@@ -47,13 +47,13 @@ def contourAreaRepresentationFactory(contour):
 
 # flattened
 
-def contourFlattenedRepresentationFactory(contour, approximateSegmentLength=5):
+def contourFlattenedRepresentationFactory(contour, approximateSegmentLength=5, segmentLines=False):
     from fontPens.flattenPen import FlattenPen
     from defcon.objects.glyph import Glyph
     contourClass = contour.__class__
     glyph = Glyph(contourClass=contourClass)
     outputPen = glyph.getPen()
-    flattenPen = FlattenPen(outputPen, approximateSegmentLength=approximateSegmentLength)
+    flattenPen = FlattenPen(outputPen, approximateSegmentLength=approximateSegmentLength, segmentLines=segmentLines)
     contour.draw(flattenPen)
     output = glyph[0]
     return output
