@@ -7,7 +7,7 @@ from defcon.objects.base import BaseObject
 from defcon.tools import bezierMath
 from defcon.tools.representations import contourBoundsRepresentationFactory,\
     contourControlPointBoundsRepresentationFactory, contourAreaRepresentationFactory,\
-    contourFlattenedRepresentationFactor
+    contourFlattenedRepresentationFactory
 from defcon.tools.identifiers import makeRandomIdentifier
 
 
@@ -59,7 +59,7 @@ class Contour(BaseObject):
             destructiveNotifications=("Contour.PointsChanged", "Contour.WindingDirectionChanged")
         ),
         "defcon.contour.flattened" : dict(
-            factory=contourFlattenedRepresentationFactor,
+            factory=contourFlattenedRepresentationFactory,
             destructiveNotifications=("Contour.PointsChanged", "Contour.WindingDirectionChanged")
         )
     }

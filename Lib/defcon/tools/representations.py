@@ -2,7 +2,6 @@ from __future__ import absolute_import
 from fontTools.pens.areaPen import AreaPen
 from fontTools.pens.boundsPen import ControlBoundsPen, BoundsPen
 from fontTools.misc.arrayTools import unionRect
-from fontPens.flattenPen import FlattenPen
 
 # -----
 # Glyph
@@ -48,7 +47,8 @@ def contourAreaRepresentationFactory(contour):
 
 # flattened
 
-def contourFlattenedRepresentationFactor(contour, approximateSegmentLength=5):
+def contourFlattenedRepresentationFactory(contour, approximateSegmentLength=5):
+    from fontPens.flattenPen import FlattenPen
     from defcon.objects.glyph import Glyph
     contourClass = contour.__class__
     glyph = Glyph(contourClass=contourClass)
