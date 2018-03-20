@@ -2,6 +2,7 @@ from __future__ import absolute_import
 import weakref
 from warnings import warn
 from fontTools.misc.py23 import basestring
+from fontTools.misc.arrayTools import unionRect
 from defcon.objects.base import BaseObject
 from defcon.objects.contour import Contour
 from defcon.objects.point import Point
@@ -11,7 +12,7 @@ from defcon.objects.lib import Lib
 from defcon.objects.guideline import Guideline
 from defcon.objects.image import Image
 from defcon.objects.color import Color
-from defcon.tools.representations import glyphBoundsRepresentationFactory, glyphControlPointBoundsRepresentationFactory, glyphAreaRepresentationFactory
+from defcon.tools.representations import glyphAreaRepresentationFactory
 from defcon.pens.decomposeComponentPointPen import DecomposeComponentPointPen
 
 
@@ -88,14 +89,6 @@ class Glyph(BaseObject):
     beginRedoNotificationName = "Glyph.BeginRedo"
     endRedoNotificationName = "Glyph.EndRedo"
     representationFactories = {
-        "defcon.glyph.bounds" : dict(
-            factory=glyphBoundsRepresentationFactory,
-            destructiveNotifications=("Glyph.ContoursChanged", "Glyph.ComponentsChanged", "Glyph.ComponentBaseGlyphDataChanged")
-        ),
-        "defcon.glyph.controlPointBounds" : dict(
-            factory=glyphControlPointBoundsRepresentationFactory,
-            destructiveNotifications=("Glyph.ContoursChanged", "Glyph.ComponentsChanged", "Glyph.ComponentBaseGlyphDataChanged")
-        ),
         "defcon.glyph.area" : dict(
             factory=glyphAreaRepresentationFactory,
             destructiveNotifications=("Glyph.ContoursChanged", "Glyph.ComponentsChanged", "Glyph.ComponentBaseGlyphDataChanged")
@@ -256,13 +249,26 @@ class Glyph(BaseObject):
 
     # bounds
 
+    def _getContourComponentBounds(self, attr):
+        bounds = None
+        subObjects = [contour for contour in self]
+        subObjects += [component for component in self.components]
+        for subObject in subObjects:
+            b = getattr(subObject, attr)
+            if b is not None:
+                if bounds is None:
+                    bounds = b
+                else:
+                    bounds = unionRect(bounds, b)
+        return bounds
+
     def _get_bounds(self):
-        return self.getRepresentation("defcon.glyph.bounds")
+        return self._getContourComponentBounds("bounds")
 
     bounds = property(_get_bounds, doc="The bounds of the glyph's outline expressed as a tuple of form (xMin, yMin, xMax, yMax).")
 
     def _get_controlPointBounds(self):
-        return self.getRepresentation("defcon.glyph.controlPointBounds")
+        return self._getContourComponentBounds("controlPointBounds")
 
     controlPointBounds = property(_get_controlPointBounds, doc="The control bounds of all points in the glyph. This only measures the point positions, it does not measure curves. So, curves without points at the extrema will not be properly measured.")
 

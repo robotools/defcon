@@ -7,16 +7,6 @@ from fontTools.misc.arrayTools import unionRect
 # Glyph
 # -----
 
-def glyphBoundsRepresentationFactory(glyph):
-    pen = BoundsPen(glyph.layer)
-    glyph.draw(pen)
-    return pen.bounds
-
-def glyphControlPointBoundsRepresentationFactory(glyph):
-    pen = ControlBoundsPen(glyph.layer)
-    glyph.draw(pen)
-    return pen.bounds
-
 def glyphAreaRepresentationFactory(glyph):
     pen = AreaPen()
     glyph.draw(pen)
