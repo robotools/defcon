@@ -15,6 +15,7 @@ Tasks
 Reference Data
 """"""""""""""
 
+* :attr:`~defcon.Contour.area`
 * :attr:`~defcon.Contour.bounds`
 * :attr:`~defcon.Contour.controlPointBounds`
 * :attr:`~defcon.Contour.open`
@@ -44,6 +45,7 @@ Segments
 Hit Testing
 """""""""""
 
+* :meth:`~defcon.Contour.contourInside`
 * :meth:`~defcon.Contour.pointInside`
 
 Drawing
