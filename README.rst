@@ -26,6 +26,12 @@ To download and install the latest stable release of defcon from the
 
   pip install --upgrade defcon
 
+To install with the `fontPens <https://github.com/robofab-developers/fontPens>`_ package —used for ``Glyph.correctDirection()`` and ``Contour.contourInside()``— do:
+
+.. code::
+
+  pip install --upgrade defcon[pens]
+
 Documentation
 ~~~~~~~~~~~~~
 

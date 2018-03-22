@@ -57,6 +57,10 @@ Dependencies
 * `FontTools <https://github.com/behdad/fonttools>`_
 * `ufoLib <https://github.com/unified-font-object/ufoLib>`_
 
+Optional Dependencies
+^^^^^^^^^^^^^^^^^^^^^
+
+* `fontPens <https://github.com/robofab-developers/fontPens>`_
 
 Indices and tables
 ==================

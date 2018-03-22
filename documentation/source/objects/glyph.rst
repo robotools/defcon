@@ -32,6 +32,7 @@ Metrics
 Reference Data
 """"""""""""""
 
+* :attr:`~defcon.Glyph.area`
 * :attr:`~defcon.Glyph.bounds`
 * :attr:`~defcon.Glyph.controlPointBounds`
 
@@ -50,6 +51,7 @@ Contours
 * :meth:`~defcon.Glyph.insertContour`
 * :meth:`~defcon.Glyph.contourIndex`
 * :meth:`~defcon.Glyph.autoContourDirection`
+* :meth:`~defcon.Glyph.correctContourDirection`
 
 Components
 """"""""""
