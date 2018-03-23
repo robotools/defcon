@@ -103,7 +103,6 @@ class FontTest(unittest.TestCase):
         self.assertEqual(sorted(fileNames), ["B_.glif", "C_.glif"])
         with self.assertRaises(KeyError):
             del font["NotInFont"]
-        tearDownTestFontCopy()
 
     def test_delitem_glyph_not_dirty(self):
         path = makeTestFontCopy()
@@ -122,7 +121,6 @@ class FontTest(unittest.TestCase):
         del font["A"]
         font.save()
         self.assertFalse(os.path.exists(glyphPath))
-        tearDownTestFontCopy()
 
     def test_delitem_glyph_dirty(self):
         path = makeTestFontCopy()
@@ -142,7 +140,6 @@ class FontTest(unittest.TestCase):
         del font["A"]
         font.save()
         self.assertFalse(os.path.exists(glyphPath))
-        tearDownTestFontCopy()
 
     def test_len(self):
         font = Font(getTestFontPath())
@@ -403,7 +400,6 @@ class FontTest(unittest.TestCase):
         fileNames = glob.glob(os.path.join(path, 'glyphs', '*.glif'))
         fileNames = [os.path.basename(fileName) for fileName in fileNames]
         self.assertEqual(sorted(fileNames), ["A_.glif", "B_.glif", "C_.glif"])
-        tearDownTestFontCopy()
 
     def test_save_as(self):
         path = getTestFontPath()
