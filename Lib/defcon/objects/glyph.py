@@ -2,6 +2,7 @@ from __future__ import absolute_import
 import weakref
 from warnings import warn
 from fontTools.misc.py23 import basestring
+from fontTools.misc.arrayTools import unionRect
 from defcon.objects.base import BaseObject
 from defcon.objects.contour import Contour
 from defcon.objects.point import Point
@@ -11,7 +12,7 @@ from defcon.objects.lib import Lib
 from defcon.objects.guideline import Guideline
 from defcon.objects.image import Image
 from defcon.objects.color import Color
-from defcon.tools.representations import glyphBoundsRepresentationFactory, glyphControlPointBoundsRepresentationFactory
+from defcon.tools.representations import glyphAreaRepresentationFactory
 from defcon.pens.decomposeComponentPointPen import DecomposeComponentPointPen
 
 
@@ -88,12 +89,8 @@ class Glyph(BaseObject):
     beginRedoNotificationName = "Glyph.BeginRedo"
     endRedoNotificationName = "Glyph.EndRedo"
     representationFactories = {
-        "defcon.glyph.bounds" : dict(
-            factory=glyphBoundsRepresentationFactory,
-            destructiveNotifications=("Glyph.ContoursChanged", "Glyph.ComponentsChanged", "Glyph.ComponentBaseGlyphDataChanged")
-        ),
-        "defcon.glyph.controlPointBounds" : dict(
-            factory=glyphControlPointBoundsRepresentationFactory,
+        "defcon.glyph.area" : dict(
+            factory=glyphAreaRepresentationFactory,
             destructiveNotifications=("Glyph.ContoursChanged", "Glyph.ComponentsChanged", "Glyph.ComponentBaseGlyphDataChanged")
         )
     }
@@ -252,15 +249,35 @@ class Glyph(BaseObject):
 
     # bounds
 
+    def _getContourComponentBounds(self, attr):
+        bounds = None
+        subObjects = [contour for contour in self]
+        subObjects += [component for component in self.components]
+        for subObject in subObjects:
+            b = getattr(subObject, attr)
+            if b is not None:
+                if bounds is None:
+                    bounds = b
+                else:
+                    bounds = unionRect(bounds, b)
+        return bounds
+
     def _get_bounds(self):
-        return self.getRepresentation("defcon.glyph.bounds")
+        return self._getContourComponentBounds("bounds")
 
     bounds = property(_get_bounds, doc="The bounds of the glyph's outline expressed as a tuple of form (xMin, yMin, xMax, yMax).")
 
     def _get_controlPointBounds(self):
-        return self.getRepresentation("defcon.glyph.controlPointBounds")
+        return self._getContourComponentBounds("controlPointBounds")
 
     controlPointBounds = property(_get_controlPointBounds, doc="The control bounds of all points in the glyph. This only measures the point positions, it does not measure curves. So, curves without points at the extrema will not be properly measured.")
+
+    # area
+
+    def _get_area(self):
+        return self.getRepresentation("defcon.glyph.area")
+
+    area = property(_get_area, doc="The area of the glyph's outline.")
 
     # margins
 
@@ -615,6 +632,37 @@ class Glyph(BaseObject):
         for contour in reversed(self):
             self.removeContour(contour)
         self.releaseHeldNotifications()
+
+    def correctContourDirection(self, trueType=False, segmentLength=10):
+        """
+        Correct the direction of all contours in the glyph.
+
+        This posts a *Glyph.Changed* notification.
+        """
+        # set the contours to the same direction
+        for contour in self:
+            contour.clockwise = False
+        # sort the contours by area
+        contours = [(contour.area, contour) for contour in self]
+        contours = [contour for (area, contour) in reversed(sorted(contours))]
+        # build a tree of nested contours
+        tree = {}
+        for largeIndex, largeContour in enumerate(contours):
+            for smallContour in contours[largeIndex + 1:]:
+                if largeContour.contourInside(smallContour, segmentLength=segmentLength):
+                    if largeContour not in tree:
+                        tree[largeContour] = []
+                    tree[largeContour].append(smallContour)
+        # run through the tree, largest to smallest, flipping
+        # the direction of each contour nested within another contour
+        for largeContour in contours:
+            if largeContour in tree:
+                for smallContour in tree[largeContour]:
+                    smallContour.reverse()
+        # set to the opposite if needed
+        if trueType:
+            for contour in self:
+                contour.reverse()
 
     # ----------
     # Components

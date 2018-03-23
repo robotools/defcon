@@ -2,10 +2,12 @@ from __future__ import absolute_import
 import weakref
 from warnings import warn
 from fontTools.misc import bezierTools
+from fontTools.misc import arrayTools
 from defcon.objects.base import BaseObject
 from defcon.tools import bezierMath
 from defcon.tools.representations import contourBoundsRepresentationFactory,\
-    contourControlPointBoundsRepresentationFactory, contourClockwiseRepresentationFactory
+    contourControlPointBoundsRepresentationFactory, contourAreaRepresentationFactory,\
+    contourFlattenedRepresentationFactory
 from defcon.tools.identifiers import makeRandomIdentifier
 
 
@@ -52,10 +54,14 @@ class Contour(BaseObject):
             factory=contourControlPointBoundsRepresentationFactory,
             destructiveNotifications=("Contour.PointsChanged")
         ),
-        "defcon.contour.clockwise" : dict(
-            factory=contourClockwiseRepresentationFactory,
+        "defcon.contour.area" : dict(
+            factory=contourAreaRepresentationFactory,
             destructiveNotifications=("Contour.PointsChanged", "Contour.WindingDirectionChanged")
         ),
+        "defcon.contour.flattened" : dict(
+            factory=contourFlattenedRepresentationFactory,
+            destructiveNotifications=("Contour.PointsChanged", "Contour.WindingDirectionChanged")
+        )
     }
 
     def __init__(self, glyph=None, pointClass=None):
@@ -405,7 +411,8 @@ class Contour(BaseObject):
     # clockwise
 
     def _get_clockwise(self):
-        return self.getRepresentation("defcon.contour.clockwise")
+        area = self.getRepresentation("defcon.contour.area")
+        return area < 0
 
     def _set_clockwise(self, value):
         if self.clockwise != value:
@@ -436,6 +443,15 @@ class Contour(BaseObject):
         return self.getRepresentation("defcon.contour.controlPointBounds")
 
     controlPointBounds = property(_get_controlPointBounds, doc="The control bounds of all points in the contour. This only measures the point positions, it does not measure curves. So, curves without points at the extrema will not be properly measured.")
+
+    # ----
+    # Area
+    # ----
+
+    def _get_area(self):
+        return abs(self.getRepresentation("defcon.contour.area"))
+
+    area = property(_get_area, doc="The area of the contour's outline.")
 
     # ----
     # Move
@@ -494,6 +510,49 @@ class Contour(BaseObject):
         pen = PointInsidePen(glyphSet=None, testPoint=(x, y), evenOdd=evenOdd)
         self.draw(pen)
         return pen.getResult()
+
+    # --------------
+    # Contour Inside
+    # --------------
+
+    def contourInside(self, other, segmentLength=10):
+        """
+        Returns a boolean indicating if **other** is in the
+        "black" area of the contour. This uses a flattened
+        version of other's curves to calculate the location
+        of the curves within this contour. **segmentLength**
+        defines the desired length for the flattening process.
+        A lower value will yeild higher accuracy but will require
+        more computation time.
+        """
+        if segmentLength < 1:
+            segmentLength = 1
+        # test bounding boxes for intersection
+        rect1 = self.bounds
+        rect2 = other.bounds
+        if not arrayTools.sectRect(rect1, rect2)[0]:
+            return False
+        # test existing on curves
+        testedPoints = set()
+        for point in other:
+            if point.segmentType is None:
+                continue
+            pt = (point.x, point.y)
+            if pt in testedPoints:
+                continue
+            if not self.pointInside(pt):
+                return False
+            testedPoints.add(pt)
+        # flatten into line and test new points
+        flat2 = other.getRepresentation("defcon.contour.flattened", approximateSegmentLength=segmentLength, segmentLines=True)
+        for point in flat2:
+            pt = (point.x, point.y)
+            if pt in testedPoints:
+                continue
+            if not self.pointInside(pt):
+                return False
+            testedPoints.add(pt)
+        return True
 
     # ---------
     # Splitting

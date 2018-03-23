@@ -7,15 +7,10 @@ from fontTools.misc.arrayTools import unionRect
 # Glyph
 # -----
 
-def glyphBoundsRepresentationFactory(glyph):
-    pen = BoundsPen(glyph.layer)
+def glyphAreaRepresentationFactory(glyph):
+    pen = AreaPen()
     glyph.draw(pen)
-    return pen.bounds
-
-def glyphControlPointBoundsRepresentationFactory(glyph):
-    pen = ControlBoundsPen(glyph.layer)
-    glyph.draw(pen)
-    return pen.bounds
+    return abs(pen.value)
 
 # -------
 # Contour
@@ -33,13 +28,25 @@ def contourControlPointBoundsRepresentationFactory(obj):
     obj.draw(pen)
     return pen.bounds
 
-# winding direction
+# area
 
-def contourClockwiseRepresentationFactory(contour):
+def contourAreaRepresentationFactory(contour):
     pen = AreaPen()
-    pen.endPath = pen.closePath
     contour.draw(pen)
-    return pen.value < 0
+    return pen.value
+
+# flattened
+
+def contourFlattenedRepresentationFactory(contour, approximateSegmentLength=5, segmentLines=False):
+    from fontPens.flattenPen import FlattenPen
+    from defcon.objects.glyph import Glyph
+    contourClass = contour.__class__
+    glyph = Glyph(contourClass=contourClass)
+    outputPen = glyph.getPen()
+    flattenPen = FlattenPen(outputPen, approximateSegmentLength=approximateSegmentLength, segmentLines=segmentLines)
+    contour.draw(flattenPen)
+    output = glyph[0]
+    return output
 
 # ---------
 # Component
