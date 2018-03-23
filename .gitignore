@@ -16,6 +16,7 @@ dist
 .coverage
 .coverage.*
 .tox
+.pytest_cache
 htmlcov
 
 # OS X Finder
