@@ -698,10 +698,14 @@ class Font(BaseObject):
         value for the removeUnreferencedImages argument.
         """
         saveAs = False
-        if path is not None and path != self._path:
-            saveAs = True
-        else:
+        if path is None:
+            if self._path is None:
+                from defcon.errors import DefconError
+                raise DefconError("Can't save new font without a 'path'")
             path = self._path
+        elif self._path is None or self._path != path:
+            # saving a new font or an existing one to a different path
+            saveAs = True
         # sanity checks on layer data before doing anything destructive
         assert self.layers.defaultLayer is not None
         if self.layers.defaultLayer.name != "public.default":
@@ -714,11 +718,14 @@ class Font(BaseObject):
         # otherwise fallback to 3
         elif formatVersion is None:
             formatVersion = 3
-        # if down-converting, use a temp directory
-        convertinginPlace = False
-        if path == self._path and formatVersion != self._ufoFormatVersion:
-            convertinginPlace = True
+        # if down-converting in-place or "saving as" to a pre-existing path,
+        # we first write to a temporary folder, then move to destination
+        useTempDir = False
+        if ((not saveAs and formatVersion != self._ufoFormatVersion) or
+                (saveAs and os.path.exists(path))):
+            useTempDir = True
             saveAs = True
+            destPath = path
             path = os.path.join(tempfile.mkdtemp(), "temp.ufo")
         try:
             # make a UFOWriter
@@ -749,14 +756,17 @@ class Font(BaseObject):
                 self.saveData(writer=writer, saveAs=saveAs, progressBar=progressBar)
             self.layers.save(writer, saveAs=saveAs, progressBar=progressBar)
             writer.setModificationTime()
-            if convertinginPlace:
-                shutil.rmtree(self._path)
-                shutil.move(path, self._path)
+            if useTempDir:
+                if os.path.isfile(destPath):
+                    os.remove(destPath)
+                elif os.path.isdir(destPath):
+                    shutil.rmtree(destPath)
+                shutil.move(path, destPath)
         finally:
             # if down converting in place, handle the temp
-            if convertinginPlace:
+            if useTempDir:
                 shutil.rmtree(os.path.dirname(path))
-                path = self._path
+                path = destPath
         # done
         self._path = path
         self._ufoFormatVersion = formatVersion
