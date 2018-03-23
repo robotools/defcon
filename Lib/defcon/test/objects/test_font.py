@@ -1,7 +1,10 @@
 import unittest
 import os
 import glob
+import tempfile
+import shutil
 from defcon import Font, Glyph, LayerSet, Guideline
+from defcon.errors import DefconError
 from defcon.tools.notifications import NotificationCenter
 from defcon.test.testTools import (
     getTestFontPath, getTestFontCopyPath, makeTestFontCopy,
@@ -36,6 +39,10 @@ class FontTest(unittest.TestCase):
 
     def __init__(self, methodName):
         unittest.TestCase.__init__(self, methodName)
+        # Python 3 renamed assertRaisesRegexp to assertRaisesRegex,
+        # and fires deprecation warnings if a program uses the old name.
+        if not hasattr(self, "assertRaisesRegex"):
+            self.assertRaisesRegex = self.assertRaisesRegexp
 
     def tearDown(self):
         if os.path.exists(getTestFontCopyPath()):
@@ -174,7 +181,6 @@ class FontTest(unittest.TestCase):
         self.assertIsNone(font.path)
 
     def test_path_set(self):
-        import shutil
         path1 = getTestFontPath()
         font = Font(path1)
         path2 = getTestFontPath("setPathTest.ufo")
@@ -405,12 +411,54 @@ class FontTest(unittest.TestCase):
         path = getTestFontPath()
         font = Font(path)
         saveAsPath = getTestFontCopyPath(path)
+        self.assertFalse(os.path.isdir(saveAsPath))
         font.save(saveAsPath)
         fileNames = glob.glob(os.path.join(saveAsPath, 'glyphs', '*.glif'))
         fileNames = [os.path.basename(fileName) for fileName in fileNames]
         self.assertEqual(sorted(fileNames), ["A_.glif", "B_.glif", "C_.glif"])
         self.assertEqual(font.path, saveAsPath)
         tearDownTestFontCopy(saveAsPath)
+
+    def test_save_same_path(self):
+        path = makeTestFontCopy()
+        font = Font(path)
+        font.save(path)
+        self.assertTrue(os.path.isdir(path))
+
+    def test_save_new_font_without_path(self):
+        font = Font()
+        msg = "Can't save new font without a 'path'"
+        with self.assertRaisesRegex(DefconError, msg):
+            font.save()
+
+    def test_save_new_font_to_exsisting_directory(self):
+        path = makeTestFontCopy()
+        self.assertTrue(os.path.exists(path))
+        font = Font()
+        font.save(path)
+        self.assertTrue(os.path.isdir(path))
+
+    def test_save_new_font_to_existing_file(self):
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            pass
+        path = tmp.name
+        self.assertTrue(os.path.exists(path))
+        try:
+            font = Font()
+            font.save(path)
+            self.assertTrue(os.path.isdir(path))
+        finally:
+            if os.path.isfile(path):
+                os.remove(path)
+            elif os.path.isdir(path):
+                shutil.rmtree(path)
+
+    def test_save_in_place_different_format(self):
+        path = makeTestFontCopy()
+        font = Font(path)
+        self.assertEqual(font._ufoFormatVersion, 3)
+        font.save(formatVersion=2)
+        self.assertEqual(font._ufoFormatVersion, 2)
 
     def test_testForExternalChanges(self):
         path = getTestFontPath("TestExternalEditing.ufo")
