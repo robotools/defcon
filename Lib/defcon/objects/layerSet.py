@@ -283,6 +283,8 @@ class LayerSet(BaseObject):
                     newName = actionData["newName"]
                     if oldName in writer.layerContents:
                         writer.renameGlyphSet(oldName, newName)
+                        if newName == self.defaultLayer.name:
+                            writer.renameGlyphSet(newName, newName, defaultLayer=True)
                 elif action == "default":
                     newDefault = actionData["newDefault"]
                     oldDefault = actionData["oldDefault"]
