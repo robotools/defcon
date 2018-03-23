@@ -136,6 +136,8 @@ needs_pytest = {'pytest', 'test'}.intersection(sys.argv)
 pytest_runner = ['pytest_runner'] if needs_pytest else []
 needs_wheel = {'bdist_wheel'}.intersection(sys.argv)
 wheel = ['wheel'] if needs_wheel else []
+needs_bump2version = {'release', 'bump_version'}.intersection(sys.argv)
+bump2version = ['bump2version'] if needs_bump2version else []
 
 with open('README.rst', 'r') as f:
     long_description = f.read()
@@ -152,7 +154,7 @@ setup_params = dict(
     package_dir={"": "Lib"},
     packages=find_packages("Lib"),
     include_package_data=True,
-    setup_requires=pytest_runner + sphinx + wheel,
+    setup_requires=pytest_runner + sphinx + wheel + bump2version,
     tests_require=[
         'pytest>=3.0.3',
     ],
