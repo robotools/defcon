@@ -3,9 +3,9 @@ language: python
 matrix:
   include:
     - python: 2.7
-    - python: 3.5
+    - python: 3.6
       env: BUILD_DIST=true
-    - python: 3.5
+    - python: 3.6
       env: TOXENV=coveralls
 install:
   - pip install --upgrade pip setuptools wheel
