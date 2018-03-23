@@ -9,6 +9,9 @@ from defcon.tools.notifications import NotificationCenter
 from defcon.test.testTools import (
     getTestFontPath, getTestFontCopyPath, makeTestFontCopy,
     tearDownTestFontCopy)
+from ufoLib import UFOWriter
+import logging
+from fontTools.misc.loggingTools import CapturingLogHandler
 
 try:
     from plistlib import load, dump
@@ -459,6 +462,23 @@ class FontTest(unittest.TestCase):
         self.assertEqual(font._ufoFormatVersion, 3)
         font.save(formatVersion=2)
         self.assertEqual(font._ufoFormatVersion, 2)
+
+    def test_save_in_place_invalid_ufo(self):
+        path = makeTestFontCopy()
+        font = Font(path)
+        layercontents = os.path.join(path, "layercontents.plist")
+        os.remove(layercontents)
+        self.assertFalse(os.path.exists(layercontents))
+
+        logger = logging.getLogger("defcon.objects.font")
+        with CapturingLogHandler(logger, level="ERROR") as captor:
+            font.save()
+        captor.assertRegex("Invalid ufo found")
+
+        self.assertTrue(os.path.exists(layercontents))
+        font = Font(path)
+        _ = font.layers
+        font.save()
 
     def test_testForExternalChanges(self):
         path = getTestFontPath("TestExternalEditing.ufo")

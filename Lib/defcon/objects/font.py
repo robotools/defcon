@@ -3,7 +3,7 @@ import os
 import re
 import tempfile
 import shutil
-from ufoLib import UFOReader, UFOWriter
+from ufoLib import UFOReader, UFOWriter, UFOLibError
 from defcon.objects.base import BaseObject
 from defcon.objects.layerSet import LayerSet
 from defcon.objects.info import Info
@@ -16,6 +16,10 @@ from defcon.objects.dataSet import DataSet
 from defcon.objects.guideline import Guideline
 from defcon.tools.notifications import NotificationCenter
 from functools import partial
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class Font(BaseObject):
@@ -720,16 +724,27 @@ class Font(BaseObject):
             formatVersion = 3
         # if down-converting in-place or "saving as" to a pre-existing path,
         # we first write to a temporary folder, then move to destination
-        useTempDir = False
+        overwritePath = None
         if ((not saveAs and formatVersion != self._ufoFormatVersion) or
                 (saveAs and os.path.exists(path))):
-            useTempDir = True
             saveAs = True
-            destPath = path
+            overwritePath = path
             path = os.path.join(tempfile.mkdtemp(), "temp.ufo")
         try:
             # make a UFOWriter
-            writer = UFOWriter(path, formatVersion=formatVersion)
+            try:
+                writer = UFOWriter(path, formatVersion=formatVersion)
+            except UFOLibError:
+                if overwritePath is None and os.path.exists(path):
+                    logger.exception("Invalid ufo found '%s', the existing ufo "
+                                     "will be removed. Save will be handled as "
+                                     "save-as.", path)
+                    saveAs = True
+                    overwritePath = path
+                    path = os.path.join(tempfile.mkdtemp(), "temp.ufo")
+                    writer = UFOWriter(path, formatVersion=formatVersion)
+                else:
+                    raise
             # if changing ufo format versions, flag all objects
             # as dirty so that they will be saved
             if self._ufoFormatVersion != formatVersion:
@@ -756,17 +771,17 @@ class Font(BaseObject):
                 self.saveData(writer=writer, saveAs=saveAs, progressBar=progressBar)
             self.layers.save(writer, saveAs=saveAs, progressBar=progressBar)
             writer.setModificationTime()
-            if useTempDir:
-                if os.path.isfile(destPath):
-                    os.remove(destPath)
-                elif os.path.isdir(destPath):
-                    shutil.rmtree(destPath)
-                shutil.move(path, destPath)
+            if overwritePath is not None:
+                if os.path.isfile(overwritePath):
+                    os.remove(overwritePath)
+                elif os.path.isdir(overwritePath):
+                    shutil.rmtree(overwritePath)
+                shutil.move(path, overwritePath)
         finally:
-            # if down converting in place, handle the temp
-            if useTempDir:
+            # if down converting in place or overwriting, handle the temp
+            if overwritePath is not None:
                 shutil.rmtree(os.path.dirname(path))
-                path = destPath
+                path = overwritePath
         # done
         self._path = path
         self._ufoFormatVersion = formatVersion
