@@ -4,7 +4,9 @@ import shutil
 from ufoLib import UFOReader
 from defcon import Font
 from defcon.test.testTools import (
-    getTestFontPath, makeTestFontCopy, tearDownTestFontCopy)
+    getTestFontPath, getTestFontCopyPath, makeTestFontCopy,
+    tearDownTestFontCopy)
+
 
 try:
     from plistlib import load, dump
@@ -18,6 +20,10 @@ class LayerTest(unittest.TestCase):
         unittest.TestCase.__init__(self, methodName)
         if not hasattr(self, "assertRaisesRegex"):
             self.assertRaisesRegex = self.assertRaisesRegexp
+
+    def tearDown(self):
+        if os.path.exists(getTestFontCopyPath()):
+            tearDownTestFontCopy()
 
     def test_set_parent_data_in_layer(self):
         font = Font(getTestFontPath())
@@ -90,7 +96,6 @@ class LayerTest(unittest.TestCase):
         font.save()
         self.assertFalse(os.path.exists(os.path.join(path, "A_.glif")))
         self.assertTrue(os.path.exists(os.path.join(path, "B_.glif")))
-        tearDownTestFontCopy()
 
     def test_len(self):
         font = Font(getTestFontPath())
@@ -311,6 +316,16 @@ class LayerTest(unittest.TestCase):
         self.assertEqual(layers.layerOrder,
                          ["public.default", "Name Change Test", "Layer 1"])
         self.assertTrue(layer.dirty)
+
+    def test_rename_default_layer(self):
+        # https://github.com/unified-font-object/ufoLib/issues/123
+        path = getTestFontCopyPath()
+        font = Font()
+        font.save(path)
+        font.layers.defaultLayer.name = "somethingElse"
+        font.save()
+        self.assertEqual(Font(path).layers.defaultLayer.name, "somethingElse")
+
 
 if __name__ == "__main__":
     unittest.main()

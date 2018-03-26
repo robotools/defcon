@@ -3,7 +3,7 @@ import os
 import re
 import tempfile
 import shutil
-from ufoLib import UFOReader, UFOWriter
+from ufoLib import UFOReader, UFOWriter, UFOLibError
 from defcon.objects.base import BaseObject
 from defcon.objects.layerSet import LayerSet
 from defcon.objects.info import Info
@@ -16,6 +16,10 @@ from defcon.objects.dataSet import DataSet
 from defcon.objects.guideline import Guideline
 from defcon.tools.notifications import NotificationCenter
 from functools import partial
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class Font(BaseObject):
@@ -698,10 +702,14 @@ class Font(BaseObject):
         value for the removeUnreferencedImages argument.
         """
         saveAs = False
-        if path is not None and path != self._path:
-            saveAs = True
-        else:
+        if path is None:
+            if self._path is None:
+                from defcon.errors import DefconError
+                raise DefconError("Can't save new font without a 'path'")
             path = self._path
+        elif self._path is None or self._path != path:
+            # saving a new font or an existing one to a different path
+            saveAs = True
         # sanity checks on layer data before doing anything destructive
         assert self.layers.defaultLayer is not None
         if self.layers.defaultLayer.name != "public.default":
@@ -714,15 +722,29 @@ class Font(BaseObject):
         # otherwise fallback to 3
         elif formatVersion is None:
             formatVersion = 3
-        # if down-converting, use a temp directory
-        convertinginPlace = False
-        if path == self._path and formatVersion != self._ufoFormatVersion:
-            convertinginPlace = True
+        # if down-converting in-place or "saving as" to a pre-existing path,
+        # we first write to a temporary folder, then move to destination
+        overwritePath = None
+        if ((not saveAs and formatVersion != self._ufoFormatVersion) or
+                (saveAs and os.path.exists(path))):
             saveAs = True
+            overwritePath = path
             path = os.path.join(tempfile.mkdtemp(), "temp.ufo")
         try:
             # make a UFOWriter
-            writer = UFOWriter(path, formatVersion=formatVersion)
+            try:
+                writer = UFOWriter(path, formatVersion=formatVersion)
+            except UFOLibError:
+                if overwritePath is None and os.path.exists(path):
+                    logger.exception("Invalid ufo found '%s', the existing ufo "
+                                     "will be removed. Save will be handled as "
+                                     "save-as.", path)
+                    saveAs = True
+                    overwritePath = path
+                    path = os.path.join(tempfile.mkdtemp(), "temp.ufo")
+                    writer = UFOWriter(path, formatVersion=formatVersion)
+                else:
+                    raise
             # if changing ufo format versions, flag all objects
             # as dirty so that they will be saved
             if self._ufoFormatVersion != formatVersion:
@@ -749,14 +771,17 @@ class Font(BaseObject):
                 self.saveData(writer=writer, saveAs=saveAs, progressBar=progressBar)
             self.layers.save(writer, saveAs=saveAs, progressBar=progressBar)
             writer.setModificationTime()
-            if convertinginPlace:
-                shutil.rmtree(self._path)
-                shutil.move(path, self._path)
+            if overwritePath is not None:
+                if os.path.isfile(overwritePath):
+                    os.remove(overwritePath)
+                elif os.path.isdir(overwritePath):
+                    shutil.rmtree(overwritePath)
+                shutil.move(path, overwritePath)
         finally:
-            # if down converting in place, handle the temp
-            if convertinginPlace:
+            # if down converting in place or overwriting, handle the temp
+            if overwritePath is not None:
                 shutil.rmtree(os.path.dirname(path))
-                path = self._path
+                path = overwritePath
         # done
         self._path = path
         self._ufoFormatVersion = formatVersion
