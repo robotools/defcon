@@ -144,7 +144,7 @@ with open('README.rst', 'r') as f:
 
 setup_params = dict(
     name="defcon",
-    version="0.5.0",
+    version="0.5.1.dev0",
     description="A set of flexible objects for representing UFO data.",
     long_description=long_description,
     author="Tal Leming",
