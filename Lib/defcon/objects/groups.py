@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import weakref
 from defcon.objects.base import BaseDictObject
+from defcon.tools.representations import kerningSide1GroupsRepresentationFactory, kerningSide2GroupsRepresentationFactory, glyphToKerningSide1GroupsRepresentationFactory, glyphToKerningSide2GroupsRepresentationFactory
 
 
 class Groups(BaseDictObject):
@@ -75,7 +76,24 @@ class Groups(BaseDictObject):
     deleteItemNotificationName = "Groups.GroupDeleted"
     clearNotificationName = "Groups.Cleared"
     updateNotificationName = "Groups.Updated"
-    representationFactories = {}
+    representationFactories = {
+    "defcon.groups.kerningSide1Groups" : dict(
+        factory=kerningSide1GroupsRepresentationFactory,
+        destructiveNotifications=("Groups.Changed")
+    ),
+    "defcon.groups.kerningSide2Groups" : dict(
+        factory=kerningSide2GroupsRepresentationFactory,
+        destructiveNotifications=("Groups.Changed")
+    ),
+    "defcon.groups.kerningGlyphToSide1Group" : dict(
+        factory=glyphToKerningSide1GroupsRepresentationFactory,
+        destructiveNotifications=("Groups.Changed")
+    ),
+    "defcon.groups.kerningGlyphToSide2Group" : dict(
+        factory=glyphToKerningSide2GroupsRepresentationFactory,
+        destructiveNotifications=("Groups.Changed")
+    ),
+}
 
     def __init__(self, font=None):
         self._font = None

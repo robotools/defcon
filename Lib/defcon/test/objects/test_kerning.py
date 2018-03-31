@@ -62,6 +62,16 @@ class KerningTest(unittest.TestCase):
                          [("A", "A"), ("A", "B"), ("X", "X")])
         self.assertTrue(font.kerning.dirty)
 
+    def test_find(self):
+        font = Font()
+        font.groups["public.kern1.A"] = ["A", "A.alt"]
+        font.groups["public.kern2.C"] = ["C", "C.alt"]
+        font.kerning["public.kern1.A", "public.kern2.C"] = 1
+        font.kerning["public.kern1.A", "C.alt"] = 2
+        font.kerning["A.alt", "C.alt"] = 3
+        self.assertEqual(font.kerning.find(("A", "C")), 1)
+        self.assertEqual(font.kerning.find(("A", "C.alt")), 2)
+        self.assertEqual(font.kerning.find(("A.alt", "C.alt")), 3)
 
 if __name__ == "__main__":
     unittest.main()

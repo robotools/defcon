@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 import weakref
+from ufoLib.kerning import lookupKerningValue
 from defcon.objects.base import BaseDictObject
 
 
@@ -84,6 +85,26 @@ class Kerning(BaseDictObject):
 
     def get(self, pair, default=0):
         return super(Kerning, self).get(pair, default)
+
+    def find(self, pair, default=0):
+        """
+        This will find the value for **pair** even if
+        **pair** is not specifically defined. For example:
+        You have a group named `public.kern1.A` with
+        the contents `["A", "Aacute"]` and you have a
+        group named `public.kern2.C` with the contents
+        `["C", "Ccedilla"]`. The only defined kerning is
+        `("public.kern1.A", public.kern2.C) = 100`.
+        If you use this method to find the value for
+        `("A", "Ccedilla")` you will get `100`.
+        """
+        from defcon.errors import DefconError
+        font = self.font
+        if font is None:
+            raise DefconError("The find method requires a parent font.")
+        glyphToFirstGroup = font.groups.getRepresentation("defcon.groups.kerningGlyphToSide1Group")
+        glyphToSecondGroup = font.groups.getRepresentation("defcon.groups.kerningGlyphToSide2Group")
+        return lookupKerningValue(pair, self, font.groups, fallback=default, glyphToFirstGroup=glyphToFirstGroup, glyphToSecondGroup=glyphToSecondGroup)
 
     # ------------------------
     # Notification Observation
