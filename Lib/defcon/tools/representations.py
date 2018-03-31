@@ -3,6 +3,38 @@ from fontTools.pens.areaPen import AreaPen
 from fontTools.pens.boundsPen import ControlBoundsPen, BoundsPen
 from fontTools.misc.arrayTools import unionRect
 
+# ------
+# Groups
+# ------
+
+def kerningSide1GroupsRepresentationFactory(groups):
+    return _gatherGroupsWithPrefix(groups, "public.kern1.")
+
+def kerningSide2GroupsRepresentationFactory(groups):
+    return _gatherGroupsWithPrefix(groups, "public.kern2.")
+
+def _gatherGroupsWithPrefix(groups, prefix):
+    found = {}
+    for name, glyphNames in groups.items():
+        if name.startswith(prefix):
+            found[name] = glyphNames
+    return found
+
+def glyphToKerningSide1GroupsRepresentationFactory(groups):
+    groups = groups.getRepresentation("defcon.groups.kerningSide1Groups")
+    return _makeGlyphToGroupMapping(groups)
+
+def glyphToKerningSide2GroupsRepresentationFactory(groups):
+    groups = groups.getRepresentation("defcon.groups.kerningSide2Groups")
+    return _makeGlyphToGroupMapping(groups)
+
+def _makeGlyphToGroupMapping(groups):
+    glyphToGroup = {}
+    for groupName, glyphNames in groups.items():
+        for glyphName in glyphNames:
+            glyphToGroup[glyphName] = groupName
+    return glyphToGroup
+
 # -----
 # Glyph
 # -----
