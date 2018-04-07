@@ -299,15 +299,22 @@ class BaseObject(object):
         representation name. **\*\*kwargs** will be passed
         to the appropriate representation factory.
         """
-        if name not in self._representations:
-            self._representations[name] = {}
-        representations = self._representations[name]
-        subKey = self._makeRepresentationSubKey(**kwargs)
-        if subKey not in representations:
+        # only store the representation if the object has a
+        # dispatcher. otherwise, notifications may not be
+        # destroyed after an object change.
+        if self.dispatcher is None:
             factory = self.representationFactories[name]
-            representation = factory["factory"](self, **kwargs)
-            representations[subKey] = representation
-        return representations[subKey]
+            return factory["factory"](self, **kwargs)
+        else:
+            if name not in self._representations:
+                self._representations[name] = {}
+            representations = self._representations[name]
+            subKey = self._makeRepresentationSubKey(**kwargs)
+            if subKey not in representations:
+                factory = self.representationFactories[name]
+                representation = factory["factory"](self, **kwargs)
+                representations[subKey] = representation
+            return representations[subKey]
 
     def destroyRepresentation(self, name, **kwargs):
         """

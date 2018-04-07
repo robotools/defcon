@@ -124,6 +124,8 @@ class RepresentationsTest(unittest.TestCase):
         del self.obj
 
     def test_object_representations(self):
+        notificationCenter = NotificationCenter()
+        self.obj._dispatcher = weakref.ref(notificationCenter)
         self.obj.representationFactories = dict(
             test=dict(
                 factory=_representationTestFactory,
@@ -178,6 +180,16 @@ class RepresentationsTest(unittest.TestCase):
         self.assertEqual(self.obj.representationKeys(),
                          [('foo', {})])
 
+    def test_object_representations_no_dispatcher(self):
+        self.obj.representationFactories = dict(
+            test=dict(
+                factory=_representationTestFactory,
+                destructiveNotifications=["BaseObject.Changed"]))
+        self.assertEqual(self.obj.getRepresentation("test"), "()")
+        self.assertEqual(
+            [],
+            []
+        )
 
 class TestBaseDictObject(BaseDictObject):
 
