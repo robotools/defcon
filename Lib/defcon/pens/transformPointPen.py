@@ -15,8 +15,8 @@ class TransformPointPen(AbstractPointPen):
 		self._outPen = outPen
 		self._stack = []
 
-	def beginPath(self):
-		self._outPen.beginPath()
+	def beginPath(self, identifier=None):
+		self._outPen.beginPath(identifier=identifier)
 
 	def endPath(self):
 		self._outPen.endPath()
