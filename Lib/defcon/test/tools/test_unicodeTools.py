@@ -33,7 +33,7 @@ class UnicodeToolsTest(unittest.TestCase):
 
     def test_script(self):
         self.assertEqual(script(ord("a")), "Latin")
-        self.assertEqual(script(0x00010000), "Linear_B")
+        self.assertEqual(script(0x00010000), "Linear B")
 
     def test_block(self):
         self.assertEqual(block(ord("a")), "Basic Latin")
