@@ -230,7 +230,7 @@ class Layer(BaseObject):
         if name is None:
             name = source.name
         self.postNotification("Layer.GlyphWillBeAdded", data=(dict(name=name)))
-        self.holdNotifications()
+        self.holdNotifications(note="Requested by Layer.insertGlyph.")
         dest = self.newGlyph(name)
         dest.copyDataFromGlyph(glyph)
         self.releaseHeldNotifications()

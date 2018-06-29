@@ -628,7 +628,7 @@ class Glyph(BaseObject):
 
         This posts a *Glyph.Changed* notification.
         """
-        self.holdNotifications()
+        self.holdNotifications(note="Requested by Glyph.clearContours.")
         for contour in reversed(self):
             self.removeContour(contour)
         self.releaseHeldNotifications()
@@ -759,7 +759,7 @@ class Glyph(BaseObject):
 
         This posts a *Glyph.Changed* notification.
         """
-        self.holdNotifications()
+        self.holdNotifications(note="Requested by Glyph.clearComponents.")
         for component in reversed(self._components):
             self.removeComponent(component)
         self.releaseHeldNotifications()
@@ -773,7 +773,7 @@ class Glyph(BaseObject):
         This posts *Glyph.ComponentsChanged*, *Glyph.ContoursChanged*
         and *Glyph.Changed* notifications.
         """
-        self.holdNotifications()
+        self.holdNotifications(note="Requested by Glyph.decomposeComponent.")
         layer = self.layer
         pointPen = DecomposeComponentPointPen(self, layer)
         self._decomposeComponent(component, layer, pointPen)
@@ -792,7 +792,7 @@ class Glyph(BaseObject):
         """
         if not self.components:
             return
-        self.holdNotifications()
+        self.holdNotifications(note="Requested by Glyph.decomposeAllComponents.")
         layer = self.layer
         pointPen = DecomposeComponentPointPen(self, layer)
         for component in self.components:
@@ -819,7 +819,7 @@ class Glyph(BaseObject):
 
     def _set_anchors(self, value):
         self.clearAnchors()
-        self.holdNotifications()
+        self.holdNotifications(note="Requested by Glyph._set_anchors.")
         for anchor in value:
             self.appendAnchor(anchor)
         self.releaseHeldNotifications()
@@ -906,7 +906,7 @@ class Glyph(BaseObject):
 
         This posts a *Glyph.Changed* notification.
         """
-        self.holdNotifications()
+        self.holdNotifications(note="Requested by Glyph.clearAnchors.")
         for anchor in reversed(self._anchors):
             self.removeAnchor(anchor)
         self.releaseHeldNotifications()
@@ -925,7 +925,7 @@ class Glyph(BaseObject):
 
     def _set_guidelines(self, value):
         self.clearGuidelines()
-        self.holdNotifications()
+        self.holdNotifications(note="Requested by Glyph._set_guidelines.")
         for guideline in value:
             self.appendGuideline(guideline)
         self.releaseHeldNotifications()
@@ -1014,7 +1014,7 @@ class Glyph(BaseObject):
 
         This posts a *Glyph.Changed* notification.
         """
-        self.holdNotifications()
+        self.holdNotifications(note="Requested by Glyph.clearGuidelines.")
         for guideline in reversed(self._guidelines):
             self.removeGuideline(guideline)
         self.releaseHeldNotifications()
@@ -1215,7 +1215,7 @@ class Glyph(BaseObject):
 
         This posts a *Glyph.Changed* notification.
         """
-        self.holdNotifications()
+        self.holdNotifications(note="Requested by Glyph.clear.")
         self.clearContours()
         self.clearComponents()
         self.clearAnchors()

@@ -925,7 +925,7 @@ class Font(BaseObject):
 
     def _set_guidelines(self, value):
         self.clearGuidelines()
-        self.holdNotifications()
+        self.holdNotifications(note="Requested by Font._set_guidelines.")
         for guideline in value:
             self.appendGuideline(guideline)
         self.releaseHeldNotifications()
@@ -1014,7 +1014,7 @@ class Font(BaseObject):
 
         This posts a *Font.Changed* notification.
         """
-        self.holdNotifications()
+        self.holdNotifications(note="Requested by Font.clearGuidelines.")
         for guideline in reversed(self._guidelines):
             self.removeGuideline(guideline)
         self.releaseHeldNotifications()

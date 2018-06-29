@@ -161,7 +161,7 @@ class Image(BaseDictObject):
             return
         xScale, xyScale, yxScale, yScale, xOffset, yOffset = transformation
         # hold the notifications so that only one is sent out
-        self.holdNotifications()
+        self.holdNotifications(note="Requested by Image._set_transformation.")
         self["xScale"] = xScale
         self["xyScale"] = xyScale
         self["yxScale"] = yxScale
@@ -205,7 +205,7 @@ class Image(BaseDictObject):
         if not (xOffset or yOffset):
             return
         oldTransformation = self.transformation
-        self.holdNotifications()
+        self.holdNotifications(note="Requested by Image.move.")
         self["xOffset"] += xOffset
         self["yOffset"] += yOffset
         self.releaseHeldNotifications()

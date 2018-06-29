@@ -137,22 +137,24 @@ class BaseObject(object):
             return self.dispatcher.hasObserver(observer=observer, notification=notification, observable=self)
         return False
 
-    def holdNotifications(self, notification=None):
+    def holdNotifications(self, notification=None, note=None):
         """
         Hold this object's notifications until told to release them.
 
         * **notification** The specific notification to hold. This is optional.
           If no *notification* is given, all notifications will be held.
+        * **note** An arbitrary string containing information about why the hold
+          has been requested, the requester, etc. This is used for reference only.
 
         This is a convenience method that does the same thing as::
 
             dispatcher = anObject.dispatcher
             dispatcher.holdNotifications(
-                observable=anObject, notification=notification)
+                observable=anObject, notification=notification, note=note)
         """
         dispatcher = self.dispatcher
         if dispatcher is not None:
-            dispatcher.holdNotifications(observable=self, notification=notification)
+            dispatcher.holdNotifications(observable=self, notification=notification, note=note)
 
     def releaseHeldNotifications(self, notification=None):
         """
