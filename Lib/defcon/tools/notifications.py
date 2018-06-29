@@ -204,7 +204,7 @@ class NotificationCenter(object):
     # Hold
     # ----
 
-    def holdNotifications(self, observable=None, notification=None, observer=None):
+    def holdNotifications(self, observable=None, notification=None, observer=None, note=None):
         """
         Hold all notifications posted to all objects observing
         **notification** in **observable**.
@@ -214,9 +214,11 @@ class NotificationCenter(object):
         * **notification** The name of the notification. This is optional.
           If no *notification* is given, *all* notifications for *observable*
           will be held.
-         * **observer** The specific observer to not hold notifications for.
-           If no *observer* is given, the appropriate notifications will be
-           held for all observers.
+        * **observer** The specific observer to not hold notifications for.
+          If no *observer* is given, the appropriate notifications will be
+          held for all observers.
+        * **note** An arbitrary string containing information about why the hold
+          has been requested, the requester, etc. This is used for reference only.
 
         Held notifications will be posted after the matching *notification*
         and *observable* have been passed to :meth:`Notification.releaseHeldNotifications`.
@@ -231,8 +233,10 @@ class NotificationCenter(object):
             observer = weakref.ref(observer)
         key = (notification, observable, observer)
         if key not in self._holds:
-            self._holds[key] = dict(count=0, notifications=[])
+            self._holds[key] = dict(count=0, notifications=[], notes=[])
         self._holds[key]["count"] += 1
+        if note is not None:
+            self._holds[key]["notes"].append(note)
 
     def releaseHeldNotifications(self, observable=None, notification=None, observer=None):
         """
@@ -270,6 +274,31 @@ class NotificationCenter(object):
             observer = weakref.ref(observer)
         key = (notification, observable, observer)
         return key in self._holds
+
+    def getHeldNotifications(self):
+        """
+        Returns a list of all held notifications. This will be a
+        tuple of the form:
+
+        (notification, observable, observer)
+        """
+        return self._holds.keys()
+
+    def getHeldNotificationNotes(self, observable=None, notification=None, observer=None):
+        """
+        Returns a list of notes defined for notification holds observing
+        **notification** in **observable** are being held.
+
+        * **observable** The object that the notification belongs to. This is optional.
+        * **notification** The name of the notification. This is optional.
+        * **observer** The observer. This is optional.
+        """
+        if observable is not None:
+            observable = weakref.ref(observable)
+        if observer is not None:
+            observer = weakref.ref(observer)
+        key = (notification, observable, observer)
+        return self._holds[key]["notes"]
 
     # -------
     # Disable
