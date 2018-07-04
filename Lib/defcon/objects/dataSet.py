@@ -67,7 +67,7 @@ class DataSet(BaseObject):
     def __getitem__(self, fileName):
         if self._data[fileName]["data"] is None:
             path = self.font.path
-            reader = UFOReader(path)
+            reader = UFOReader(path, validate=False)
             path = os.path.join("data", fileName)
             data = reader.readBytesFromPath(path)
             onDiskModTime = reader.getFileModificationTime(path)
@@ -114,7 +114,7 @@ class DataSet(BaseObject):
         if saveAs:
             font = self.font
             if font is not None and font.path is not None and os.path.exists(font.path):
-                reader = UFOReader(font.path)
+                reader = UFOReader(font.path, validate=False)
                 readerDataDirectoryListing = reader.getDataDirectoryListing()
                 for fileName, data in self._data.items():
                     path = os.path.join("data", fileName)
@@ -133,7 +133,7 @@ class DataSet(BaseObject):
                 # in the UFO.
                 pass
         self._scheduledForDeletion.clear()
-        reader = UFOReader(writer.path)
+        reader = UFOReader(writer.path, validate=False)
         for fileName, data in self._data.items():
             if not data["dirty"]:
                 continue

@@ -445,6 +445,23 @@ class BaseObject(object):
             data[key] = getter(key)
         return data
 
+    # =============================================
+    # = ufo lib writer/reader validation settings =
+    # =============================================
+
+    ufoLibReadValidation = False
+    ufoLibWriteValidation = True
+
+    def _get_ufoLibReadValidate(self):
+        return self.ufoLibReadValidation
+
+    ufoLibReadValidate = property(_get_ufoLibReadValidate, doc="A bool indicating if the UFOReader should validate data while reading.")
+
+    def _get_ufoLibWriteValidation(self):
+        return self.ufoLibWriteValidation
+
+    ufoLibWriteValidate = property(_get_ufoLibWriteValidation, doc="A bool indicating if the UFOWriter should validate data while writing.")
+
 
 class BaseDictObject(dict, BaseObject):
 
@@ -536,6 +553,20 @@ class BaseDictObject(dict, BaseObject):
     def setDataFromSerialization(self, data):
         self.clear()
         self.update(data)
+
+
+def setUfoLibReadValidation(value):
+    """
+    Set the default read validation.
+    """
+    BaseObject.ufoLibReadValidation = value
+
+
+def setUfoLibWriteValidate(value):
+    """
+    Set the default write validation.
+    """
+    BaseObject.ufoLibWriteValidation = value
 
 
 if __name__ == "__main__":
