@@ -117,8 +117,8 @@ class ImageSet(BaseObject):
         d = self._data[fileName]
         if d["data"] is None:
             path = self.font.path
-            reader = UFOReader(path)
-            data = reader.readImage(fileName)
+            reader = UFOReader(path, validate=False)
+            data = reader.readImage(fileName, validate=self.ufoLibReadValidate)
             d["data"] = data
             d["digest"] = _makeDigest(data)
             d["onDisk"] = True
@@ -188,15 +188,15 @@ class ImageSet(BaseObject):
         if saveAs:
             font = self.font
             if font is not None and font.path is not None and os.path.exists(font.path):
-                reader = UFOReader(font.path)
-                readerImageNames = reader.getImageDirectoryListing()
+                reader = UFOReader(font.path, validate=False)
+                readerImageNames = reader.getImageDirectoryListing(validate=self.ufoLibReadValidate)
                 for fileName, data in self._data.items():
                     if data["data"] is not None or fileName not in readerImageNames:
                         continue
-                    writer.copyImageFromReader(reader, fileName, fileName)
+                    writer.copyImageFromReader(reader, fileName, fileName, validate=self.ufoLibWriteValidate)
         for fileName in self._scheduledForDeletion:
             try:
-                writer.removeImage(fileName)
+                writer.removeImage(fileName, validate=self.ufoLibWriteValidate)
             except UFOLibError:
                 # this will be raised if the file doesn't exist.
                 # instead of trying to maintain a list of in UFO
@@ -205,11 +205,11 @@ class ImageSet(BaseObject):
                 # in the UFO.
                 pass
         self._scheduledForDeletion.clear()
-        reader = UFOReader(writer.path)
+        reader = UFOReader(writer.path, validate=False)
         for fileName, data in self._data.items():
             if not data["dirty"]:
                 continue
-            writer.writeImage(fileName, data["data"])
+            writer.writeImage(fileName, data["data"], validate=self.ufoLibWriteValidate)
             data["dirty"] = False
             data["onDisk"] = True
             data["onDiskModTime"] = reader.getFileModificationTime(os.path.join("images", fileName))

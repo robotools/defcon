@@ -305,7 +305,7 @@ class LayerSet(BaseObject):
             if progressBar is not None:
                 progressBar.update(text="Saving glyphs...", increment=0)
             layer = self.defaultLayer
-            glyphSet = writer.getGlyphSet(layerName=None, defaultLayer=True)
+            glyphSet = writer.getGlyphSet(layerName=None, defaultLayer=True, validateRead=self.ufoLibReadValidate, validateWrite=self.ufoLibWriteValidate)
             layer.save(glyphSet, saveAs=saveAs, progressBar=progressBar)
             if progressBar is not None:
                 progressBar.update()
@@ -315,7 +315,7 @@ class LayerSet(BaseObject):
                     progressBar.update(text="Saving layer \"%s\"..." % layerName, increment=0)
                 layer = self[layerName]
                 isDefaultLayer = layer == self.defaultLayer
-                glyphSet = writer.getGlyphSet(layerName=layerName, defaultLayer=isDefaultLayer)
+                glyphSet = writer.getGlyphSet(layerName=layerName, defaultLayer=isDefaultLayer, validateRead=self.ufoLibReadValidate, validateWrite=self.ufoLibWriteValidate)
                 layer.save(glyphSet, saveAs=saveAs, progressBar=progressBar)
                 # this prevents us from saving when the color was deleted
                 #if layer.lib or layer.color:
@@ -430,13 +430,13 @@ class LayerSet(BaseObject):
         """
         Reload the layers. This should not be called externally.
         """
-        reader = UFOReader(self.font.path)
+        reader = UFOReader(self.font.path, validate=self.font.ufoLibReadValidate)
         # handle the layers
         currentLayerOrder = self.layerOrder
         for layerName, l in layerData.get("layers", {}).items():
             # new layer
             if layerName not in currentLayerOrder:
-                glyphSet = reader.getGlyphSet(layerName)
+                glyphSet = reader.getGlyphSet(layerName, validateRead=self.ufoLibReadValidate, validateWrite=self.font.ufoLibWriteValidate)
                 self.newLayer(layerName, glyphSet)
             # get the layer
             layer = self[layerName]
