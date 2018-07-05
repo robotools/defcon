@@ -449,7 +449,7 @@ class BaseObject(object):
     # = ufo lib writer/reader validation settings =
     # =============================================
 
-    ufoLibReadValidate = False
+    ufoLibReadValidate = True
     ufoLibWriteValidate = True
 
 
