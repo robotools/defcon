@@ -3,7 +3,7 @@ A set of objects that are suited to being the basis
 of font development tools. This works on UFO files.
 """
 from __future__ import absolute_import
-version = __version__ = "0.5.3"
+version = __version__ = "0.5.4.dev0"
 
 from defcon.errors import DefconError
 
