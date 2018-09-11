@@ -642,9 +642,8 @@ class Glyph(BaseObject):
         # set the contours to the same direction
         for contour in self:
             contour.clockwise = False
-        # sort the contours by area
-        contours = [(contour.area, contour) for contour in self]
-        contours = [contour for (area, contour) in reversed(sorted(contours))]
+        # sort the contours by area in reverse (i.e. largest first)
+        contours = sorted(self, key=lambda contour: -contour.area)
         # build a tree of nested contours
         tree = {}
         for largeIndex, largeContour in enumerate(contours):

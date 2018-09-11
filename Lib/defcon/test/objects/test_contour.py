@@ -377,6 +377,25 @@ class ContourTest(unittest.TestCase):
         contour.identifier = None
         self.assertEqual(contour.identifier, "contour 2")
         self.assertEqual(sorted(glyph.identifiers), ["contour 1", "contour 2"])
+    
+    def test_correct_direction_same_area(self):
+        glyph = Glyph()
+        pen = glyph.getPointPen()
+        pen.beginPath()
+        pen.addPoint((0, 0), segmentType="line")
+        pen.addPoint((0, 50), segmentType="line")
+        pen.addPoint((50, 50), segmentType="line")
+        pen.endPath()
+        pen.beginPath()
+        pen.addPoint((50, 50), segmentType="line")
+        pen.addPoint((50, 100), segmentType="line")
+        pen.addPoint((100, 100), segmentType="line")
+        pen.endPath()
+        try:
+            glyph.correctContourDirection()
+        except Exception as e:
+            self.fail("glyph.correctContourDirection() raised unexpected exception: "
+                      + str(e))
 
 if __name__ == "__main__":
     unittest.main()
