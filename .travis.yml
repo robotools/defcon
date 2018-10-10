@@ -8,9 +8,13 @@ matrix:
   include:
     - python: 2.7
     - python: 3.6
-      env: BUILD_DIST=true
-    - python: 3.6
       env: TOXENV=coveralls
+    - python: 3.7
+      env: BUILD_DIST=true
+      # required to run python3.7 on Travis CI
+      # https://github.com/travis-ci/travis-ci/issues/9815
+      dist: xenial
+      sudo: true
 install:
   - pip install --upgrade pip setuptools wheel
   - pip install tox-travis
