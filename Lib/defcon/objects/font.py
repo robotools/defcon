@@ -140,6 +140,11 @@ class Font(BaseObject):
         self._dirty = False
 
         if path:
+            if not isinstance(path, basestring) and not hasattr(path, "__fspath__"):
+                raise TypeError(
+                    "invalid path: expected string or os.PathLike, found %s"
+                    % type(path).__name__
+                )
             reader = UFOReader(self._path, validate=self.ufoLibReadValidate)
             self._ufoFormatVersion = reader.formatVersion
             self._ufoFileStructure = reader.fileStructure
@@ -259,16 +264,14 @@ class Font(BaseObject):
 
     def _set_path(self, path):
         # XXX: this needs to be reworked for layers
+        if not isinstance(path, basestring) and not hasattr(path, "__fspath__"):
+            raise TypeError(
+                "invalid path: expected string or os.PathLike, found %s"
+                % type(path).__name__
+            )
         # the file must already exist
         assert os.path.exists(path)
-        # the glyphs directory must already exist
-        glyphsDir = os.path.join(path, "glyphs")
-        assert os.path.exists(glyphsDir)
-        # set the internal reference
         self._path = path
-        # set the glyph set reference
-        if self._glyphSet is not None:
-            self._glyphSet.dirName = glyphsDir
 
     path = property(_get_path, _set_path, doc="The location of the file on disk. Setting the path should only be done when the user has moved the file in the OS interface. Setting the path is not the same as a save operation.")
 
@@ -739,12 +742,18 @@ class Font(BaseObject):
             # saving in-place to the same original path
             path = self._path
             saveAs = False
-        elif isNewFont:
-            # saving a new font is always a 'saveAs' operation
-            saveAs = True
         else:
-            # 'saveAs' if source and destination path are different
-            saveAs = not samepath(self._path, path)
+            if not isinstance(path, basestring) and not hasattr(path, "__fspath__"):
+                raise TypeError(
+                    "invalid path: expected string or os.PathLike, found %s"
+                    % type(path).__name__
+                )
+            if isNewFont:
+                # saving a new font is always a 'saveAs' operation
+                saveAs = True
+            else:
+                # 'saveAs' if source and destination path are different
+                saveAs = not samepath(self._path, path)
 
         # validate 'structure' argument
         if structure is not None:
@@ -764,26 +773,22 @@ class Font(BaseObject):
             structure = UFOFileStructure.PACKAGE
 
         # if destination is an existing path, ensure matches the desired structure
-        if isinstance(path, basestring) or hasattr(path, "__fspath__"):
-            isExistingOSPath = os.path.exists(path)
-            if isExistingOSPath:
-                try:
-                    with UFOReader(path, validate=True) as reader:
-                        existingStructure = reader.fileStructure
-                except UFOLibError:
-                    # destination is an existing file but not a valid UFO, we'll
-                    # silently overwrite it. Perhaps we should blow up...
-                    saveAs = True
-                if not saveAs and structure and structure is not existingStructure:
-                    from defcon.errors import DefconError
-                    raise DefconError(
-                        "Can't save font in-place with a different structure; "
-                        "expected %s, got %s"
-                        % (existingStructure.value, structure.value)
-                    )
-        else:
-            # assume destination is an FS object, we don't interact via os.path
-            isExistingOSPath = False
+        isExistingOSPath = os.path.exists(path)
+        if isExistingOSPath:
+            try:
+                with UFOReader(path, validate=True) as reader:
+                    existingStructure = reader.fileStructure
+            except UFOLibError:
+                # destination is an existing file but not a valid UFO, we'll
+                # silently overwrite it. Perhaps we should blow up...
+                saveAs = True
+            if not saveAs and structure and structure is not existingStructure:
+                from defcon.errors import DefconError
+                raise DefconError(
+                    "Can't save font in-place with a different structure; "
+                    "expected %s, got %s"
+                    % (existingStructure.value, structure.value)
+                )
 
         # sanity checks on layer data before doing anything destructive
         assert self.layers.defaultLayer is not None
@@ -1761,19 +1766,11 @@ class Font(BaseObject):
 def samepath(p1, p2):
     """Return True if p1 and p2 refer to the same path. That is, when both
     are strings or os.PathLike objects, compare their absolute, case
-    insensitive representation, else compare them with '==' operator.
+    insensitive representation.
     """
-    p1IsPathlike = isinstance(p1, basestring) or hasattr(p1, "__fspath__")
-    p2IsPathLike = isinstance(p2, basestring) or hasattr(p2, "__fspath__")
-    if p1IsPathlike and p2IsPathLike:
-        return os.path.normcase(os.path.realpath(os.path.abspath(p1))) == (
-            os.path.normcase(os.path.realpath(os.path.abspath(p2)))
-        )
-    else:
-        # if the types differ (e.g. on is a string, the other an fs.base.FS_,
-        # then __eq__ returns False. fs.base.FS objects are compared by
-        # object identity ('is').
-        return p1 == p2
+    return os.path.normcase(os.path.realpath(os.path.abspath(p1))) == (
+        os.path.normcase(os.path.realpath(os.path.abspath(p2)))
+    )
 
 
 if __name__ == "__main__":
