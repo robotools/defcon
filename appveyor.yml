@@ -2,23 +2,15 @@ environment:
   matrix:
     - JOB: "2.7.12 32-bit"
       PYTHON_HOME: "C:\\Python27"
-      TOXENV: "py27"
-      TOXPYTHON: "C:\\Python27\\python.exe"
 
     - JOB: "3.6.4 32-bit"
       PYTHON_HOME: "C:\\Python36"
-      TOXENV: "py36"
-      TOXPYTHON: "C:\\Python36\\python.exe"
 
     - JOB: "2.7.12 64-bit"
       PYTHON_HOME: "C:\\Python27-x64"
-      TOXENV: "py27"
-      TOXPYTHON: "C:\\Python27-x64\\python.exe"
 
     - JOB: "3.6.4 64-bit"
       PYTHON_HOME: "C:\\Python36-x64"
-      TOXENV: "py36"
-      TOXPYTHON: "C:\\Python36-x64\\python.exe"
 
 install:
   # If there is a newer build queued for the same PR, cancel this one.
@@ -49,4 +41,4 @@ install:
 build: false
 
 test_script:
-  - "tox"
+  - "tox -e py"
