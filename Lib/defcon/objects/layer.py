@@ -565,6 +565,9 @@ class Layer(BaseObject):
                 if glyphName in glyphSet:
                     glyphSet.deleteGlyph(glyphName)
         glyphSet.writeContents()
+        # XXX The parent FS needs is going to be closed inside Font.save, so
+        # any operations on the glyphSet's SubFS will fail after that.
+        # All the glyph data has been loaded by now; set _glyphSet to None?
         self._glyphSet = glyphSet
         self._scheduledForDeletion.clear()
 
@@ -575,22 +578,23 @@ class Layer(BaseObject):
         """
         if glyph.dirty or saveAs:
             glyphSet.writeGlyph(glyph.name, glyph, glyph.drawPoints)
-            self._stampGlyphDataState(glyph)
+            self._stampGlyphDataState(glyph, glyphSet=glyphSet)
             glyph.dirty = False
 
     # ---------------------
     # External Edit Support
     # ---------------------
 
-    def _stampGlyphDataState(self, glyph):
-        if self._glyphSet is None:
+    def _stampGlyphDataState(self, glyph, glyphSet=None):
+        if glyphSet is None:
+            glyphSet = self._glyphSet
+        if glyphSet is None:
             return
-        glyphSet = self._glyphSet
         glyphName = glyph.name
         if glyphName not in glyphSet.contents:
             return
-        modTime = self._glyphSet.getGLIFModificationTime(glyphName)
-        text = self._glyphSet.getGLIF(glyphName)
+        modTime = glyphSet.getGLIFModificationTime(glyphName)
+        text = glyphSet.getGLIF(glyphName)
         glyph._dataOnDisk = text
         glyph._dataOnDiskTimeStamp = modTime
 

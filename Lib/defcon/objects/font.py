@@ -3,7 +3,8 @@ import os
 import re
 import tempfile
 import shutil
-from ufoLib import UFOReader, UFOWriter, UFOLibError
+from fontTools.misc.py23 import basestring
+from ufoLib import UFOReader, UFOWriter, UFOLibError, UFOFileStructure
 from defcon.objects.base import BaseObject
 from defcon.objects.layerSet import LayerSet
 from defcon.objects.info import Info
@@ -117,6 +118,7 @@ class Font(BaseObject):
 
         self._path = path
         self._ufoFormatVersion = None
+        self._ufoFileStructure = None
 
         self._kerning = None
         self._info = None
@@ -140,6 +142,7 @@ class Font(BaseObject):
         if path:
             reader = UFOReader(self._path, validate=self.ufoLibReadValidate)
             self._ufoFormatVersion = reader.formatVersion
+            self._ufoFileStructure = reader.fileStructure
             # go ahead and load the layers
             self._layers.disableNotifications()
             layerNames = reader.getLayerNames()
@@ -273,6 +276,19 @@ class Font(BaseObject):
         return self._ufoFormatVersion
 
     ufoFormatVersion = property(_get_ufoFormatVersion, doc="The UFO format version that will be used when saving. This is taken from a loaded UFO during __init__. If this font was not loaded from a UFO, this will return None until the font has been saved.")
+
+    def _get_ufoFileStructure(self):
+        return self._ufoFileStructure
+
+    ufoFileStructure = property(
+        _get_ufoFileStructure,
+        doc=(
+            "The UFO file structure that will be used when saving. "
+            "This is taken from a loaded UFO during __init__. "
+            "If this font was not loaded from a UFO, this will return None "
+            "until the font has been saved."
+        )
+    )
 
     def _get_kerningGroupConversionRenameMaps(self):
         return self._kerningGroupConversionRenameMaps
@@ -685,7 +701,14 @@ class Font(BaseObject):
         count += self.layers.getSaveProgressBarTickCount(formatVersion)
         return count
 
-    def save(self, path=None, formatVersion=None, removeUnreferencedImages=False, progressBar=None):
+    def save(
+        self,
+        path=None,
+        formatVersion=None,
+        removeUnreferencedImages=False,
+        progressBar=None,
+        structure=None,
+    ):
         """
         Save the font to **path**. If path is None, the path
         from the last save or when the font was first opened
@@ -701,16 +724,67 @@ class Font(BaseObject):
         Optionally, the UFO can be purged of unreferenced images
         during this operation. To do this, pass ``True`` as the
         value for the removeUnreferencedImages argument.
+
+        'structure' can be either None, "zip" or "package". If it's None,
+        the destination UFO will use the same structure as original, provided
+        that is compatible with any previous UFO at the output path.
+        If 'structure' is "zip" the UFO will be saved as compressed archive,
+        else it is saved as a regular folder or "package".
         """
-        saveAs = False
+        isNewFont = self._path is None
         if path is None:
-            if self._path is None:
+            if isNewFont:
                 from defcon.errors import DefconError
                 raise DefconError("Can't save new font without a 'path'")
+            # saving in-place to the same original path
             path = self._path
-        elif self._path is None or self._path != path:
-            # saving a new font or an existing one to a different path
+            saveAs = False
+        elif isNewFont:
+            # saving a new font is always a 'saveAs' operation
             saveAs = True
+        else:
+            # 'saveAs' if source and destination path are different
+            saveAs = not samepath(self._path, path)
+
+        # validate 'structure' argument
+        if structure is not None:
+            try:
+                structure = UFOFileStructure(structure)
+            except ValueError:
+                from defcon.errors import DefconError
+                raise DefconError(
+                    "'%s' is not a valid UFOFileStructure; choose between %s"
+                    % (structure, tuple(e.value for e in UFOFileStructure))
+                )
+        elif self._ufoFileStructure is not None:
+            # if structure is None, fall back to the same as when first loaded
+            structure = self._ufoFileStructure
+        else:
+            # if both None, default to "package" structure
+            structure = UFOFileStructure.PACKAGE
+
+        # if destination is an existing path, ensure matches the desired structure
+        if isinstance(path, basestring) or hasattr(path, "__fspath__"):
+            isExistingOSPath = os.path.exists(path)
+            if isExistingOSPath:
+                try:
+                    with UFOReader(path, validate=True) as reader:
+                        existingStructure = reader.fileStructure
+                except UFOLibError:
+                    # destination is an existing file but not a valid UFO, we'll
+                    # silently overwrite it. Perhaps we should blow up...
+                    saveAs = True
+                if not saveAs and structure and structure is not existingStructure:
+                    from defcon.errors import DefconError
+                    raise DefconError(
+                        "Can't save font in-place with a different structure; "
+                        "expected %s, got %s"
+                        % (existingStructure.value, structure.value)
+                    )
+        else:
+            # assume destination is an FS object, we don't interact via os.path
+            isExistingOSPath = False
+
         # sanity checks on layer data before doing anything destructive
         assert self.layers.defaultLayer is not None
         if self.layers.defaultLayer.name != "public.default":
@@ -727,23 +801,33 @@ class Font(BaseObject):
         # we first write to a temporary folder, then move to destination
         overwritePath = None
         if ((not saveAs and formatVersion != self._ufoFormatVersion) or
-                (saveAs and os.path.exists(path))):
+                (saveAs and isExistingOSPath)):
             saveAs = True
             overwritePath = path
             path = os.path.join(tempfile.mkdtemp(), "temp.ufo")
         try:
             # make a UFOWriter
             try:
-                writer = UFOWriter(path, formatVersion=formatVersion, validate=self.ufoLibWriteValidate)
+                writer = UFOWriter(
+                    path,
+                    formatVersion=formatVersion,
+                    validate=self.ufoLibWriteValidate,
+                    structure=structure,
+                )
             except UFOLibError:
-                if overwritePath is None and os.path.exists(path):
+                if overwritePath is None and isExistingOSPath:
                     logger.exception("Invalid ufo found '%s', the existing ufo "
                                      "will be removed. Save will be handled as "
                                      "save-as.", path)
                     saveAs = True
                     overwritePath = path
                     path = os.path.join(tempfile.mkdtemp(), "temp.ufo")
-                    writer = UFOWriter(path, formatVersion=formatVersion, validate=self.ufoLibWriteValidate)
+                    writer = UFOWriter(
+                        path,
+                        formatVersion=formatVersion,
+                        validate=self.ufoLibWriteValidate,
+                        structure=structure,
+                    )
                 else:
                     raise
             # if changing ufo format versions, flag all objects
@@ -771,6 +855,13 @@ class Font(BaseObject):
                 self.saveImages(writer=writer, removeUnreferencedImages=removeUnreferencedImages, saveAs=saveAs, progressBar=progressBar)
                 self.saveData(writer=writer, saveAs=saveAs, progressBar=progressBar)
             self.layers.save(writer, saveAs=saveAs, progressBar=progressBar)
+            # we must close the writer's filesystem to actually create the zip;
+            # XXX note that calling writer.close() makes all the SubFS instances
+            # derived from it unusable: notably, the Layer objects keep a ref
+            # to the glyphSet (why?) after they have been written the first
+            # time. We should change that, as it's incompatible with ufoz.
+            if writer.fileStructure is UFOFileStructure.ZIP:
+                writer.close()
             writer.setModificationTime()
             if overwritePath is not None:
                 if os.path.isfile(overwritePath):
@@ -794,7 +885,7 @@ class Font(BaseObject):
             progressBar.update(text="Saving info...", increment=0)
         self.saveInfo(writer)
         self.info.dirty = False
-        self._stampInfoDataState(UFOReader(writer.path))
+        self._stampInfoDataState(writer)
         if progressBar is not None:
             progressBar.update()
 
@@ -811,7 +902,7 @@ class Font(BaseObject):
             progressBar.update(text="Saving groups...", increment=0)
         self.saveGroups(writer)
         self.groups.dirty = False
-        self._stampGroupsDataState(UFOReader(writer.path))
+        self._stampGroupsDataState(writer)
         if progressBar is not None:
             progressBar.update()
 
@@ -828,7 +919,7 @@ class Font(BaseObject):
                 progressBar.update(text="Saving kerning...", increment=0)
             self.saveKerning(writer)
             self.kerning.dirty = False
-            self._stampKerningDataState(UFOReader(writer.path))
+            self._stampKerningDataState(writer)
         if progressBar is not None:
             progressBar.update()
 
@@ -846,7 +937,7 @@ class Font(BaseObject):
             if self.features.text is not None:
                 self.saveFeatures(writer)
             self.features.dirty = False
-            self._stampFeaturesDataState(UFOReader(writer.path))
+            self._stampFeaturesDataState(writer)
         if progressBar is not None:
             progressBar.update()
 
@@ -863,7 +954,7 @@ class Font(BaseObject):
             progressBar.update(text="Saving lib...", increment=0)
         self.saveLib(writer)
         self.lib.dirty = False
-        self._stampLibDataState(UFOReader(writer.path, validate=False))
+        self._stampLibDataState(writer)
         if progressBar is not None:
             progressBar.update()
 
@@ -1665,6 +1756,24 @@ class Font(BaseObject):
             if key not in data:
                 continue
             setter(key, data[key])
+
+
+def samepath(p1, p2):
+    """Return True if p1 and p2 refer to the same path. That is, when both
+    are strings or os.PathLike objects, compare their absolute, case
+    insensitive representation, else compare them with '==' operator.
+    """
+    p1IsPathlike = isinstance(p1, basestring) or hasattr(p1, "__fspath__")
+    p2IsPathLike = isinstance(p2, basestring) or hasattr(p2, "__fspath__")
+    if p1IsPathlike and p2IsPathLike:
+        return os.path.normcase(os.path.realpath(os.path.abspath(p1))) == (
+            os.path.normcase(os.path.realpath(os.path.abspath(p2)))
+        )
+    else:
+        # if the types differ (e.g. on is a string, the other an fs.base.FS_,
+        # then __eq__ returns False. fs.base.FS objects are compared by
+        # object identity ('is').
+        return p1 == p2
 
 
 if __name__ == "__main__":
