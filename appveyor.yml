@@ -1,28 +1,20 @@
 environment:
   matrix:
-    - JOB: "2.7.12 32-bit"
+    - JOB: "2.7 32-bit"
       PYTHON_HOME: "C:\\Python27"
 
-    - JOB: "3.6.4 32-bit"
-      PYTHON_HOME: "C:\\Python36"
-
-    - JOB: "2.7.12 64-bit"
-      PYTHON_HOME: "C:\\Python27-x64"
-
-    - JOB: "3.6.4 64-bit"
+    - JOB: "3.6 64-bit"
       PYTHON_HOME: "C:\\Python36-x64"
 
-install:
-  # If there is a newer build queued for the same PR, cancel this one.
-  # The AppVeyor 'rollout builds' option is supposed to serve the same
-  # purpose but it is problematic because it tends to cancel builds pushed
-  # directly to master instead of just PR builds (or the converse).
-  # credits: JuliaLang developers.
-  - ps: if ($env:APPVEYOR_PULL_REQUEST_NUMBER -and $env:APPVEYOR_BUILD_NUMBER -ne ((Invoke-RestMethod `
-        https://ci.appveyor.com/api/projects/$env:APPVEYOR_ACCOUNT_NAME/$env:APPVEYOR_PROJECT_SLUG/history?recordsNumber=50).builds | `
-        Where-Object pullRequestId -eq $env:APPVEYOR_PULL_REQUEST_NUMBER)[0].buildNumber) { `
-          throw "There are newer queued builds for this pull request, failing early." }
+    - JOB: "3.7 64-bit"
+      PYTHON_HOME: "C:\\Python37-x64"
 
+skip_branch_with_pr: true
+
+matrix:
+  fast_finish: true
+
+install:
   # Prepend Python to the PATH of this build
   - "SET PATH=%PYTHON_HOME%;%PYTHON_HOME%\\Scripts;%PATH%"
 
