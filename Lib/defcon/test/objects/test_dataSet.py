@@ -22,23 +22,18 @@ class DataSetTest(unittest.TestCase):
         path = getTestFontPath()
         font = Font(path)
         fileNames = [
-            os.path.join("com.typesupply.defcon.test.directory", "file 1.txt"),
-            os.path.join("com.typesupply.defcon.test.directory",
-                         "sub directory", "file 2.txt"),
+            "com.typesupply.defcon.test.directory/file 1.txt",
+            "com.typesupply.defcon.test.directory/sub directory/file 2.txt",
             "com.typesupply.defcon.test.file"]
         for i, fileName in enumerate(sorted(font.data.fileNames)):
             if True in [j.startswith(".") for j in fileName.split(os.sep)]:
                 continue
             self.assertEqual(fileName, fileNames[i])
         self.assertEqual(
-            font.data[
-                os.path.join("com.typesupply.defcon.test.directory",
-                             "file 1.txt")],
+            font.data["com.typesupply.defcon.test.directory/file 1.txt"],
             b"This is file 1.")
         self.assertEqual(
-            font.data[
-                os.path.join("com.typesupply.defcon.test.directory",
-                             "sub directory", "file 2.txt")],
+            font.data["com.typesupply.defcon.test.directory/sub directory/file 2.txt"],
             b"This is file 2.")
         self.assertEqual(
             font.data["com.typesupply.defcon.test.file"],
@@ -47,12 +42,8 @@ class DataSetTest(unittest.TestCase):
     def test_write(self):
         path = makeTestFontCopy()
         font = Font(path)
-        font.data[
-            os.path.join("com.typesupply.defcon.test.newdirectory",
-                         "file.txt")] = b"hello."
-        del font.data[
-            os.path.join("com.typesupply.defcon.test.directory",
-                         "sub directory", "file 2.txt")]
+        font.data["com.typesupply.defcon.test.newdirectory/file.txt"] = b"hello."
+        del font.data["com.typesupply.defcon.test.directory/sub directory/file 2.txt"]
         font.save()
         p = os.path.join(path, "data",
                          "com.typesupply.defcon.test.newdirectory", "file.txt")
