@@ -113,7 +113,7 @@ class DataSet(BaseObject):
         """
         if saveAs:
             font = self.font
-            if font is not None and font.path is not None:
+            if font is not None and font.path is not None and os.path.exists(font.path):
                 reader = UFOReader(font.path, validate=False)
                 readerDataDirectoryListing = reader.getDataDirectoryListing()
                 for fileName, data in self._data.items():

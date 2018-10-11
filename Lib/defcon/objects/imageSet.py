@@ -187,7 +187,7 @@ class ImageSet(BaseObject):
             self.enableNotifications()
         if saveAs:
             font = self.font
-            if font is not None and font.path is not None:
+            if font is not None and font.path is not None and os.path.exists(font.path):
                 reader = UFOReader(font.path, validate=False)
                 readerImageNames = reader.getImageDirectoryListing(validate=self.ufoLibReadValidate)
                 for fileName, data in self._data.items():
