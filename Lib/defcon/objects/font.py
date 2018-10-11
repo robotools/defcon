@@ -861,10 +861,8 @@ class Font(BaseObject):
                 self.saveData(writer=writer, saveAs=saveAs, progressBar=progressBar)
             self.layers.save(writer, saveAs=saveAs, progressBar=progressBar)
             # we must close the writer's filesystem to actually create the zip;
-            # XXX note that calling writer.close() makes all the SubFS instances
-            # derived from it unusable: notably, the Layer objects keep a ref
-            # to the glyphSet (why?) after they have been written the first
-            # time. We should change that, as it's incompatible with ufoz.
+            # Note that calling writer.close() makes all the SubFS instances
+            # derived from it unusable
             if writer.fileStructure is UFOFileStructure.ZIP:
                 writer.close()
             writer.setModificationTime()

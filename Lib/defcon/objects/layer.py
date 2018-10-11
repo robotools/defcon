@@ -565,9 +565,6 @@ class Layer(BaseObject):
                 if glyphName in glyphSet:
                     glyphSet.deleteGlyph(glyphName)
         glyphSet.writeContents()
-        # XXX The parent FS needs is going to be closed inside Font.save, so
-        # any operations on the glyphSet's SubFS will fail after that.
-        # All the glyph data has been loaded by now; set _glyphSet to None?
         self._glyphSet = glyphSet
         self._scheduledForDeletion.clear()
 
