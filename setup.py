@@ -160,7 +160,7 @@ setup_params = dict(
     ],
     install_requires=[
         "fonttools>=3.1.2",
-        "ufoLib>=2.3.1",
+        "ufoLib>=3.0.0",
     ],
     extras_require={
         'pens': ["fontPens>=0.1.0"]
