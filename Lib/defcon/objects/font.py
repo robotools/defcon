@@ -882,6 +882,7 @@ class Font(BaseObject):
         # done
         self._path = path
         self._ufoFormatVersion = formatVersion
+        self._ufoFileStructure = writer.fileStructure
         self.dirty = False
 
     def _saveInfo(self, writer, saveAs=False, progressBar=None):
