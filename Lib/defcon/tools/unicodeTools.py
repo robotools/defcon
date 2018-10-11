@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-import unicodedata
 from fontTools.misc.py23 import unichr
 from fontTools import unicodedata
 
