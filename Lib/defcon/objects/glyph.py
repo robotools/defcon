@@ -579,7 +579,7 @@ class Glyph(BaseObject):
         """
         assert contour not in self
         assert contour.glyph in (self, None), "This contour belongs to another glyph."
-        self.postNotification(notification="Glyph.ContourWillBeAdded")
+        self.postNotification(notification="Glyph.ContourWillBeAdded", data=dict(object=contour))
         if contour.glyph is None:
             identifiers = self._identifiers
             if contour.identifier is not None:
@@ -719,7 +719,7 @@ class Glyph(BaseObject):
         """
         assert component not in self._components
         assert component.glyph in (self, None), "This component belongs to another glyph."
-        self.postNotification(notification="Glyph.ComponentWillBeAdded")
+        self.postNotification(notification="Glyph.ComponentWillBeAdded", data=dict(object=component))
         if component.glyph is None:
             if component.identifier is not None:
                 identifiers = self._identifiers
