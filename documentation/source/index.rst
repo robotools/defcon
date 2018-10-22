@@ -54,13 +54,14 @@ Objects
 Dependencies
 ^^^^^^^^^^^^
 
-* `FontTools <https://github.com/behdad/fonttools>`_
-* `ufoLib <https://github.com/unified-font-object/ufoLib>`_
+* `FontTools <https://github.com/behdad/fonttools>`_ >= 3.31.0, installed with
+  the `fonttools[ufo]` extra, required to import ``fonttools.ufoLib`` module.
 
 Optional Dependencies
 ^^^^^^^^^^^^^^^^^^^^^
 
 * `fontPens <https://github.com/robofab-developers/fontPens>`_
+* `lxml <https://github.com/lxml/lxml/>`_
 
 Indices and tables
 ==================
