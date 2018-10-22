@@ -9,7 +9,7 @@ from defcon.tools.notifications import NotificationCenter
 from defcon.test.testTools import (
     getTestFontPath, getTestFontCopyPath, makeTestFontCopy,
     tearDownTestFontCopy)
-from ufoLib import UFOReader, UFOWriter, UFOFileStructure
+from fontTools.ufoLib import UFOReader, UFOWriter, UFOFileStructure
 import fs.path
 import zipfile
 import logging

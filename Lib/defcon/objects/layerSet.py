@@ -1,9 +1,8 @@
 from __future__ import absolute_import
 import weakref
-from ufoLib import UFOReader
+from fontTools.ufoLib import UFOReader, UFOFileStructure
 from defcon.objects.base import BaseObject
 from defcon.objects.layer import Layer
-from ufoLib import UFOFileStructure
 
 
 class LayerSet(BaseObject):
@@ -515,7 +514,7 @@ class _StaticLayerInfoMaker(object):
         self.color = None
 
     def pack(self):
-        from ufoLib import plistlib
+        from fontTools.misc import plistlib
         data = {}
         if self.lib:
             data["lib"] = self.lib

@@ -5,7 +5,7 @@ from defcon import Font
 from defcon.test.testTools import (
     getTestFontPath, getTestFontCopyPath, makeTestFontCopy,
     tearDownTestFontCopy)
-from ufoLib import UFOReader
+from fontTools.ufoLib import UFOReader
 
 
 class DataSetTest(unittest.TestCase):

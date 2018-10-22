@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 import weakref
 from warnings import warn
-import ufoLib
+from fontTools import ufoLib
 from defcon.objects.base import BaseObject
 from copy import copy
 from functools import partial

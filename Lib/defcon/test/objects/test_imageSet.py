@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 import unittest
 import os
-from ufoLib import UFOReader
+from fontTools.ufoLib import UFOReader
 from defcon import Font
 from defcon.objects.imageSet import fileNameValidator
 from defcon.test.testTools import (

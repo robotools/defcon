@@ -4,9 +4,11 @@ import hashlib
 import weakref
 from defcon.objects.base import BaseObject
 from fontTools.misc.py23 import unicode
-from ufoLib import UFOReader, UFOLibError
-from ufoLib.filenames import userNameToFileName, illegalCharacters, reservedFileNames, maxFileNameLength
-from ufoLib.validators import pngSignature
+from fontTools.ufoLib import UFOReader, UFOLibError
+from fontTools.ufoLib.filenames import (
+    userNameToFileName, illegalCharacters, reservedFileNames, maxFileNameLength
+)
+from fontTools.ufoLib.validators import pngSignature
 
 
 class ImageSet(BaseObject):

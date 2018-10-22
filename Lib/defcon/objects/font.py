@@ -4,7 +4,7 @@ import re
 import tempfile
 import shutil
 from fontTools.misc.py23 import basestring
-from ufoLib import UFOReader, UFOWriter, UFOLibError, UFOFileStructure
+from fontTools.ufoLib import UFOReader, UFOWriter, UFOLibError, UFOFileStructure
 from defcon.objects.base import BaseObject
 from defcon.objects.layerSet import LayerSet
 from defcon.objects.info import Info
@@ -1374,7 +1374,7 @@ class Font(BaseObject):
         Reload the data in the :class:`Info` object from the
         fontinfo.plist file in the UFO.
         """
-        from ufoLib import deprecatedFontInfoAttributesVersion2
+        from fontTools.ufoLib import deprecatedFontInfoAttributesVersion2
         if self._info is None:
             obj = self.info
         else:

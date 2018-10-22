@@ -1,7 +1,7 @@
 import unittest
 import os
 import shutil
-from ufoLib import UFOReader
+from fontTools.ufoLib import UFOReader
 from defcon import Font
 from defcon.test.testTools import (
     getTestFontPath, getTestFontCopyPath, makeTestFontCopy,
