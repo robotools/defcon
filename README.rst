@@ -32,6 +32,15 @@ To install with the `fontPens <https://github.com/robofab-developers/fontPens>`_
 
   pip install --upgrade defcon[pens]
 
+To optionally install defcon with support for `lxml <https://github.com/lxml/lxml>`_,
+a faster XML reader and writer library, you can do:
+
+.. code::
+
+  pip install --upgrade defcon[lxml]
+
+You can separate multiple extras using a comma: ``defcon[pens,lxml]``.
+
 Documentation
 ~~~~~~~~~~~~~
 
