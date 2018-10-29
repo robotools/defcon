@@ -575,22 +575,23 @@ class Layer(BaseObject):
         """
         if glyph.dirty or saveAs:
             glyphSet.writeGlyph(glyph.name, glyph, glyph.drawPoints)
-            self._stampGlyphDataState(glyph)
+            self._stampGlyphDataState(glyph, glyphSet=glyphSet)
             glyph.dirty = False
 
     # ---------------------
     # External Edit Support
     # ---------------------
 
-    def _stampGlyphDataState(self, glyph):
-        if self._glyphSet is None:
+    def _stampGlyphDataState(self, glyph, glyphSet=None):
+        if glyphSet is None:
+            glyphSet = self._glyphSet
+        if glyphSet is None:
             return
-        glyphSet = self._glyphSet
         glyphName = glyph.name
         if glyphName not in glyphSet.contents:
             return
-        modTime = self._glyphSet.getGLIFModificationTime(glyphName)
-        text = self._glyphSet.getGLIF(glyphName)
+        modTime = glyphSet.getGLIFModificationTime(glyphName)
+        text = glyphSet.getGLIF(glyphName)
         glyph._dataOnDisk = text
         glyph._dataOnDiskTimeStamp = modTime
 

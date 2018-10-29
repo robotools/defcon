@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 import weakref
-from ufoLib.kerning import lookupKerningValue
+from fontTools.ufoLib.kerning import lookupKerningValue
 from defcon.objects.base import BaseDictObject
 
 

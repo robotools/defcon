@@ -466,7 +466,7 @@ class Glyph(BaseObject):
         """
         Draw the glyph with **pen**.
         """
-        from ufoLib.pointPen import PointToSegmentPen
+        from fontTools.pens.pointPen import PointToSegmentPen
         pointPen = PointToSegmentPen(pen)
         self.drawPoints(pointPen)
 
@@ -497,7 +497,7 @@ class Glyph(BaseObject):
         """
         Get the pen used to draw into this glyph.
         """
-        from ufoLib.pointPen import SegmentToPointPen
+        from fontTools.pens.pointPen import SegmentToPointPen
         return SegmentToPointPen(self.getPointPen())
 
     def getPointPen(self):

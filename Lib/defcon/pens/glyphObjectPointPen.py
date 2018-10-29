@@ -1,4 +1,4 @@
-from ufoLib.pointPen import AbstractPointPen
+from fontTools.pens.pointPen import AbstractPointPen
 
 class GlyphObjectPointPen(AbstractPointPen):
 

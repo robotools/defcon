@@ -9,7 +9,9 @@ from defcon.tools.notifications import NotificationCenter
 from defcon.test.testTools import (
     getTestFontPath, getTestFontCopyPath, makeTestFontCopy,
     tearDownTestFontCopy)
-from ufoLib import UFOWriter
+from fontTools.ufoLib import UFOReader, UFOWriter, UFOFileStructure
+import fs.path
+import zipfile
 import logging
 from fontTools.misc.loggingTools import CapturingLogHandler
 
@@ -401,32 +403,70 @@ class FontTest(unittest.TestCase):
         self.assertEqual(font.guidelines, [])
 
     def test_save(self):
-        path = makeTestFontCopy()
-        font = Font(path)
-        for glyph in font:
-            glyph.dirty = True
-        font.save()
-        fileNames = glob.glob(os.path.join(path, 'glyphs', '*.glif'))
-        fileNames = [os.path.basename(fileName) for fileName in fileNames]
-        self.assertEqual(sorted(fileNames), ["A_.glif", "B_.glif", "C_.glif"])
+        for ufo in ("TestFont.ufo", "TestFont.ufoz"):
+            path = makeTestFontCopy(getTestFontPath(ufo))
+            try:
+                font = Font(path)
+                origFileStructure = font.ufoFileStructure
+                for glyph in font:
+                    glyph.dirty = True
+                font.save()
+                fileNames = sorted(
+                    [
+                        fs.path.basename(m.path)
+                        for m in UFOReader(path).fs.glob("glyphs/*.glif")
+                    ]
+                )
+                self.assertEqual(fileNames, ["A_.glif", "B_.glif", "C_.glif"])
+                self.assertEqual(origFileStructure, font.ufoFileStructure)
+            finally:
+                tearDownTestFontCopy(path)
 
     def test_save_as(self):
-        path = getTestFontPath()
-        font = Font(path)
-        saveAsPath = getTestFontCopyPath(path)
-        self.assertFalse(os.path.isdir(saveAsPath))
-        font.save(saveAsPath)
-        fileNames = glob.glob(os.path.join(saveAsPath, 'glyphs', '*.glif'))
-        fileNames = [os.path.basename(fileName) for fileName in fileNames]
-        self.assertEqual(sorted(fileNames), ["A_.glif", "B_.glif", "C_.glif"])
-        self.assertEqual(font.path, saveAsPath)
-        tearDownTestFontCopy(saveAsPath)
+        for ufo in ("TestFont.ufo", "TestFont.ufoz"):
+            path = getTestFontPath(ufo)
+            font = Font(path)
+            origFileStructure = font.ufoFileStructure
+            saveAsPath = getTestFontCopyPath(path)
+            self.assertFalse(os.path.exists(saveAsPath))
+            font.save(saveAsPath)
+            try:
+                fileNames = sorted(
+                    [
+                        fs.path.basename(m.path)
+                        for m in UFOReader(saveAsPath).fs.glob("glyphs/*.glif")
+                    ]
+                )
+                self.assertEqual(fileNames, ["A_.glif", "B_.glif", "C_.glif"])
+                self.assertEqual(font.path, saveAsPath)
+                self.assertEqual(origFileStructure, font.ufoFileStructure)
+            finally:
+                tearDownTestFontCopy(saveAsPath)
 
     def test_save_same_path(self):
-        path = makeTestFontCopy()
-        font = Font(path)
-        font.save(path)
-        self.assertTrue(os.path.isdir(path))
+        for ufo in ("TestFont.ufo", "TestFont.ufoz"):
+            path = makeTestFontCopy(getTestFontPath(ufo))
+            isZip = zipfile.is_zipfile(path)
+            try:
+                font = Font(path)
+                font.save(path)
+                if isZip:
+                    self.assertTrue(zipfile.is_zipfile(path))
+                else:
+                    self.assertTrue(os.path.isdir(path))
+            finally:
+                tearDownTestFontCopy(path)
+
+    def test_save_same_path_different_structure(self):
+        for ufo in ("TestFont.ufo", "TestFont.ufoz"):
+            path = getTestFontPath(ufo)
+            isZip = zipfile.is_zipfile(path)
+            font = Font(path)
+            with self.assertRaisesRegex(
+                DefconError,
+                "Can't save font in-place with a different structure"
+            ):
+                font.save(path, structure="package" if isZip else "zip")
 
     def test_save_new_font_without_path(self):
         font = Font()
@@ -435,11 +475,38 @@ class FontTest(unittest.TestCase):
             font.save()
 
     def test_save_new_font_to_exsisting_directory(self):
-        path = makeTestFontCopy()
-        self.assertTrue(os.path.exists(path))
-        font = Font()
-        font.save(path)
-        self.assertTrue(os.path.isdir(path))
+        for ufo in ("TestFont.ufo", "TestFont.ufoz"):
+            path = makeTestFontCopy(getTestFontPath(ufo))
+            try:
+                self.assertTrue(os.path.exists(path))
+                font = Font()
+                font.save(path)
+                self.assertTrue(os.path.isdir(path))
+            finally:
+                tearDownTestFontCopy(path)
+
+    def test_save_ufoz(self):
+        path = getTestFontPath()
+        tmpdir = tempfile.mkdtemp()
+        dest = os.path.join(tmpdir, "TestFont.ufoz")
+        try:
+            self.assertFalse(os.path.exists(dest))
+            font = Font(path)
+            self.assertEqual(font.path, path)
+            font.save(dest, structure="zip")
+            self.assertTrue(os.path.exists(dest))
+            self.assertTrue(zipfile.is_zipfile(dest))
+            self.assertEqual(font.path, dest)
+            self.assertEqual(font.ufoFileStructure, UFOFileStructure.ZIP)
+            fileNames = sorted(
+                [
+                    fs.path.basename(m.path)
+                    for m in UFOReader(dest).fs.glob("glyphs/*.glif")
+                ]
+            )
+            self.assertEqual(fileNames, ["A_.glif", "B_.glif", "C_.glif"])
+        finally:
+            shutil.rmtree(tmpdir)
 
     def test_save_new_font_to_existing_file(self):
         with tempfile.NamedTemporaryFile(delete=False) as tmp:

@@ -2,14 +2,14 @@
 PointPen for reversing the winding direction of contours.
 
 NOTE: The module is deprecated and the ``ReverseContourPointPen`` class has
-been moved to ``ufoLib.pointPen`` module.
+been moved to ``fontTools.pens.pointPen`` module.
 """
 
-from ufoLib.pointPen import AbstractPointPen, ReverseContourPointPen
+from fontTools.pens.pointPen import AbstractPointPen, ReverseContourPointPen
 import warnings
 
 
 warnings.warn(
     "Importing the `defcon.pens.reverseContourPointPen` module is deprecated. "
-    "Use `from ufoLib.pointPen import ReverseContourPointPen` instead.",
+    "Use `from fontTools.pens.pointPen import ReverseContourPointPen` instead.",
     DeprecationWarning, stacklevel=2)

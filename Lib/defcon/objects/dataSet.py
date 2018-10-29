@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 import os
 import weakref
-from ufoLib import UFOReader, UFOLibError
+from fontTools.ufoLib import UFOReader, UFOLibError
 from defcon.objects.base import BaseObject
 
 
@@ -68,7 +68,7 @@ class DataSet(BaseObject):
         if self._data[fileName]["data"] is None:
             path = self.font.path
             reader = UFOReader(path, validate=False)
-            path = os.path.join("data", fileName)
+            path = "%s/%s" % ("data", fileName)
             data = reader.readBytesFromPath(path)
             onDiskModTime = reader.getFileModificationTime(path)
             self._data[fileName] = _dataDict(data=data, onDisk=True, onDiskModTime=onDiskModTime)
@@ -117,31 +117,24 @@ class DataSet(BaseObject):
                 reader = UFOReader(font.path, validate=False)
                 readerDataDirectoryListing = reader.getDataDirectoryListing()
                 for fileName, data in self._data.items():
-                    path = os.path.join("data", fileName)
+                    path = "%s/%s" % ("data", fileName)
                     if data["data"] is not None or fileName not in readerDataDirectoryListing:
                         continue
                     writer.copyFromReader(reader, path, path)
         for fileName in self._scheduledForDeletion:
-            try:
-                path = os.path.join("data", fileName)
-                writer.removeFileForPath(path)
-            except UFOLibError:
-                # this will be raised if the file doesn't exist.
-                # instead of trying to maintain a list of in UFO
-                # vs. in memory, simply fail and move on when
-                # something can't be deleted because it isn't
-                # in the UFO.
-                pass
+            # instead of trying to maintain a list of in UFO
+            # vs. in memory, simply skip and move on when
+            # something can't be deleted because it isn't
+            # in the UFO.
+            writer.removePath("%s/%s" % ("data", fileName), force=True)
         self._scheduledForDeletion.clear()
-        reader = UFOReader(writer.path, validate=False)
         for fileName, data in self._data.items():
             if not data["dirty"]:
                 continue
-            path = os.path.join("data", fileName)
-            writer.writeBytesToPath(path, data["data"])
+            writer.writeBytesToPath("%s/%s" % ("data", fileName), data["data"])
             data["dirty"] = False
             data["onDisk"] = True
-            data["onDiskModTime"] = reader.getFileModificationTime(os.path.join("data", fileName))
+            data["onDiskModTime"] = writer.getFileModificationTime("%s/%s" % ("data", fileName))
         self.dirty = False
 
     # ---------------------
@@ -161,12 +154,14 @@ class DataSet(BaseObject):
                 added.append(fileName)
             elif not self._scheduledForDeletion[fileName]["onDisk"]:
                 added.append(fileName)
-            elif self._scheduledForDeletion[fileName]["onDiskModTime"] != reader.getFileModificationTime(os.path.join("data", fileName)):
+            elif self._scheduledForDeletion[fileName]["onDiskModTime"] != reader.getFileModificationTime(
+                "%s/%s" % ("data", fileName)
+            ):
                 added.append(fileName)
         for fileName, data in self._data.items():
             # file on disk and has been loaded
             if fileName in filesOnDisk and data["data"] is not None:
-                path = os.path.join("data", fileName)
+                path = "%s/%s" % ("data", fileName)
                 newModTime = reader.getFileModificationTime(path)
                 if newModTime != data["onDiskModTime"]:
                     newData = reader.readBytesFromPath(path)

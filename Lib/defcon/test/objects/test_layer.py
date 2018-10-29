@@ -173,66 +173,67 @@ class LayerTest(unittest.TestCase):
     def test_testForExternalChanges(self):
         path = getTestFontPath("TestExternalEditing.ufo")
         path = makeTestFontCopy(path)
-        font = Font(path)
+        try:
+            font = Font(path)
 
-        self.assertEqual(font.layers[None].testForExternalChanges(),
-                         ([], [], []))
+            self.assertEqual(font.layers[None].testForExternalChanges(),
+                             ([], [], []))
 
-        # make a simple change to a glyph
-        g = font.layers[None]["A"]
-        path = os.path.join(font.path, "glyphs", "A_.glif")
-        f = open(path, "r")
-        t = f.read()
-        f.close()
-        t += " "
-        f = open(path, "w")
-        f.write(t)
-        f.close()
-        os.utime(path,
-                 (g._dataOnDiskTimeStamp + 1, g._dataOnDiskTimeStamp + 1))
-        self.assertEqual(font.layers[None].testForExternalChanges(),
-                         (["A"], [], []))
+            # make a simple change to a glyph
+            g = font.layers[None]["A"]
+            path = os.path.join(font.path, "glyphs", "A_.glif")
+            f = open(path, "r")
+            t = f.read()
+            f.close()
+            t += " "
+            f = open(path, "w")
+            f.write(t)
+            f.close()
+            os.utime(path,
+                     (g._dataOnDiskTimeStamp + 1, g._dataOnDiskTimeStamp + 1))
+            self.assertEqual(font.layers[None].testForExternalChanges(),
+                             (["A"], [], []))
 
-        # save the glyph and test again
-        font["A"].dirty = True
-        font.save()
-        self.assertEqual(font.layers[None].testForExternalChanges(),
-                         ([], [], []))
+            # save the glyph and test again
+            font["A"].dirty = True
+            font.save()
+            self.assertEqual(font.layers[None].testForExternalChanges(),
+                             ([], [], []))
 
-        # add a glyph
-        path = os.path.join(font.path, "glyphs", "A_.glif")
-        f = open(path, "r")
-        t = f.read()
-        f.close()
-        t = t.replace('<glyph name="A" format="1">',
-                      '<glyph name="XYZ" format="1">')
-        path = os.path.join(font.path, "glyphs", "XYZ.glif")
-        f = open(path, "w")
-        f.write(t)
-        f.close()
-        path = os.path.join(font.path, "glyphs", "contents.plist")
-        with open(path, "rb") as f:
-            plist = load(f)
-        savePlist = dict(plist)
-        plist["XYZ"] = "XYZ.glif"
-        with open(path, "wb") as f:
-            dump(plist, f)
-        self.assertEqual(font.layers[None].testForExternalChanges(),
-                         ([], ["XYZ"], []))
-        path = font.path
+            # add a glyph
+            path = os.path.join(font.path, "glyphs", "A_.glif")
+            f = open(path, "r")
+            t = f.read()
+            f.close()
+            t = t.replace('<glyph name="A" format="1">',
+                          '<glyph name="XYZ" format="1">')
+            path = os.path.join(font.path, "glyphs", "XYZ.glif")
+            f = open(path, "w")
+            f.write(t)
+            f.close()
+            path = os.path.join(font.path, "glyphs", "contents.plist")
+            with open(path, "rb") as f:
+                plist = load(f)
+            savePlist = dict(plist)
+            plist["XYZ"] = "XYZ.glif"
+            with open(path, "wb") as f:
+                dump(plist, f)
+            self.assertEqual(font.layers[None].testForExternalChanges(),
+                             ([], ["XYZ"], []))
+            path = font.path
 
-        # delete a glyph
-        font = Font(path)
-        g = font["XYZ"]
-        path = os.path.join(font.path, "glyphs", "contents.plist")
-        with open(path, "wb") as f:
-            dump(savePlist, f)
-        path = os.path.join(font.path, "glyphs", "XYZ.glif")
-        os.remove(path)
-        self.assertEqual(font.layers[None].testForExternalChanges(),
-                         ([], [], ["XYZ"]))
-
-        tearDownTestFontCopy(font.path)
+            # delete a glyph
+            font = Font(path)
+            g = font["XYZ"]
+            path = os.path.join(font.path, "glyphs", "contents.plist")
+            with open(path, "wb") as f:
+                dump(savePlist, f)
+            path = os.path.join(font.path, "glyphs", "XYZ.glif")
+            os.remove(path)
+            self.assertEqual(font.layers[None].testForExternalChanges(),
+                             ([], [], ["XYZ"]))
+        finally:
+            tearDownTestFontCopy(font.path)
 
     def test_reloadGlyphs(self):
         path = getTestFontPath("TestExternalEditing.ufo")

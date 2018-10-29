@@ -4,9 +4,11 @@ import hashlib
 import weakref
 from defcon.objects.base import BaseObject
 from fontTools.misc.py23 import unicode
-from ufoLib import UFOReader, UFOLibError
-from ufoLib.filenames import userNameToFileName, illegalCharacters, reservedFileNames, maxFileNameLength
-from ufoLib.validators import pngSignature
+from fontTools.ufoLib import UFOReader, UFOLibError
+from fontTools.ufoLib.filenames import (
+    userNameToFileName, illegalCharacters, reservedFileNames, maxFileNameLength
+)
+from fontTools.ufoLib.validators import pngSignature
 
 
 class ImageSet(BaseObject):
@@ -122,7 +124,7 @@ class ImageSet(BaseObject):
             d["data"] = data
             d["digest"] = _makeDigest(data)
             d["onDisk"] = True
-            d["onDiskModTime"] = reader.getFileModificationTime(os.path.join("images", fileName))
+            d["onDiskModTime"] = reader.getFileModificationTime("%s/%s" % ("images", fileName))
         return d["data"]
 
     def __setitem__(self, fileName, data):
@@ -205,14 +207,13 @@ class ImageSet(BaseObject):
                 # in the UFO.
                 pass
         self._scheduledForDeletion.clear()
-        reader = UFOReader(writer.path, validate=False)
         for fileName, data in self._data.items():
             if not data["dirty"]:
                 continue
             writer.writeImage(fileName, data["data"], validate=self.ufoLibWriteValidate)
             data["dirty"] = False
             data["onDisk"] = True
-            data["onDiskModTime"] = reader.getFileModificationTime(os.path.join("images", fileName))
+            data["onDiskModTime"] = writer.getFileModificationTime("%s/%s" % ("images", fileName))
         self.dirty = False
 
     # ---------------
@@ -272,12 +273,14 @@ class ImageSet(BaseObject):
                 addedImages.append(fileName)
             elif not self._scheduledForDeletion[fileName]["onDisk"]:
                 addedImages.append(fileName)
-            elif self._scheduledForDeletion[fileName]["onDiskModTime"] != reader.getFileModificationTime(os.path.join("images", fileName)):
+            elif self._scheduledForDeletion[fileName]["onDiskModTime"] != reader.getFileModificationTime(
+                "%s/%s" % ("images", fileName)
+            ):
                 addedImages.append(fileName)
         for fileName, imageData in self._data.items():
             # file on disk and has been loaded
             if fileName in filesOnDisk and imageData["data"] is not None:
-                newModTime = reader.getFileModificationTime(os.path.join("images", fileName))
+                newModTime = reader.getFileModificationTime("%s/%s" % ("images", fileName))
                 if newModTime != imageData["onDiskModTime"]:
                     newData = reader.readImage(fileName)
                     newDigest = _makeDigest(newData)

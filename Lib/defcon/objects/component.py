@@ -174,7 +174,7 @@ class Component(BaseObject):
         """
         Draw the component with **pen**.
         """
-        from ufoLib.pointPen import PointToSegmentPen
+        from fontTools.pens.pointPen import PointToSegmentPen
         pointPen = PointToSegmentPen(pen)
         self.drawPoints(pointPen)
 

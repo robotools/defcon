@@ -15,22 +15,28 @@ def getTestFontCopyPath(testFontPath=None):
     if testFontPath is None:
         testFontPath = getTestFontPath()
     dirName, fileName = os.path.split(testFontPath)
-    fileName = os.path.splitext(fileName)[0] + 'Copy.ufo'
-    return os.path.join(dirName, fileName)
+    fileName, ext = os.path.splitext(fileName)
+    return os.path.join(dirName, fileName + 'Copy' + ext)
 
 
 def makeTestFontCopy(testFontPath=None):
     if testFontPath is None:
         testFontPath = getTestFontPath()
     copyPath = getTestFontCopyPath(testFontPath)
-    shutil.copytree(testFontPath, copyPath)
+    if os.path.isdir(testFontPath):
+        shutil.copytree(testFontPath, copyPath)
+    else:
+        shutil.copyfile(testFontPath, copyPath)
     return copyPath
 
 
 def tearDownTestFontCopy(testFontPath=None):
     if testFontPath is None:
         testFontPath = getTestFontCopyPath()
-    shutil.rmtree(testFontPath)
+    if os.path.isdir(testFontPath):
+        shutil.rmtree(testFontPath)
+    else:
+        os.remove(testFontPath)
 
 
 class NotificationTestObserver(object):

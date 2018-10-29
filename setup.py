@@ -159,11 +159,11 @@ setup_params = dict(
         'pytest>=3.0.3',
     ],
     install_requires=[
-        "fonttools>=3.1.2",
-        "ufoLib>=2.3.1",
+        "fonttools[ufo] >= 3.31.0",
     ],
     extras_require={
-        'pens': ["fontPens>=0.1.0"]
+        'pens': ["fontPens>=0.1.0"],
+        'lxml': ["fonttools[lxml] >= 3.31.0"],
     },
     cmdclass={
         "release": release,

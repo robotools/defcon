@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 import weakref
-from ufoLib import UFOReader
+from fontTools.ufoLib import UFOReader, UFOFileStructure
 from defcon.objects.base import BaseObject
 from defcon.objects.layer import Layer
 
@@ -301,12 +301,27 @@ class LayerSet(BaseObject):
                     # this will be handled by the creation of the glyph set
                     pass
         # save the layers
+
+        # The parent ZipFS is going to be closed inside Font.save, hence
+        # any operations on the GlyphSet's SubFS will fail after that.
+        # To prevent this, we need to reset each layer._glyphSet to None
+        # after saving, when the file structure is zip.
+        # By the time we finish saving a layer, all the glyph data has
+        # been loaded so this is ok. However, setting _glyphSet to None
+        # also means that the Layer.testForExternalChanges method will
+        # produce no effect when the file structure is zip.
+        # This is understandable because only one process at a time
+        # can write to a zip file.
+        isZip = writer.fileStructure is UFOFileStructure.ZIP
+
         if writer.formatVersion < 3:
             if progressBar is not None:
                 progressBar.update(text="Saving glyphs...", increment=0)
             layer = self.defaultLayer
             glyphSet = writer.getGlyphSet(layerName=None, defaultLayer=True, validateRead=self.ufoLibReadValidate, validateWrite=self.ufoLibWriteValidate)
             layer.save(glyphSet, saveAs=saveAs, progressBar=progressBar)
+            if isZip:
+                layer._glyphSet = None
             if progressBar is not None:
                 progressBar.update()
         else:
@@ -317,6 +332,8 @@ class LayerSet(BaseObject):
                 isDefaultLayer = layer == self.defaultLayer
                 glyphSet = writer.getGlyphSet(layerName=layerName, defaultLayer=isDefaultLayer, validateRead=self.ufoLibReadValidate, validateWrite=self.ufoLibWriteValidate)
                 layer.save(glyphSet, saveAs=saveAs, progressBar=progressBar)
+                if isZip:
+                    layer._glyphSet = None
                 # this prevents us from saving when the color was deleted
                 #if layer.lib or layer.color:
                 glyphSet.writeLayerInfo(layer)
@@ -497,7 +514,7 @@ class _StaticLayerInfoMaker(object):
         self.color = None
 
     def pack(self):
-        from ufoLib import plistlib
+        from fontTools.misc import plistlib
         data = {}
         if self.lib:
             data["lib"] = self.lib
