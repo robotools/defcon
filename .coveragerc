@@ -3,9 +3,16 @@
 # See: http://coverage.readthedocs.org/en/coverage-4.0.3/branch.html#branch
 branch = True
 
-# list of directories to measure
+# list of directories or modules to measure
+source = defcon
+
+# these are treated as equivalent when combining data
+[paths]
 source =
     Lib/defcon
+    .tox/*/lib/python*/site-packages/defcon
+    .tox/*/Lib/site-packages/defcon
+    .tox/pypy*/site-packages/defcon
 
 [report]
 # Regexes for lines to exclude from consideration
