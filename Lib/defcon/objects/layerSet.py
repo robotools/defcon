@@ -302,26 +302,12 @@ class LayerSet(BaseObject):
                     pass
         # save the layers
 
-        # The parent ZipFS is going to be closed inside Font.save, hence
-        # any operations on the GlyphSet's SubFS will fail after that.
-        # To prevent this, we need to reset each layer._glyphSet to None
-        # after saving, when the file structure is zip.
-        # By the time we finish saving a layer, all the glyph data has
-        # been loaded so this is ok. However, setting _glyphSet to None
-        # also means that the Layer.testForExternalChanges method will
-        # produce no effect when the file structure is zip.
-        # This is understandable because only one process at a time
-        # can write to a zip file.
-        isZip = writer.fileStructure is UFOFileStructure.ZIP
-
         if writer.formatVersion < 3:
             if progressBar is not None:
                 progressBar.update(text="Saving glyphs...", increment=0)
             layer = self.defaultLayer
             glyphSet = writer.getGlyphSet(layerName=None, defaultLayer=True, validateRead=self.ufoLibReadValidate, validateWrite=self.ufoLibWriteValidate)
             layer.save(glyphSet, saveAs=saveAs, progressBar=progressBar)
-            if isZip:
-                layer._glyphSet = None
             if progressBar is not None:
                 progressBar.update()
         else:
@@ -332,8 +318,6 @@ class LayerSet(BaseObject):
                 isDefaultLayer = layer == self.defaultLayer
                 glyphSet = writer.getGlyphSet(layerName=layerName, defaultLayer=isDefaultLayer, validateRead=self.ufoLibReadValidate, validateWrite=self.ufoLibWriteValidate)
                 layer.save(glyphSet, saveAs=saveAs, progressBar=progressBar)
-                if isZip:
-                    layer._glyphSet = None
                 # this prevents us from saving when the color was deleted
                 #if layer.lib or layer.color:
                 glyphSet.writeLayerInfo(layer)
@@ -350,6 +334,21 @@ class LayerSet(BaseObject):
             if layer == defaultLayer:
                 continue
             self._layerActionHistory.append(dict(action="new", name=layer.name))
+
+    def _fontSaveWasCompleted(self):
+        """
+        When saving a UFOZ, the underlying ZipFS object is closed.
+        The objects then stored in layer._glyphSet contain references
+        to a closed, and therefore unusable, filesystem. To remedy this,
+        after the save is completed this method will be called and new
+        GlyphSet objects will be created and assigned to the layers. 
+        """
+        reader = UFOReader(self.font.path, validate=self.font.ufoLibReadValidate)
+        if reader.fileStructure is UFOFileStructure.ZIP:
+            for layerName in self.layerOrder:
+                layer = self[layerName]
+                isDefaultLayer = layer == self.defaultLayer
+                layer._glyphSet = reader.getGlyphSet(layerName=layerName, validateRead=self.ufoLibReadValidate)
 
     # ------------------------
     # Notification Observation

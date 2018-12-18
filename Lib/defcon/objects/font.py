@@ -882,6 +882,7 @@ class Font(BaseObject):
         self._ufoFormatVersion = formatVersion
         self._ufoFileStructure = writer.fileStructure
         self.dirty = False
+        self.layers._fontSaveWasCompleted()
 
     def _saveInfo(self, writer, saveAs=False, progressBar=None):
         # info should always be saved
