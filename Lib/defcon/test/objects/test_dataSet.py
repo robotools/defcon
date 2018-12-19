@@ -82,7 +82,7 @@ class DataSetTest(unittest.TestCase):
         tearDownTestFontCopy(saveAsPath)
 
     def test_testForExternalChanges_remove_in_memory_and_scan(self):
-        for ufo in ("TestExternalEditing.ufo", "TestExternalEditing.ufoz"):
+        for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
             font = Font(path)
@@ -93,7 +93,7 @@ class DataSetTest(unittest.TestCase):
             tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_add_in_memory_and_scan(self):
-        for ufo in ("TestExternalEditing.ufo", "TestExternalEditing.ufoz"):
+        for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
             font = Font(path)
@@ -104,7 +104,7 @@ class DataSetTest(unittest.TestCase):
             tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_modify_in_memory_and_scan(self):
-        for ufo in ("TestExternalEditing.ufo", "TestExternalEditing.ufoz"):
+        for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
             font = Font(path)
@@ -115,7 +115,7 @@ class DataSetTest(unittest.TestCase):
             tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_remove_on_disk_and_scan(self):
-        for ufo in ("TestExternalEditing.ufo", "TestExternalEditing.ufoz"):
+        for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
             font = Font(path)
@@ -131,7 +131,7 @@ class DataSetTest(unittest.TestCase):
             tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_add_on_disk_and_scan(self):
-        for ufo in ("TestExternalEditing.ufo", "TestExternalEditing.ufoz"):
+        for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
             font = Font(path)
@@ -146,7 +146,7 @@ class DataSetTest(unittest.TestCase):
             tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_modify_on_disk_and_scan(self):
-        for ufo in ("TestExternalEditing.ufo", "TestExternalEditing.ufoz"):
+        for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
             font = Font(path)

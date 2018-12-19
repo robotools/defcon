@@ -116,7 +116,7 @@ class LayerTest(unittest.TestCase):
         self.assertNotIn("NotInFont", layers)
 
     def test_testForExternalChanges(self):
-        for ufo in ("TestExternalEditing.ufo", "TestExternalEditing.ufoz"):
+        for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
             font = Font(path)
@@ -127,7 +127,7 @@ class LayerTest(unittest.TestCase):
             tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_layerinfo(self):
-        for ufo in ("TestExternalEditing.ufo", "TestExternalEditing.ufoz"):
+        for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             # layerinfo.plist
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
@@ -146,16 +146,16 @@ class LayerTest(unittest.TestCase):
             tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_add_a_layer(self):
-        for ufo in ("TestExternalEditing.ufo", "TestExternalEditing.ufoz"):
+        for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
             font = Font(path)
             fileSystem = openTestFontAsFileSystem(path)
             fs.copy.copy_dir(fileSystem, "glyphs", fileSystem, "glyphs.test")
-            with fileSystem.open("layercontents.plist", "rb") as f:
+            with fileSystem.open(u"layercontents.plist", "rb") as f:
                 contents = load(f)
             contents.append(("test", "glyphs.test"))
-            with fileSystem.open("layercontents.plist", "wb") as f:
+            with fileSystem.open(u"layercontents.plist", "wb") as f:
                 dump(contents, f)
             closeTestFontAsFileSystem(fileSystem, path)
             reader = UFOReader(path)
@@ -164,24 +164,24 @@ class LayerTest(unittest.TestCase):
             tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_remove_a_layer(self):
-        for ufo in ("TestExternalEditing.ufo", "TestExternalEditing.ufoz"):
+        for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
             fileSystem = openTestFontAsFileSystem(path)
             fs.copy.copy_dir(fileSystem, "glyphs", fileSystem, "glyphs.test")
-            with fileSystem.open("layercontents.plist", "rb") as f:
+            with fileSystem.open(u"layercontents.plist", "rb") as f:
                 contents = load(f)
             contents.append(("test", "glyphs.test"))
-            with fileSystem.open("layercontents.plist", "wb") as f:
+            with fileSystem.open(u"layercontents.plist", "wb") as f:
                 dump(contents, f)
             closeTestFontAsFileSystem(fileSystem, path)
             font = Font(path)
             fileSystem = openTestFontAsFileSystem(path)
-            fileSystem.removetree("glyphs.test")
-            with fileSystem.open("layercontents.plist", "rb") as f:
+            fileSystem.removetree(u"glyphs.test")
+            with fileSystem.open(u"layercontents.plist", "rb") as f:
                 contents = load(f)
             del contents[-1]
-            with fileSystem.open("layercontents.plist", "wb") as f:
+            with fileSystem.open(u"layercontents.plist", "wb") as f:
                 dump(contents, f)
             closeTestFontAsFileSystem(fileSystem, path)
             reader = UFOReader(path)
@@ -190,23 +190,23 @@ class LayerTest(unittest.TestCase):
             tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_change_layer_order(self):
-        for ufo in ("TestExternalEditing.ufo", "TestExternalEditing.ufoz"):
+        for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
             fileSystem = openTestFontAsFileSystem(path)
             fs.copy.copy_dir(fileSystem, "glyphs", fileSystem, "glyphs.test")
-            with fileSystem.open("layercontents.plist", "rb") as f:
+            with fileSystem.open(u"layercontents.plist", "rb") as f:
                 contents = load(f)
             contents.append(("test", "glyphs.test"))
-            with fileSystem.open("layercontents.plist", "wb") as f:
+            with fileSystem.open(u"layercontents.plist", "wb") as f:
                 dump(contents, f)
             closeTestFontAsFileSystem(fileSystem, path)
             font = Font(path)
             fileSystem = openTestFontAsFileSystem(path)
-            with fileSystem.open("layercontents.plist", "rb") as f:
+            with fileSystem.open(u"layercontents.plist", "rb") as f:
                 contents = load(f)
             contents.reverse()
-            with fileSystem.open("layercontents.plist", "wb") as f:
+            with fileSystem.open(u"layercontents.plist", "wb") as f:
                 dump(contents, f)
             closeTestFontAsFileSystem(fileSystem, path)
             reader = UFOReader(path)
@@ -216,20 +216,20 @@ class LayerTest(unittest.TestCase):
             tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_change_default_layer(self):
-        for ufo in ("TestExternalEditing.ufo", "TestExternalEditing.ufoz"):
+        for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
 
             fileSystem = openTestFontAsFileSystem(path)
             fs.copy.copy_dir(fileSystem, "glyphs", fileSystem, "glyphs.test")
             contents = [("foo", "glyphs"), ("test", "glyphs.test")]
-            with fileSystem.open("layercontents.plist", "wb") as f:
+            with fileSystem.open(u"layercontents.plist", "wb") as f:
                 dump(contents, f)
             closeTestFontAsFileSystem(fileSystem, path)
             font = Font(path)
             fileSystem = openTestFontAsFileSystem(path)
             contents = [("foo", "glyphs.test"), ("test", "glyphs")]
-            with fileSystem.open("layercontents.plist", "wb") as f:
+            with fileSystem.open(u"layercontents.plist", "wb") as f:
                 dump(contents, f)
             closeTestFontAsFileSystem(fileSystem, path)
             reader = UFOReader(path)
@@ -239,7 +239,7 @@ class LayerTest(unittest.TestCase):
             tearDownTestFontCopy(font.path)
 
     def test_reloadLayers_layerinfo(self):
-        path = getTestFontPath("TestExternalEditing.ufo")
+        path = getTestFontPath(u"TestExternalEditing.ufo")
         path = makeTestFontCopy(path)
         font = Font(path)
         p = os.path.join(path, "glyphs", "layerinfo.plist")
@@ -253,7 +253,7 @@ class LayerTest(unittest.TestCase):
         tearDownTestFontCopy(font.path)
 
     def test_reloadLayers_add_a_layer(self):
-        path = getTestFontPath("TestExternalEditing.ufo")
+        path = getTestFontPath(u"TestExternalEditing.ufo")
         path = makeTestFontCopy(path)
         font = Font(path)
         shutil.copytree(os.path.join(path, "glyphs"),
@@ -268,7 +268,7 @@ class LayerTest(unittest.TestCase):
         tearDownTestFontCopy(font.path)
 
     def test_reloadLayers_change_layer_order(self):
-        path = getTestFontPath("TestExternalEditing.ufo")
+        path = getTestFontPath(u"TestExternalEditing.ufo")
         path = makeTestFontCopy(path)
         shutil.copytree(os.path.join(path, "glyphs"),
                         os.path.join(path, "glyphs.test"))
@@ -288,7 +288,7 @@ class LayerTest(unittest.TestCase):
         tearDownTestFontCopy(font.path)
 
     def test_reloadLayers_change_default_layer(self):
-        path = getTestFontPath("TestExternalEditing.ufo")
+        path = getTestFontPath(u"TestExternalEditing.ufo")
         path = makeTestFontCopy(path)
         shutil.copytree(os.path.join(path, "glyphs"),
                         os.path.join(path, "glyphs.test"))

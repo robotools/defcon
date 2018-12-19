@@ -120,7 +120,7 @@ class FontTest(unittest.TestCase):
             del font["NotInFont"]
 
     def test_delitem_glyph_not_dirty(self):
-        for ufo in ("TestExternalEditing.ufo", "TestExternalEditing.ufoz"):
+        for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
             font = Font(path)
@@ -143,7 +143,7 @@ class FontTest(unittest.TestCase):
             tearDownTestFontCopy(font.path)
 
     def test_delitem_glyph_dirty(self):
-        for ufo in ("TestExternalEditing.ufo", "TestExternalEditing.ufoz"):
+        for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
             font = Font(path)
@@ -418,7 +418,7 @@ class FontTest(unittest.TestCase):
         self.assertEqual(font.guidelines, [])
 
     def test_save(self):
-        for ufo in ("TestFont.ufo", "TestFont.ufoz"):
+        for ufo in (u"TestFont.ufo", u"TestFont.ufoz"):
             path = makeTestFontCopy(getTestFontPath(ufo))
             try:
                 font = Font(path)
@@ -438,7 +438,7 @@ class FontTest(unittest.TestCase):
                 tearDownTestFontCopy(path)
 
     def test_save_as(self):
-        for ufo in ("TestFont.ufo", "TestFont.ufoz"):
+        for ufo in (u"TestFont.ufo", u"TestFont.ufoz"):
             path = getTestFontPath(ufo)
             font = Font(path)
             origFileStructure = font.ufoFileStructure
@@ -459,7 +459,7 @@ class FontTest(unittest.TestCase):
                 tearDownTestFontCopy(saveAsPath)
 
     def test_save_same_path(self):
-        for ufo in ("TestFont.ufo", "TestFont.ufoz"):
+        for ufo in (u"TestFont.ufo", u"TestFont.ufoz"):
             path = makeTestFontCopy(getTestFontPath(ufo))
             isZip = zipfile.is_zipfile(path)
             try:
@@ -563,7 +563,7 @@ class FontTest(unittest.TestCase):
         font.save()
 
     def test_testForExternalChanges(self):
-        for ufo in ("TestExternalEditing.ufo", "TestExternalEditing.ufoz"):
+        for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
             font = Font(path)
@@ -583,7 +583,7 @@ class FontTest(unittest.TestCase):
 
             # make a simple change to the kerning data
             fileSystem = openTestFontAsFileSystem(font.path)
-            path = "kerning.plist"
+            path = u"kerning.plist"
             t = fileSystem.getbytes(path)
             t += b"<!-- test -->"
             fileSystem.setbytes(path, t)
@@ -608,7 +608,7 @@ class FontTest(unittest.TestCase):
             tearDownTestFontCopy(font.path)
 
     def test_reloadInfo(self):
-        path = getTestFontPath("TestExternalEditing.ufo")
+        path = getTestFontPath(u"TestExternalEditing.ufo")
         font = Font(path)
         info = font.info
 
@@ -631,7 +631,7 @@ class FontTest(unittest.TestCase):
         f.close()
 
     def test_reloadKerning(self):
-        path = getTestFontPath("TestExternalEditing.ufo")
+        path = getTestFontPath(u"TestExternalEditing.ufo")
         font = Font(path)
         kerning = font.kerning
 
@@ -654,7 +654,7 @@ class FontTest(unittest.TestCase):
         f.close()
 
     def test_reloadGroups(self):
-        path = getTestFontPath("TestExternalEditing.ufo")
+        path = getTestFontPath(u"TestExternalEditing.ufo")
         font = Font(path)
         groups = font.groups
 
@@ -677,7 +677,7 @@ class FontTest(unittest.TestCase):
         f.close()
 
     def test_reloadLib(self):
-        path = getTestFontPath("TestExternalEditing.ufo")
+        path = getTestFontPath(u"TestExternalEditing.ufo")
         font = Font(path)
         lib = font.lib
 
@@ -702,7 +702,7 @@ class FontTest(unittest.TestCase):
         f.close()
 
     def test_reloadGlyphs(self):
-        path = getTestFontPath("TestExternalEditing.ufo")
+        path = getTestFontPath(u"TestExternalEditing.ufo")
         font = Font(path)
         glyph = font["A"]
 

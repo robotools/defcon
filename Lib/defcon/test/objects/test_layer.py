@@ -176,7 +176,7 @@ class LayerTest(unittest.TestCase):
         self.assertTrue(layer.lib.dirty)
 
     def test_testForExternalChanges(self):
-        for ufo in ("TestExternalEditing.ufo", "TestExternalEditing.ufoz"):
+        for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
             try:
