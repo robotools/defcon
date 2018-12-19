@@ -51,7 +51,7 @@ def openTestFontAsFileSystem(testFontPath=None):
         with fs.zipfs.ZipFS(testFontPath, encoding="utf-8") as origFS:
             fs.copy.copy_fs(origFS, parentFS)
             rootDirs = [
-                p.name for p in parentFS.scandir("/")
+                p.name for p in parentFS.scandir(u"/")
                 if p.is_dir and p.name != "__MACOSX"
             ]
             fileSystem = parentFS.opendir(
