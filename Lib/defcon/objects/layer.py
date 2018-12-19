@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 import weakref
+from fontTools.ufoLib import UFOFileStructure
 from fontTools.misc.arrayTools import unionRect
 from fontTools.misc.py23 import tounicode
 from defcon.objects.base import BaseObject
@@ -595,10 +596,18 @@ class Layer(BaseObject):
         glyph._dataOnDisk = text
         glyph._dataOnDiskTimeStamp = modTime
 
-    def testForExternalChanges(self):
+    def testForExternalChanges(self, reader):
         """
         Test for external changes. This should not be called externally.
         """
+        # if the file structure is UFOZ, the established layer._glyphSet
+        # references data that was available at the time layer._glyphSet
+        # was created. therefore, it will not see any changes. To remedy
+        # this, create an object with the data that is available right now
+        # and assign it to the layer. this gives the same functionality
+        # as seen with a regular UFO.
+        if reader.fileStructure is UFOFileStructure.ZIP:
+            self._glyphSet = reader.getGlyphSet(layerName=self.name, validateRead=self.ufoLibReadValidate)
         glyphSet = self._glyphSet
         if glyphSet is None:
             return [], [], []

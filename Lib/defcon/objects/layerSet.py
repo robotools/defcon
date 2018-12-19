@@ -347,7 +347,6 @@ class LayerSet(BaseObject):
         if reader.fileStructure is UFOFileStructure.ZIP:
             for layerName in self.layerOrder:
                 layer = self[layerName]
-                isDefaultLayer = layer == self.defaultLayer
                 layer._glyphSet = reader.getGlyphSet(layerName=layerName, validateRead=self.ufoLibReadValidate)
 
     # ------------------------
@@ -417,13 +416,10 @@ class LayerSet(BaseObject):
         # modified layers
         modifiedLayers = {}
         for layerName in self.layerOrder:
+            if layerName in deletedLayers:
+                continue
             layer = self[layerName]
-            newLayerInfo = _StaticLayerInfoMaker()
-            layerInfoChanged = False
-            if layer._glyphSet is not None:
-                layer._glyphSet.readLayerInfo(newLayerInfo)
-                layerInfoChanged = layer._dataOnDisk != newLayerInfo.pack()
-            modifiedGlyphs, addedGlyphs, deletedGlyphs = layer.testForExternalChanges()
+            modifiedGlyphs, addedGlyphs, deletedGlyphs = layer.testForExternalChanges(reader)
             if modifiedGlyphs or addedGlyphs or deletedGlyphs or layerInfoChanged:
                 modifiedLayers[layerName] = dict(
                     info=layerInfoChanged,
@@ -431,6 +427,11 @@ class LayerSet(BaseObject):
                     added=addedGlyphs,
                     deleted=deletedGlyphs
                 )
+            newLayerInfo = _StaticLayerInfoMaker()
+            layerInfoChanged = False
+            if layer._glyphSet is not None:
+                layer._glyphSet.readLayerInfo(newLayerInfo)
+                layerInfoChanged = layer._dataOnDisk != newLayerInfo.pack()
         # pack
         result = dict(
             defaultLayer=defaultLayerChanged,
