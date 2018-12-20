@@ -704,9 +704,6 @@ class Font(BaseObject):
         count += self.layers.getSaveProgressBarTickCount(formatVersion)
         return count
 
-    def close(self):
-        self._reader.close()
-
     def save(
         self,
         path=None,
