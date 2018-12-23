@@ -1,9 +1,13 @@
 import unittest
 import os
 import shutil
+import fs
+import fs.copy
+import fs.path
 from defcon import Font
 from defcon.test.testTools import (
     getTestFontPath, getTestFontCopyPath, makeTestFontCopy,
+    openTestFontAsFileSystem, closeTestFontAsFileSystem,
     tearDownTestFontCopy)
 from fontTools.ufoLib import UFOReader
 
@@ -78,71 +82,85 @@ class DataSetTest(unittest.TestCase):
         tearDownTestFontCopy(saveAsPath)
 
     def test_testForExternalChanges_remove_in_memory_and_scan(self):
-        path = makeTestFontCopy()
-        font = Font(path)
-        del font.data["com.typesupply.defcon.test.file"]
-        reader = UFOReader(path)
-        self.assertEqual(font.data.testForExternalChanges(reader),
-                         ([], [], []))
-        tearDownTestFontCopy()
+        for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
+            path = getTestFontPath(ufo)
+            path = makeTestFontCopy(path)
+            font = Font(path)
+            del font.data["com.typesupply.defcon.test.file"]
+            reader = UFOReader(path)
+            self.assertEqual(font.data.testForExternalChanges(reader),
+                             ([], [], []))
+            tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_add_in_memory_and_scan(self):
-        path = makeTestFontCopy()
-        font = Font(path)
-        font.data["com.typesupply.defcon.test.file2"] = "blah"
-        reader = UFOReader(path)
-        self.assertEqual(font.data.testForExternalChanges(reader),
-                         ([], [], []))
-        tearDownTestFontCopy()
+        for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
+            path = getTestFontPath(ufo)
+            path = makeTestFontCopy(path)
+            font = Font(path)
+            font.data["com.typesupply.defcon.test.file2"] = "blah"
+            reader = UFOReader(path)
+            self.assertEqual(font.data.testForExternalChanges(reader),
+                             ([], [], []))
+            tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_modify_in_memory_and_scan(self):
-        path = makeTestFontCopy()
-        font = Font(path)
-        reader = UFOReader(path)
-        font.data["com.typesupply.defcon.test.file"] = "blah"
-        self.assertEqual(font.data.testForExternalChanges(reader),
-                         ([], [], []))
-        tearDownTestFontCopy()
+        for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
+            path = getTestFontPath(ufo)
+            path = makeTestFontCopy(path)
+            font = Font(path)
+            reader = UFOReader(path)
+            font.data["com.typesupply.defcon.test.file"] = "blah"
+            self.assertEqual(font.data.testForExternalChanges(reader),
+                             ([], [], []))
+            tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_remove_on_disk_and_scan(self):
-        path = makeTestFontCopy()
-        font = Font(path)
-        reader = UFOReader(path)
-        # image = font.data["com.typesupply.defcon.test.file"]
-        font.data["com.typesupply.defcon.test.file"]
-        os.remove(os.path.join(path, "data",
-                               "com.typesupply.defcon.test.file"))
-        self.assertEqual(font.data.testForExternalChanges(reader),
-                         ([], [], ["com.typesupply.defcon.test.file"]))
-        tearDownTestFontCopy()
+        for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
+            path = getTestFontPath(ufo)
+            path = makeTestFontCopy(path)
+            font = Font(path)
+            # image = font.data["com.typesupply.defcon.test.file"]
+            font.data["com.typesupply.defcon.test.file"]
+            fileSystem = openTestFontAsFileSystem(font.path)
+            fileSystem.remove(fs.path.join("data",
+                                   "com.typesupply.defcon.test.file"))
+            closeTestFontAsFileSystem(fileSystem, font.path)
+            reader = UFOReader(path)
+            self.assertEqual(font.data.testForExternalChanges(reader),
+                             ([], [], ["com.typesupply.defcon.test.file"]))
+            tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_add_on_disk_and_scan(self):
-        import shutil
-        path = makeTestFontCopy()
-        font = Font(path)
-        reader = UFOReader(path)
-        source = os.path.join(path, "data", "com.typesupply.defcon.test.file")
-        dest = os.path.join(path, "data", "com.typesupply.defcon.test.file2")
-        shutil.copy(source, dest)
-        self.assertEqual(font.data.testForExternalChanges(reader),
-                         ([], ["com.typesupply.defcon.test.file2"], []))
-        tearDownTestFontCopy()
+        for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
+            path = getTestFontPath(ufo)
+            path = makeTestFontCopy(path)
+            font = Font(path)
+            fileSystem = openTestFontAsFileSystem(font.path)
+            source = fs.path.join("data", "com.typesupply.defcon.test.file")
+            dest = fs.path.join("data", "com.typesupply.defcon.test.file2")
+            fileSystem.copy(source, dest)
+            closeTestFontAsFileSystem(fileSystem, font.path)
+            reader = UFOReader(path)
+            self.assertEqual(font.data.testForExternalChanges(reader),
+                             ([], ["com.typesupply.defcon.test.file2"], []))
+            tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_modify_on_disk_and_scan(self):
-        path = makeTestFontCopy()
-        font = Font(path)
-        reader = UFOReader(path)
-        # d = font.data["com.typesupply.defcon.test.file"]
-        font.data["com.typesupply.defcon.test.file"]
-        filePath = os.path.join(path, "data",
-                                "com.typesupply.defcon.test.file")
-        f = open(filePath, "wb")
-        f.write(b"blah")
-        f.close()
-        reader = UFOReader(path)
-        self.assertEqual(font.data.testForExternalChanges(reader),
-                         (["com.typesupply.defcon.test.file"], [], []))
-        tearDownTestFontCopy()
+        for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
+            path = getTestFontPath(ufo)
+            path = makeTestFontCopy(path)
+            font = Font(path)
+            # d = font.data["com.typesupply.defcon.test.file"]
+            font.data["com.typesupply.defcon.test.file"]
+            fileSystem = openTestFontAsFileSystem(font.path)
+            filePath = fs.path.join("data",
+                                    "com.typesupply.defcon.test.file")
+            fileSystem.setbytes(filePath, b"blah")
+            closeTestFontAsFileSystem(fileSystem, font.path)
+            reader = UFOReader(path)
+            self.assertEqual(font.data.testForExternalChanges(reader),
+                             (["com.typesupply.defcon.test.file"], [], []))
+            tearDownTestFontCopy(font.path)
 
     def test_reload_data(self):
         path = makeTestFontCopy()

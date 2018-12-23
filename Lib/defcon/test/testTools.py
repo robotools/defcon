@@ -2,7 +2,11 @@ from __future__ import print_function
 import os
 import shutil
 from pkg_resources import resource_filename
-
+import zipfile
+import fs.osfs
+import fs.tempfs
+import fs.zipfs
+import fs.copy
 
 TESTDATA_DIR = resource_filename("defcon.test", 'testdata')
 
@@ -37,6 +41,35 @@ def tearDownTestFontCopy(testFontPath=None):
         shutil.rmtree(testFontPath)
     else:
         os.remove(testFontPath)
+
+
+def openTestFontAsFileSystem(testFontPath=None):
+    if testFontPath is None:
+        testFontPath = getTestFontPath()
+    if zipfile.is_zipfile(testFontPath):
+        parentFS = fs.tempfs.TempFS()
+        with fs.zipfs.ZipFS(testFontPath, encoding="utf-8") as origFS:
+            fs.copy.copy_fs(origFS, parentFS)
+            rootDirs = [
+                p.name for p in parentFS.scandir(u"/")
+                if p.is_dir and p.name != "__MACOSX"
+            ]
+            fileSystem = parentFS.opendir(
+                rootDirs[0], factory=fs.subfs.ClosingSubFS
+            )
+    else:
+        fileSystem = fs.osfs.OSFS(testFontPath)
+    return fileSystem
+
+
+def closeTestFontAsFileSystem(fileSystem, testFontPath=None):
+    if testFontPath is None:
+        testFontPath = getTestFontPath()
+    if not zipfile.is_zipfile(testFontPath):
+        return
+    rootDir = os.path.splitext(os.path.basename(testFontPath))[0] + ".ufo"
+    with fs.zipfs.ZipFS(testFontPath, write=True, encoding="utf-8") as destFS:
+        fs.copy.copy_fs(fileSystem, destFS.makedir(rootDir))
 
 
 class NotificationTestObserver(object):
