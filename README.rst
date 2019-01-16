@@ -60,12 +60,12 @@ Property List file format in XML, copyright
 names from PostScript and the OpenType FDK, copyright
 `Adobe <http://www.adobe.com>`_.
 
-.. |Travis Build Status| image:: https://travis-ci.org/typesupply/defcon.svg?branch=master
-   :target: https://travis-ci.org/typesupply/defcon
-.. |Appveyor Build Status| image:: https://ci.appveyor.com/api/projects/status/github/typesupply/defcon?branch=master&svg=true
-   :target: https://ci.appveyor.com/project/typesupply/defcon/branch/master
-.. |Coverage Status| image:: https://coveralls.io/repos/github/typesupply/defcon/badge.svg?branch=master
-   :target: https://coveralls.io/github/typesupply/defcon?branch=master
+.. |Travis Build Status| image:: https://travis-ci.org/robotools/defcon.svg?branch=master
+   :target: https://travis-ci.org/robotools/defcon
+.. |Appveyor Build Status| image:: https://ci.appveyor.com/api/projects/status/github/robotools/defcon?branch=master&svg=true
+   :target: https://ci.appveyor.com/project/robotools/defcon/branch/master
+.. |Coverage Status| image:: https://coveralls.io/repos/github/robotools/defcon/badge.svg?branch=master
+   :target: https://coveralls.io/github/robotools/defcon?branch=master
 .. |Python Versions| image:: https://img.shields.io/badge/python-2.7%2C%203.6%2C%203.7-blue.svg
 .. |PyPI Version| image:: https://img.shields.io/pypi/v/defcon.svg
    :target: https://pypi.org/project/defcon/
