@@ -45,7 +45,7 @@ Documentation
 ~~~~~~~~~~~~~
 
 Documentation for Defcon lives at
-`ts-defcon.readthedocs.io <http://ts-defcon.readthedocs.io/en/latest/>`_.
+`defcon.robotools.dev <http://defcon.robotools.dev/en/latest/>`_.
 
 Copyrights
 ~~~~~~~~~~
