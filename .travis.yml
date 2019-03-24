@@ -26,7 +26,7 @@ after_success:
   - tox -e coveralls
   # if it's a tagged commit, upload distribution packages to PyPI
   - |
-    if [ -n "$TRAVIS_TAG" ] && [ "$TRAVIS_REPO_SLUG" == "typesupply/defcon" ] && [ "$BUILD_DIST" == true ]; then
+    if [ -n "$TRAVIS_TAG" ] && [ "$TRAVIS_REPO_SLUG" == "robotools/defcon" ] && [ "$BUILD_DIST" == true ]; then
         pip install --upgrade twine pip setuptools wheel
         python setup.py sdist
         pip wheel --no-deps --wheel-dir dist .
