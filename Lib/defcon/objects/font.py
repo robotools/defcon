@@ -36,15 +36,11 @@ class Font(BaseObject):
 
     **This object posts the following notifications:**
 
-    ======================
-    Name
-    ======================
-    Font.Changed
-    Font.ReloadedGlyphs
-    Font.GlyphOrderChanged
-    Font.GuidelinesChanged
-    Font.GuidelineWillBeDeleted
-    ======================
+    - Font.Changed
+    - Font.ReloadedGlyphs
+    - Font.GlyphOrderChanged
+    - Font.GuidelinesChanged
+    - Font.GuidelineWillBeDeleted
 
     The Font object has some dict like behavior. For example, to get a glyph::
 

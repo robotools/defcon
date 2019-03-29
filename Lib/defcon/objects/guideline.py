@@ -12,16 +12,12 @@ class Guideline(BaseDictObject):
 
     **This object posts the following notifications:**
 
-    ===========================
-    Name
-    ===========================
-    Guideline.Changed
-    Guideline.XChanged
-    Guideline.YChanged
-    Guideline.AngleChanged
-    Guideline.NameChanged
-    Guideline.IdentifierChanged
-    ===========================
+    - Guideline.Changed
+    - Guideline.XChanged
+    - Guideline.YChanged
+    - Guideline.AngleChanged
+    - Guideline.NameChanged
+    - Guideline.IdentifierChanged
 
     During initialization a guideline dictionary, following the format defined
     in the UFO spec, can be passed. If so, the new object will be populated

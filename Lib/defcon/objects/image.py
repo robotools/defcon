@@ -20,15 +20,11 @@ class Image(BaseDictObject):
 
     **This object posts the following notifications:**
 
-    ===========================
-    Name
-    ===========================
-    Image.Changed
-    Image.FileNameChanged
-    Image.TransformationChanged
-    Image.ColorChanged
-    Image.ImageDataChanged
-    ===========================
+    - Image.Changed
+    - Image.FileNameChanged
+    - Image.TransformationChanged
+    - Image.ColorChanged
+    - Image.ImageDataChanged
 
     During initialization an image dictionary, following the format defined
     in the UFO spec, can be passed. If so, the new object will be populated

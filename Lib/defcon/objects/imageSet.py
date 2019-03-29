@@ -18,17 +18,13 @@ class ImageSet(BaseObject):
 
     **This object posts the following notifications:**
 
-    ===========================
-    Name
-    ===========================
-    ImageSet.Changed
-    ImageSet.FileNamesChanged
-    ImageSet.ImageChanged
-    ImageSet.ImageWillBeAdded
-    ImageSet.ImageAdded
-    ImageSet.ImageWillBeDeleted
-    ImageSet.ImageDeleted
-    ===========================
+    - ImageSet.Changed
+    - ImageSet.FileNamesChanged
+    - ImageSet.ImageChanged
+    - ImageSet.ImageWillBeAdded
+    - ImageSet.ImageAdded
+    - ImageSet.ImageWillBeDeleted
+    - ImageSet.ImageDeleted
 
     This object behaves like a dict. For example, to get the
     raw image data for a particular image::

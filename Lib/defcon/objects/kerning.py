@@ -11,19 +11,15 @@ class Kerning(BaseDictObject):
 
     **This object posts the following notifications:**
 
-    ===================
-    Name
-    ===================
-    Kerning.Changed
-    Kerning.BeginUndo
-    Kerning.EndUndo
-    Kerning.BeginRedo
-    Kerning.EndRedo
-    Kerning.PairSet
-    Kerning.PairDeleted
-    Kerning.Cleared
-    Kerning.Updated
-    ====================
+    - Kerning.Changed
+    - Kerning.BeginUndo
+    - Kerning.EndUndo
+    - Kerning.BeginRedo
+    - Kerning.EndRedo
+    - Kerning.PairSet
+    - Kerning.PairDeleted
+    - Kerning.Cleared
+    - Kerning.Updated
 
     This object behaves like a dict. For example, to get a list of all kerning pairs::
 

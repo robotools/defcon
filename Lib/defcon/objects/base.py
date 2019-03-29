@@ -9,15 +9,11 @@ class BaseObject(object):
 
     **This object posts the following notifications:**
 
-    ====================
-    Name
-    ====================
-    BaseObject.Changed
-    BaseObject.BeginUndo
-    BaseObject.EndUndo
-    BaseObject.BeginRedo
-    BaseObject.EndRedo
-    ====================
+    - BaseObject.Changed
+    - BaseObject.BeginUndo
+    - BaseObject.EndUndo
+    - BaseObject.BeginRedo
+    - BaseObject.EndRedo
 
     Keep in mind that subclasses will not post these same notifications.
 

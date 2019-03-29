@@ -12,11 +12,7 @@ class DataSet(BaseObject):
 
     **This object posts the following notifications:**
 
-    ===============
-    Name
-    ===============
-    DataSet.Changed
-    ===============
+    - DataSet.Changed
 
     """
 

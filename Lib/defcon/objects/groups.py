@@ -11,19 +11,15 @@ class Groups(BaseDictObject):
 
     **This object posts the following notifications:**
 
-    ===================
-    Name
-    ===================
-    Groups.Changed
-    Groups.BeginUndo
-    Groups.EndUndo
-    Groups.BeginRedo
-    Groups.EndRedo
-    Groups.GroupSet
-    Groups.GroupDeleted
-    Groups.Cleared
-    Groups.Updated
-    ===================
+    - Groups.Changed
+    - Groups.BeginUndo
+    - Groups.EndUndo
+    - Groups.BeginRedo
+    - Groups.EndRedo
+    - Groups.GroupSet
+    - Groups.GroupDeleted
+    - Groups.Cleared
+    - Groups.Updated
 
     This object behaves like a dict. The keys are group names and the
     values are lists of glyph names::

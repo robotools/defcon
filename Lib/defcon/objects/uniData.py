@@ -14,11 +14,7 @@ class UnicodeData(BaseDictObject):
 
     **This object posts the following notifications:**
 
-    ===================
-    Name
-    ===================
-    UnicodeData.Changed
-    ===================
+    - UnicodeData.Changed
 
     This object behaves like a dict. The keys are Unicode values and the
     values are lists of glyph names associated with that unicode value::

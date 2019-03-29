@@ -53,11 +53,7 @@ class LayoutEngine(BaseObject):
 
     **This object posts the following notifications:**
 
-    ====================
-    Name
-    ====================
-    LayoutEngine.Changed
-    ====================
+    - LayoutEngine.Changed
 
     This object monitors the font's feature text and character mapping. When
     those change, the compiled tables will be flagged for recompilation and

@@ -16,15 +16,12 @@ class Component(BaseObject):
 
     **This object posts the following notifications:**
 
-    ===============================
-    Name
-    ===============================
-    Component.Changed
-    Component.BaseGlyphChanged
-    Component.BaseGlyphDataChanged
-    Component.TransformationChanged
-    Component.IdentifierChanged
-    ===============================
+    - Component.Changed
+    - Component.BaseGlyphChanged
+    - Component.BaseGlyphDataChanged
+    - Component.TransformationChanged
+    - Component.IdentifierChanged
+
     """
 
     changeNotificationName = "Component.Changed"

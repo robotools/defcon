@@ -10,16 +10,13 @@ class Features(BaseObject):
 
     **This object posts the following notifications:**
 
-    ================
-    Name
-    ================
-    Features.Changed
-    Features.BeginUndo
-    Features.EndUndo
-    Features.BeginRedo
-    Features.EndRedo
-    Features.TextChanged
-    ================
+    - Features.Changed
+    - Features.BeginUndo
+    - Features.EndUndo
+    - Features.BeginRedo
+    - Features.EndRedo
+    - Features.TextChanged
+
     """
 
     changeNotificationName = "Features.Changed"
