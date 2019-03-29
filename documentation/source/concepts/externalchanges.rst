@@ -6,9 +6,9 @@
 External Changes
 ================
 
-It may be advantagious for your application to notice changes to a UFO that were made outside of your application. the :class:`~defcon.Font` object can help you with this. This object has a :meth:`~defcon.Font.testForExternalChanges` method. This method will compare the data that has been loaded into the font, glyphs, etc. with the data in the UFO on disk. It will report anything that is different from when the UFO was last loaded/saved.
+It may be advantageous for your application to notice changes to a UFO that were made outside of your application. the :class:`~defcon.Font` object can help you with this. This object has a :meth:`~defcon.Font.testForExternalChanges` method. This method will compare the data that has been loaded into the font, glyphs, etc. with the data in the UFO on disk. It will report anything that is different from when the UFO was last loaded/saved.
 
-To do this in a relatively effecient way, it stores the modification data and raw text of the UFO file inside the object. When the :meth:`~defcon.Font.testForExternalChanges` method is called, the modification date of the UFO file and the stored modification date are compared. A mismatch between these two will trigger a comparison between the raw text in the UFO file and the stored raw text. This helps cut down on a significant number of false positives.
+To do this in a relatively effiecient way, it stores the modification data and raw text of the UFO file inside the object. When the :meth:`~defcon.Font.testForExternalChanges` method is called, the modification date of the UFO file and the stored modification date are compared. A mismatch between these two will trigger a comparison between the raw text in the UFO file and the stored raw text. This helps cut down on a significant number of false positives.
 
 The :meth:`~defcon.Font.testForExternalChanges` method will return a dictionary describing what could have changed. You can then reload the data as appropriate. The :class:`~defcon.Font` object has a number of *reload* methods specifically for doing this.
 
