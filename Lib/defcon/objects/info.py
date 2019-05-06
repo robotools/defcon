@@ -59,16 +59,12 @@ class Info(BaseObject):
 
     **This object posts the following notifications:**
 
-    ===========================
-    Name
-    ===========================
-    Info.Changed
-    Info.BeginUndo
-    Info.EndUndo
-    Info.BeginRedo
-    Info.EndRedo
-    Info.ValueChanged
-    ===========================
+    - Info.Changed
+    - Info.BeginUndo
+    - Info.EndUndo
+    - Info.BeginRedo
+    - Info.EndRedo
+    - Info.ValueChanged
 
     **Note:** The documentation strings here were automatically generated
     from the `UFO specification <http://unifiedfontobject.org/filestructure/fontinfo.html>`_.

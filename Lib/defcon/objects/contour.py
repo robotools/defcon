@@ -18,14 +18,10 @@ class Contour(BaseObject):
 
     **This object posts the following notifications:**
 
-    ===============================
-    Name
-    ===============================
-    Contour.Changed
-    Contour.WindingDirectionChanged
-    Contour.PointsChanged
-    Contour.IdentifierChanged
-    ===============================
+    - Contour.Changed
+    - Contour.WindingDirectionChanged
+    - Contour.PointsChanged
+    - Contour.IdentifierChanged
 
     The Contour object has list like behavior. This behavior allows you to interact
     with point data directly. For example, to get a particular point::

@@ -10,19 +10,15 @@ class Lib(BaseDictObject):
 
     **This object posts the following notifications:**
 
-    ===============
-    Name
-    ===============
-    Lib.Changed
-    Lib.BeginUndo
-    Lib.EndUndo
-    Lib.BeginRedo
-    Lib.EndRedo
-    Lib.ItemSet
-    Lib.ItemDeleted
-    Lib.Cleared
-    Lib.Updated
-    ===============
+    - Lib.Changed
+    - Lib.BeginUndo
+    - Lib.EndUndo
+    - Lib.BeginRedo
+    - Lib.EndRedo
+    - Lib.ItemSet
+    - Lib.ItemDeleted
+    - Lib.Cleared
+    - Lib.Updated
 
     This object behaves like a dict. For example, to get a particular
     item from the lib::

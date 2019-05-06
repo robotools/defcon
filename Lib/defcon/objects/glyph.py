@@ -33,38 +33,34 @@ class Glyph(BaseObject):
 
     **This object posts the following notifications:**
 
-    ============================
-    Name
-    ============================
-    Glyph.Changed
-    Glyph.BeginUndo
-    Glyph.EndUndo
-    Glyph.BeginRedo
-    Glyph.EndRedo
-    Glyph.NameWillChange
-    Glyph.NameChanged
-    Glyph.UnicodesChanged
-    Glyph.WidthChanged
-    Glyph.HeightChanged
-    Glyph.NoteChanged
-    Glyph.LibChanged
-    Glyph.ImageChanged
-    Glyph.ImageWillBeDeleted
-    Glyph.ContourWillBeAdded
-    Glyph.ContourWillBeDeleted
-    Glyph.ContoursChanged
-    Glyph.ComponentWillBeAdded
-    Glyph.ComponentWillBeDeleted
-    Glyph.ComponentsChanged
-    Glyph.AnchorWillBeAdded
-    Glyph.AnchorWillBeDeleted
-    Glyph.AnchorsChanged
-    Glyph.GuidelineWillBeAdded
-    Glyph.GuidelineWillBeDeleted
-    Glyph.GuidelinesChanged
-    Glyph.MarkColorChanged
-    Glyph.VerticalOriginChanged
-    ============================
+    - Glyph.Changed
+    - Glyph.BeginUndo
+    - Glyph.EndUndo
+    - Glyph.BeginRedo
+    - Glyph.EndRedo
+    - Glyph.NameWillChange
+    - Glyph.NameChanged
+    - Glyph.UnicodesChanged
+    - Glyph.WidthChanged
+    - Glyph.HeightChanged
+    - Glyph.NoteChanged
+    - Glyph.LibChanged
+    - Glyph.ImageChanged
+    - Glyph.ImageWillBeDeleted
+    - Glyph.ContourWillBeAdded
+    - Glyph.ContourWillBeDeleted
+    - Glyph.ContoursChanged
+    - Glyph.ComponentWillBeAdded
+    - Glyph.ComponentWillBeDeleted
+    - Glyph.ComponentsChanged
+    - Glyph.AnchorWillBeAdded
+    - Glyph.AnchorWillBeDeleted
+    - Glyph.AnchorsChanged
+    - Glyph.GuidelineWillBeAdded
+    - Glyph.GuidelineWillBeDeleted
+    - Glyph.GuidelinesChanged
+    - Glyph.MarkColorChanged
+    - Glyph.VerticalOriginChanged
 
     The Glyph object has list like behavior. This behavior allows you to interact
     with contour data directly. For example, to get a particular contour::

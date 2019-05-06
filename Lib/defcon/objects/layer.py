@@ -18,31 +18,17 @@ class Layer(BaseObject):
 
     **This object posts the following notifications:**
 
-    +----------------------------+
-    |Name                        |
-    +============================+
-    |Layer.Changed               |
-    +----------------------------+
-    |Layer.GlyphsChanged         |
-    +----------------------------+
-    |Layer.GlyphChanged          |
-    +----------------------------+
-    |Layer.GlyphWillBeAdded      |
-    +----------------------------+
-    |Layer.GlyphAdded            |
-    +----------------------------+
-    |Layer.GlyphWillBeDeleted    |
-    +----------------------------+
-    |Layer.GlyphDeleted          |
-    +----------------------------+
-    |Layer.GlyphNameChanged      |
-    +----------------------------+
-    |Layer.GlyphUnicodesChanged  |
-    +----------------------------+
-    |Layer.NameChanged           |
-    +----------------------------+
-    |Layer.ColorChanged          |
-    +----------------------------+
+    - Layer.Changed
+    - Layer.GlyphsChanged
+    - Layer.GlyphChanged
+    - Layer.GlyphWillBeAdded
+    - Layer.GlyphAdded
+    - Layer.GlyphWillBeDeleted
+    - Layer.GlyphDeleted
+    - Layer.GlyphNameChanged
+    - Layer.GlyphUnicodesChanged
+    - Layer.NameChanged
+    - Layer.ColorChanged
 
     The Layer object has some dict like behavior. For example, to get a glyph::
 

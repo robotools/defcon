@@ -12,29 +12,16 @@ class LayerSet(BaseObject):
 
     **This object posts the following notifications:**
 
-    +-------------------------------+
-    |Name                           |
-    +===============================+
-    |LayerSet.Changed               |
-    +-------------------------------+
-    |LayerSet.LayersChanged         |
-    +-------------------------------+
-    |LayerSet.LayerChanged          |
-    +-------------------------------+
-    |LayerSet.DefaultLayerWillChange|
-    +-------------------------------+
-    |LayerSet.DefaultLayerChanged   |
-    +-------------------------------+
-    |LayerSet.LayerOrderChanged     |
-    +-------------------------------+
-    |LayerSet.LayerAdded            |
-    +-------------------------------+
-    |LayerSet.LayerDeleted          |
-    +-------------------------------+
-    |LayerSet.LayerWillBeDeleted    |
-    +-------------------------------+
-    |LayerSet.LayerNameChanged      |
-    +-------------------------------+
+    - LayerSet.Changed
+    - LayerSet.LayersChanged
+    - LayerSet.LayerChanged
+    - LayerSet.DefaultLayerWillChange
+    - LayerSet.DefaultLayerChanged
+    - LayerSet.LayerOrderChanged
+    - LayerSet.LayerAdded
+    - LayerSet.LayerDeleted
+    - LayerSet.LayerWillBeDeleted
+    - LayerSet.LayerNameChanged
 
     This object behaves like a dict. For example, to get a particular
     layer::
@@ -341,7 +328,7 @@ class LayerSet(BaseObject):
         The objects then stored in layer._glyphSet contain references
         to a closed, and therefore unusable, filesystem. To remedy this,
         after the save is completed this method will be called and new
-        GlyphSet objects will be created and assigned to the layers. 
+        GlyphSet objects will be created and assigned to the layers.
         """
         reader = UFOReader(self.font.path, validate=self.font.ufoLibReadValidate)
         if reader.fileStructure is UFOFileStructure.ZIP:
