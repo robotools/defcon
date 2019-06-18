@@ -41,6 +41,7 @@ class Font(BaseObject):
     - Font.GlyphOrderChanged
     - Font.GuidelinesChanged
     - Font.GuidelineWillBeDeleted
+    - Font.GuidelineWillBeAdded
 
     The Font object has some dict like behavior. For example, to get a glyph::
 
@@ -1064,6 +1065,7 @@ class Font(BaseObject):
         if not isinstance(guideline, self._guidelineClass):
             guideline = self.instantiateGuideline(guidelineDict=guideline)
         assert guideline.font in (self, None), "This guideline belongs to another font."
+        self.postNotification(notification="Font.GuidelineWillBeAdded")
         if guideline.font is None:
             assert guideline.glyph is None, "This guideline belongs to a glyph."
         if guideline.font is None:
