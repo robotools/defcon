@@ -216,7 +216,7 @@ class Glyph(BaseObject):
     def _set_unicodes(self, value):
         oldValue = self.unicodes
         if oldValue != value:
-            self._unicodes = value
+            self._unicodes = list(value)
             self.postNotification(notification="Glyph.UnicodesChanged", data=dict(oldValue=oldValue, newValue=value))
             self.dirty = True
 
