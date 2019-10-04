@@ -101,6 +101,20 @@ class GlyphTest(unittest.TestCase):
         self.assertEqual(glyph.unicodes, [123, 456])
         self.assertTrue(glyph.dirty)
 
+    def test_unicode_get(self):
+        font = Font(getTestFontPath())
+        glyph = font["A"]
+        self.assertEqual(glyph.unicode, 65)
+
+    def test_unicode_set(self):
+        font = Font(getTestFontPath())
+        glyph = font["A"]
+        glyph.unicode = 123
+        self.assertEqual(glyph.unicodes, [123])
+        glyph.unicode = 456
+        self.assertEqual(glyph.unicodes, [456])
+        self.assertTrue(glyph.dirty)
+
     def test_bounds(self):
         font = Font(getTestFontPath())
         glyph = font["A"]

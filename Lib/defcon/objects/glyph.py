@@ -216,7 +216,7 @@ class Glyph(BaseObject):
     def _set_unicodes(self, value):
         oldValue = self.unicodes
         if oldValue != value:
-            self._unicodes = value
+            self._unicodes = list(value)
             self.postNotification(notification="Glyph.UnicodesChanged", data=dict(oldValue=oldValue, newValue=value))
             self.dirty = True
 
@@ -231,11 +231,7 @@ class Glyph(BaseObject):
         if value is None:
             self.unicodes = []
         else:
-            existing = list(self._unicodes)
-            if value in existing:
-                existing.pop(existing.index(value))
-            existing.insert(0, value)
-            self.unicodes = existing
+            self.unicodes = [value]
 
     unicode = property(_get_unicode, _set_unicode, doc="The primary unicode value for the glyph. This is the equivalent of ``glyph.unicodes[0]``. This is a convenience attribute that works with the ``unicodes`` attribute.")
 
