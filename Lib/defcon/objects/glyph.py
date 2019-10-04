@@ -43,6 +43,14 @@ class Glyph(BaseObject):
     - Glyph.UnicodesChanged
     - Glyph.WidthChanged
     - Glyph.HeightChanged
+    - Glyph.LeftMarginWillChange
+    - Glyph.LeftMarginDidChange
+    - Glyph.RightMarginWillChange
+    - Glyph.RightMarginDidChange
+    - Glyph.TopMarginWillChange
+    - Glyph.TopMarginDidChange
+    - Glyph.BottomMarginWillChange
+    - Glyph.BottomMarginDidChange
     - Glyph.NoteChanged
     - Glyph.LibChanged
     - Glyph.ImageChanged
@@ -288,11 +296,13 @@ class Glyph(BaseObject):
         oldValue = xMin
         diff = value - xMin
         if value != oldValue:
+            self.postNotification(notification="Glyph.LeftMarginWillChange", data=dict(oldValue=oldValue, newValue=value))
             self.move((diff, 0))
             self.width += diff
             self.dirty = True
+            self.postNotification(notification="Glyph.LeftMarginDidChange", data=dict(oldValue=oldValue, newValue=value))
 
-    leftMargin = property(_get_leftMargin, _set_leftMargin, doc="The left margin of the glyph. Setting this post *Glyph.WidthChanged* and *Glyph.Changed* notifications among others.")
+    leftMargin = property(_get_leftMargin, _set_leftMargin, doc="The left margin of the glyph. Setting this posts *Glyph.WidthChanged*, *Glyph.LeftMarginWillChange*, *Glyph.LeftMarginDidChange* and *Glyph.Changed* notifications among others.")
 
     def _get_rightMargin(self):
         bounds = self.bounds
@@ -308,10 +318,12 @@ class Glyph(BaseObject):
         xMin, yMin, xMax, yMax = bounds
         oldValue = self._width - xMax
         if oldValue != value:
+            self.postNotification(notification="Glyph.RightMarginWillChange", data=dict(oldValue=oldValue, newValue=value))
             self.width = xMax + value
             self.dirty = True
+            self.postNotification(notification="Glyph.RightMarginDidChange", data=dict(oldValue=oldValue, newValue=value))
 
-    rightMargin = property(_get_rightMargin, _set_rightMargin, doc="The right margin of the glyph. Setting this posts *Glyph.WidthChanged* and *Glyph.Changed* notifications among others.")
+    rightMargin = property(_get_rightMargin, _set_rightMargin, doc="The right margin of the glyph. Setting this posts *Glyph.WidthChanged*, *Glyph.RightMarginWillChange*, *Glyph.RightMarginDidChange*  and *Glyph.Changed* notifications among others.")
 
     def _get_bottomMargin(self):
         bounds = self.bounds
@@ -335,10 +347,12 @@ class Glyph(BaseObject):
             oldValue = yMin - (self.verticalOrigin - self.height)
         diff = value - oldValue
         if value != oldValue:
+            self.postNotification(notification="Glyph.BottomMarginWillChange", data=dict(oldValue=oldValue, newValue=value))
             self.height += diff
             self.dirty = True
+            self.postNotification(notification="Glyph.BottomMarginDidChange", data=dict(oldValue=oldValue, newValue=value))
 
-    bottomMargin = property(_get_bottomMargin, _set_bottomMargin, doc="The bottom margin of the glyph. Setting this post *Glyph.HeightChanged* and *Glyph.Changed* notifications among others.")
+    bottomMargin = property(_get_bottomMargin, _set_bottomMargin, doc="The bottom margin of the glyph. Setting this posts *Glyph.HeightChanged*, *Glyph.BottomMarginWillChange*, *Glyph.BottomMarginDidChange*  and *Glyph.Changed* notifications among others.")
 
     def _get_topMargin(self):
         bounds = self.bounds
@@ -361,11 +375,13 @@ class Glyph(BaseObject):
             oldValue = self.verticalOrigin - yMax
         diff = value - oldValue
         if oldValue != value:
+            self.postNotification(notification="Glyph.TopMarginWillChange", data=dict(oldValue=oldValue, newValue=value))
             self.verticalOrigin = yMax + value
             self.height += diff
             self.dirty = True
+            self.postNotification(notification="Glyph.TopMarginWillChange", data=dict(oldValue=oldValue, newValue=value))
 
-    topMargin = property(_get_topMargin, _set_topMargin, doc="The top margin of the glyph. Setting this posts *Glyph.HeightChanged*, *Glyph.VerticalOriginChanged* and *Glyph.Changed* notifications among others.")
+    topMargin = property(_get_topMargin, _set_topMargin, doc="The top margin of the glyph. Setting this posts *Glyph.HeightChanged*, *Glyph.VerticalOriginChanged*, *Glyph.TopMarginWillChange*, *Glyph.TopMarginDidChange*  and *Glyph.Changed* notifications among others.")
 
     # width
 
