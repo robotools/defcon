@@ -25,7 +25,7 @@ def joinSegments(onCoords1, offCoords1, offCoords2, onCoords2, offCoords3, offCo
     (off3X, off3Y) = offCoords3
     (off4X, off4Y) = offCoords4
     (on3X, on3Y) = onCoords3
-    if (on1X, on1Y) == (off1X, off1Y) and (off2X, off2Y) == (on2X, on2Y) == (off3X, off3Y) and  (off4X, off4Y) == (on3X, on3Y):
+    if (on1X, on1Y) == (off1X, off1Y) and (off2X, off2Y) == (on2X, on2Y) == (off3X, off3Y) and (off4X, off4Y) == (on3X, on3Y):
         ## a two line segments
         return (on1X, on1Y), (off4X, off4Y), (on3X, on3Y)
     if (on1X, on1Y) == (off1X, off1Y) and (off2X, off2Y) == (on2X, on2Y):
