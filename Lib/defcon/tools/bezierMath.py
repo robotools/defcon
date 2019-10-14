@@ -2,7 +2,7 @@
 Contributed by Frederik Berlaen.
 """
 
-from math import sqrt, atan2
+from math import sqrt, atan2, radians, degrees
 
 def _distance(coordinates1, coordinates2):
     (x1, y1) = coordinates1
@@ -25,32 +25,48 @@ def joinSegments(onCoords1, offCoords1, offCoords2, onCoords2, offCoords3, offCo
     (off3X, off3Y) = offCoords3
     (off4X, off4Y) = offCoords4
     (on3X, on3Y) = onCoords3
-    if (on1X, on1Y) == (off1X, off1Y) and (off2X, off2Y) == (on2X, on2Y) == (off3X, off3Y) and  (off4X, off4Y) == (on3X, on3Y):
+    if (on1X, on1Y) == (off1X, off1Y) and (off2X, off2Y) == (on2X, on2Y) == (off3X, off3Y) and (off4X, off4Y) == (on3X, on3Y):
         ## a two line segments
         return (on1X, on1Y), (off4X, off4Y), (on3X, on3Y)
     if (on1X, on1Y) == (off1X, off1Y) and (off2X, off2Y) == (on2X, on2Y):
         ## first is a line segement
-        d1 = _distance((on1X, on1Y), (off2X, off2Y))
-        d2 = d1 + _distance((on2X, on2Y), (off3X, off3Y))
-        if d1 == 0:
-            x, y = off3X, off3Y
+        lineAngle = atan2(on2X - on1X, on2Y - on1Y)
+        handleAngle = atan2(off3X - on2X, off3Y - on2Y)
+        if radians(-30) < lineAngle - handleAngle < radians(30):
+            d1 = _distance((on1X, on1Y), (off2X, off2Y))
+            d2 = d1 + _distance((on2X, on2Y), (off3X, off3Y))
+            if d1 == 0:
+                x, y = off3X, off3Y
+            else:
+                factor = d2 / d1
+                x = on1X + (off2X - on1X) * factor
+                y = on1Y + (off2Y - on1Y) * factor
+            return (x, y), (off4X, off4Y), (on3X, on3Y)
         else:
-            factor = d2 / d1
-            x = on1X + (off2X - on1X) * factor
-            y = on1Y + (off2Y - on1Y) * factor
-        return (x, y), (off4X, off4Y), (on3X, on3Y)
+            # just move the off curve point
+            x = off3X - (off2X - on1X)
+            y = off3Y - (off2Y - on1Y)
+            return (x, y), (off4X, off4Y), (on3X, on3Y)
 
     if (on2X, on2Y) == (off3X, off3Y) and (off4X, off4Y) == (on3X, on3Y):
         ## last is a line segment
-        d1 = _distance((on3X, on3Y), (off3X, off3Y))
-        d2 = d1 + _distance((on2X, on2Y), (off2X, off2Y))
-        if d1 == 0:
-            x, y = off2X, off2Y
+        handleAngle = atan2(on2X - off2X, on2Y - off2Y)
+        lineAngle = atan2(on3X - on2X, on3Y - on2Y)
+        if radians(-30) < lineAngle - handleAngle < radians(30):
+            d1 = _distance((on3X, on3Y), (off3X, off3Y))
+            d2 = d1 + _distance((on2X, on2Y), (off2X, off2Y))
+            if d1 == 0:
+                x, y = off2X, off2Y
+            else:
+                factor = d2 / d1
+                x = on3X + (off3X - on3X) * factor
+                y = on3Y + (off3Y - on3Y) * factor
+            return (off1X, off1Y), (x, y), (on3X, on3Y)
         else:
-            factor = d2 / d1
-            x = on3X + (off3X - on3X) * factor
-            y = on3Y + (off3Y - on3Y) * factor
-        return (off1X, off1Y), (x, y), (on3X, on3Y)
+            # just move the off curve point
+            x = off2X + (off4X - on2X)
+            y = off2Y + (off4Y - on2Y)
+            return (off1X, off1Y), (x, y), (on3X, on3Y)
 
     if (off2X, off2Y) == (on2X, on2Y) == (off3X, off3Y) or (off2X, off2Y) == (on2X, on2Y) or (on2X, on2Y) == (off3X, off3Y):
         ## one or more bcps are on the joined point
