@@ -4,9 +4,7 @@ env:
     - TWINE_USERNAME="anthrotype"
     - secure: piLAOQojWKQ8qLE8sfe4cfP8qKiZjgAMpe+e+4YVdMRX853qY8b3Ndnqo5kKnNObHiW46BiLh1A12lLaL+yxxyF6S+eGS0TIRZGhZjiqll+aScIg+M4jXGKsQdnWOns5VFNw5uqll1098HrWcP67w6YCHZjXcNCJJx+icw8f3nH74Drzb3CXGVUn1plRFBtwZrMk9ysCP+icB7OA5maSGcZE38WqoseoxH+lbOa9cIK4mn9v+zhfS1E+WRcQCpKfrwzYRxp/mo4IaxlIhRmihMaAoDSiE7/KcYOjJtXwK00Vui/go5UP1xGZute+CpgS+tfZNHeQs4HJ6Z+P1wI3SlBNkcWh6RXRH0uPeF+ioE1w1rBLp9IIE3Km/G/QJOh7NzGzgquFw3co1svou7lWzRyv8hnzQ0C4OP3WBP+6/oA+Tw+OfbX1a3QTTn9wCfnbr+ChZ6uCayVuvU7wH1FElGNkphM7AN67vUg4QMofrk7HxcL+ynSuBFCa5E0h1HjAIZXpFCQ9lSEnXpRYg5knGaGtJXgUzQH3S7N5VFFCmLF8KSvIjd7VnK/VoXccZzCDAOTmHVNsNkKPs+PnlYDvbkRWG+FjJOCrCGYFrWGWk5PbOtmUPX3rt5cDzBlhQflb5NFWpYl6D22SSeQQE8fiq+6U07y/gkQfEi2RHmZzKuk=
 matrix:
-  include:
-    - python: 2.7
-      env: TOXENV=py27-cov
+  include:    
     - python: 3.6
       env: TOXENV=py36-cov
     - python: 3.7
