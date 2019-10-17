@@ -54,7 +54,7 @@ class NotificationCenter(object):
         Add an observer to this notification dispatcher.
 
         * **observer** An object that can be referenced with weakref.
-        * **methodName** A string epresenting the method to be called
+        * **methodName** A string representing the method to be called
           when the notification is posted.
         * **notification** The notification that the observer should
           be notified of. If this is None, all notifications for

@@ -39,7 +39,7 @@ def registerRepresentationFactory(cls, name, factory, destructiveNotifications=N
 
 def unregisterRepresentationFactory(cls, name):
     """
-    Unegister the representation factory stored under
+    Unregister the representation factory stored under
     **name** in all instances of **cls**.
     """
     del cls.representationFactories[name]
