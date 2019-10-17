@@ -262,7 +262,7 @@ class Contour(BaseObject):
         """
         Reverse the direction of the contour. It's important to note
         that the actual points stored in this object will be completely
-        repalced by new points.
+        replaced by new points.
 
         This will post *Contour.WindingDirectionChanged*,
         *Contour.PointsChanged* and *Contour.Changed* notifications.

@@ -89,7 +89,7 @@ def joinSegments(onCoords1, offCoords1, offCoords2, onCoords2, offCoords3, offCo
         if abs(a1 - a2) < 0.05:
             smooth = True
 
-    # first calculate an aproximaly t
+    # first calculate an approximaly t
     d1 = _distance((on2X, on2Y), (off2X, off2Y))
     d2 = d1 + _distance((off3X, off3Y), (on2X, on2Y))
 
