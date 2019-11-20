@@ -87,8 +87,8 @@ class DataSetTest(unittest.TestCase):
             path = makeTestFontCopy(path)
             with Font(path) as font:
                 del font.data["com.typesupply.defcon.test.file"]
-                reader = UFOReader(path)
-                self.assertEqual(font.data.testForExternalChanges(reader),
+                with UFOReader(path) as reader:
+                    self.assertEqual(font.data.testForExternalChanges(reader),
                                  ([], [], []))
             tearDownTestFontCopy(font.path)
 
@@ -98,8 +98,8 @@ class DataSetTest(unittest.TestCase):
             path = makeTestFontCopy(path)
             with Font(path) as font:
                 font.data["com.typesupply.defcon.test.file2"] = "blah"
-                reader = UFOReader(path)
-                self.assertEqual(font.data.testForExternalChanges(reader),
+                with UFOReader(path) as reader:
+                    self.assertEqual(font.data.testForExternalChanges(reader),
                                  ([], [], []))
             tearDownTestFontCopy(font.path)
 
@@ -108,9 +108,9 @@ class DataSetTest(unittest.TestCase):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
             with Font(path) as font:
-                reader = UFOReader(path)
-                font.data["com.typesupply.defcon.test.file"] = "blah"
-                self.assertEqual(font.data.testForExternalChanges(reader),
+                with UFOReader(path) as reader:
+                    font.data["com.typesupply.defcon.test.file"] = "blah"
+                    self.assertEqual(font.data.testForExternalChanges(reader),
                                  ([], [], []))
             tearDownTestFontCopy(font.path)
 
@@ -125,8 +125,8 @@ class DataSetTest(unittest.TestCase):
                 fileSystem.remove(fs.path.join("data",
                                        "com.typesupply.defcon.test.file"))
                 closeTestFontAsFileSystem(fileSystem, font.path)
-                reader = UFOReader(path)
-                self.assertEqual(font.data.testForExternalChanges(reader),
+                with UFOReader(path) as reader:
+                    self.assertEqual(font.data.testForExternalChanges(reader),
                                  ([], [], ["com.typesupply.defcon.test.file"]))
             tearDownTestFontCopy(font.path)
 
@@ -140,8 +140,8 @@ class DataSetTest(unittest.TestCase):
                 dest = fs.path.join("data", "com.typesupply.defcon.test.file2")
                 fileSystem.copy(source, dest)
                 closeTestFontAsFileSystem(fileSystem, font.path)
-                reader = UFOReader(path)
-                self.assertEqual(font.data.testForExternalChanges(reader),
+                with UFOReader(path) as reader:
+                    self.assertEqual(font.data.testForExternalChanges(reader),
                                  ([], ["com.typesupply.defcon.test.file2"], []))
             tearDownTestFontCopy(font.path)
 
@@ -157,8 +157,8 @@ class DataSetTest(unittest.TestCase):
                                         "com.typesupply.defcon.test.file")
                 fileSystem.writebytes(filePath, b"blah")
                 closeTestFontAsFileSystem(fileSystem, font.path)
-                reader = UFOReader(path)
-                self.assertEqual(font.data.testForExternalChanges(reader),
+                with UFOReader(path) as reader:
+                    self.assertEqual(font.data.testForExternalChanges(reader),
                                  (["com.typesupply.defcon.test.file"], [], []))
             tearDownTestFontCopy(font.path)
 
