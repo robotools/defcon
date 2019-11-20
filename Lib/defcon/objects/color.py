@@ -1,5 +1,3 @@
-from fontTools.misc.py23 import basestring
-
 
 class Color(str):
 
@@ -17,7 +15,7 @@ class Color(str):
 
     def __new__(self, value):
         # convert from string
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             value = _stringToSequence(value)
         r, g, b, a = value
         # validate the values

@@ -589,9 +589,9 @@ class FontTest(unittest.TestCase):
                 # make a simple change to the kerning data
                 fileSystem = openTestFontAsFileSystem(font.path)
                 path = u"kerning.plist"
-                t = fileSystem.getbytes(path)
+                t = fileSystem.readbytes(path)
                 t += b"<!-- test -->"
-                fileSystem.setbytes(path, t)
+                fileSystem.writebytes(path, t)
                 k._dataOnDiskTimeStamp -= 1
                 closeTestFontAsFileSystem(fileSystem, font.path)
 

@@ -190,9 +190,9 @@ class LayerTest(unittest.TestCase):
                 fileSystem = openTestFontAsFileSystem(font.path)
                 g = font.layers[None]["A"]
                 path = fs.path.join("glyphs", "A_.glif")
-                t = fileSystem.getbytes(path)
+                t = fileSystem.readbytes(path)
                 t += b"<!-- test -->"
-                fileSystem.setbytes(path, t)
+                fileSystem.writebytes(path, t)
                 g._dataOnDiskTimeStamp -= 1
                 closeTestFontAsFileSystem(fileSystem, font.path)
                 reader = UFOReader(font.path)
@@ -209,11 +209,11 @@ class LayerTest(unittest.TestCase):
                 # add a glyph
                 fileSystem = openTestFontAsFileSystem(font.path)
                 path = fs.path.join("glyphs", "A_.glif")
-                t = fileSystem.getbytes(path)
+                t = fileSystem.readbytes(path)
                 t = t.replace(b'<glyph name="A" format="1">',
                               b'<glyph name="XYZ" format="1">')
                 path = fs.path.join("glyphs", "XYZ.glif")
-                fileSystem.setbytes(path, t)
+                fileSystem.writebytes(path, t)
                 path = fs.path.join("glyphs", "contents.plist")
                 with fileSystem.open(path, "rb") as f:
                     plist = load(f)

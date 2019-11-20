@@ -166,8 +166,8 @@ class ImageSetTest(unittest.TestCase):
             font.images["image 1.png"]  # image = font.images["image 1.png"]
             fileSystem = openTestFontAsFileSystem(font.path)
             imagePath = fs.path.join("images", "image 1.png")
-            data = fileSystem.getbytes(imagePath)
-            fileSystem.setbytes(imagePath, data + b"blah")
+            data = fileSystem.readbytes(imagePath)
+            fileSystem.writebytes(imagePath, data + b"blah")
             closeTestFontAsFileSystem(fileSystem, font.path)
             reader = UFOReader(path)
             self.assertEqual(font.images.testForExternalChanges(reader),

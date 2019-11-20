@@ -63,7 +63,7 @@ class DataSet(BaseObject):
     def __getitem__(self, fileName):
         if self._data[fileName]["data"] is None:
             path = self.font.path
-            reader = UFOReader(path, validate=False)
+            reader = self.font._reader
             path = "%s/%s" % ("data", fileName)
             data = reader.readBytesFromPath(path)
             onDiskModTime = reader.getFileModificationTime(path)
@@ -110,13 +110,13 @@ class DataSet(BaseObject):
         if saveAs:
             font = self.font
             if font is not None and font.path is not None and os.path.exists(font.path):
-                reader = UFOReader(font.path, validate=False)
-                readerDataDirectoryListing = reader.getDataDirectoryListing()
-                for fileName, data in self._data.items():
-                    path = "%s/%s" % ("data", fileName)
-                    if data["data"] is not None or fileName not in readerDataDirectoryListing:
-                        continue
-                    writer.copyFromReader(reader, path, path)
+                with UFOReader(font.path, validate=False) as reader:
+                    readerDataDirectoryListing = reader.getDataDirectoryListing()
+                    for fileName, data in self._data.items():
+                        path = "%s/%s" % ("data", fileName)
+                        if data["data"] is not None or fileName not in readerDataDirectoryListing:
+                            continue
+                        writer.copyFromReader(reader, path, path)
         for fileName in self._scheduledForDeletion:
             # instead of trying to maintain a list of in UFO
             # vs. in memory, simply skip and move on when
