@@ -188,6 +188,21 @@ class Font(BaseObject):
             layer = self.newLayer("public.default")
             self._layers.defaultLayer = layer
 
+    def close(self):
+        # close file systems
+        if hasattr(self, "_reader") and self._reader is not None:
+            self._reader.close()
+            del self._reader
+        for layer in self.layers:
+            if layer._glyphSet is not None:
+                layer._glyphSet.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        self.close()
+
     def _get_dispatcher(self):
         return self._dispatcher
 
