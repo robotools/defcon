@@ -477,7 +477,7 @@ class FontTest(unittest.TestCase):
 
     def test_save_same_path_different_structure(self):
         for ufo in ("TestFont.ufo", "TestFont.ufoz"):
-            path = getTestFontPath(ufo)
+            path = makeTestFontCopy(getTestFontPath(ufo))
             isZip = zipfile.is_zipfile(path)
             with Font(path) as font:
                 with self.assertRaisesRegex(
