@@ -135,6 +135,7 @@ class Font(BaseObject):
         self._identifiers = set()
 
         self._dirty = False
+        self._reader = None
 
         if path:
             if not isinstance(path, basestring) and not hasattr(path, "__fspath__"):
@@ -142,7 +143,7 @@ class Font(BaseObject):
                     "invalid path: expected string or os.PathLike, found %s"
                     % type(path).__name__
                 )
-            reader = UFOReader(self._path, validate=self.ufoLibReadValidate)
+            self._reader = reader = UFOReader(self._path, validate=self.ufoLibReadValidate)
             self._ufoFormatVersion = reader.formatVersion
             self._ufoFileStructure = reader.fileStructure
             # go ahead and load the layers
@@ -175,7 +176,6 @@ class Font(BaseObject):
             # are modified by an external source before being read.
             # that could create a data corruption within this object.
             if self._ufoFormatVersion < 3:
-                self._reader = reader
                 self._kerningGroupConversionRenameMaps = reader.getKerningGroupConversionRenameMaps()
                 k = self.kerning
                 g = self.groups
@@ -190,7 +190,7 @@ class Font(BaseObject):
 
     def close(self):
         # close file systems
-        if hasattr(self, "_reader") and self._reader is not None:
+        if self._reader is not None:
             self._reader.close()
             del self._reader
         for layer in self.layers:
