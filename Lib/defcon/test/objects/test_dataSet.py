@@ -155,7 +155,7 @@ class DataSetTest(unittest.TestCase):
                 fileSystem = openTestFontAsFileSystem(font.path)
                 filePath = fs.path.join("data",
                                         "com.typesupply.defcon.test.file")
-                fileSystem.setbytes(filePath, b"blah")
+                fileSystem.writebytes(filePath, b"blah")
                 closeTestFontAsFileSystem(fileSystem, font.path)
                 reader = UFOReader(path)
                 self.assertEqual(font.data.testForExternalChanges(reader),
