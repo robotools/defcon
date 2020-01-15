@@ -609,6 +609,25 @@ class GlyphTest(unittest.TestCase):
         self.assertFalse(glyph.pointInside((350, 350)))
         self.assertFalse(glyph.pointInside((-100, -100)))
 
+    def test_area(self):
+        font = Font()
+
+        baseGlyph = font.newGlyph("baseGlyph")
+        pointPen = baseGlyph.getPointPen()
+        pointPen.beginPath()
+        pointPen.addPoint((0, 0), "move")
+        pointPen.addPoint((0, 100), "line")
+        pointPen.addPoint((100, 100), "line")
+        pointPen.addPoint((100, 0), "line")
+        pointPen.addPoint((0, 0), "line")
+        pointPen.endPath()
+        self.assertEqual(baseGlyph.area, 10000)
+
+        componentGlyph = font.newGlyph("componentGlyph")
+        pointPen = componentGlyph.getPointPen()
+        pointPen.addComponent("baseGlyph", [1, 0, 0, 1, 0, 0])
+        self.assertEqual(componentGlyph.area, 10000)
+
 
 if __name__ == "__main__":
     unittest.main()
