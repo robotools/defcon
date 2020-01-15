@@ -40,7 +40,7 @@ def _makeGlyphToGroupMapping(groups):
 # -----
 
 def glyphAreaRepresentationFactory(glyph):
-    pen = AreaPen()
+    pen = AreaPen(glyph.layer)
     glyph.draw(pen)
     return abs(pen.value)
 
