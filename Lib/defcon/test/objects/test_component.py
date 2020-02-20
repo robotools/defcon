@@ -64,6 +64,19 @@ class ComponentTest(unittest.TestCase):
         with self.assertRaises(AttributeError):
             self.component.layer = (0.0, 0.0, 350.0, 350.0)
 
+    def test_update_bounds(self):
+        font = Font(getTestFontPath())
+        a = font["A"]
+        self.assertEqual(a.bounds, (0, 0, 700, 700))
+        aacute = font.newGlyph('Aacute')
+        component = Component()
+        component.baseGlyph = 'A'
+        aacute.appendComponent(component)
+        self.assertEqual(aacute.bounds, (0, 0, 700, 700))
+        a.leftMargin = 100
+        self.assertEqual(a.bounds, (100, 0, 800, 700))
+        self.assertEqual(aacute.bounds, (100, 0, 800, 700))
+
     def test_controlPointBounds(self):
         self.font = Font(getTestFontPath())
         self.glyph = self.font["C"]
