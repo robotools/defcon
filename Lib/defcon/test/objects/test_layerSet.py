@@ -176,17 +176,18 @@ class LayerTest(unittest.TestCase):
                 dump(contents, f)
             closeTestFontAsFileSystem(fileSystem, path)
             font = Font(path)
-            fileSystem = openTestFontAsFileSystem(path)
-            fileSystem.removetree(u"glyphs.test")
-            with fileSystem.open(u"layercontents.plist", "rb") as f:
-                contents = load(f)
-            del contents[-1]
-            with fileSystem.open(u"layercontents.plist", "wb") as f:
-                dump(contents, f)
-            closeTestFontAsFileSystem(fileSystem, path)
-            reader = UFOReader(path)
-            self.assertEqual(font.layers.testForExternalChanges(reader)["deleted"],
-                             ["test"])
+            with font:
+                fileSystem = openTestFontAsFileSystem(path)
+                fileSystem.removetree(u"glyphs.test")
+                with fileSystem.open(u"layercontents.plist", "rb") as f:
+                    contents = load(f)
+                del contents[-1]
+                with fileSystem.open(u"layercontents.plist", "wb") as f:
+                    dump(contents, f)
+                closeTestFontAsFileSystem(fileSystem, path)
+                reader = UFOReader(path)
+                self.assertEqual(font.layers.testForExternalChanges(reader)["deleted"],
+                                 ["test"])
             tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_change_layer_order(self):
