@@ -4,7 +4,7 @@ import re
 import tempfile
 import shutil
 from fontTools.misc.py23 import basestring
-from fontTools.ufoLib import UFOReader, UFOWriter, UFOLibError, UFOFileStructure
+from fontTools.ufoLib import UFOReader, UFOWriter, UFOLibError, UFOFileStructure, UFOFormatVersion
 from defcon.objects.base import BaseObject
 from defcon.objects.layerSet import LayerSet
 from defcon.objects.info import Info
@@ -143,7 +143,7 @@ class Font(BaseObject):
                     % type(path).__name__
                 )
             reader = UFOReader(self._path, validate=self.ufoLibReadValidate)
-            self._ufoFormatVersion = reader.formatVersion
+            self._ufoFormatVersion = reader.formatVersionTuple
             self._ufoFileStructure = reader.fileStructure
             # go ahead and load the layers
             self._layers.disableNotifications()
@@ -167,14 +167,14 @@ class Font(BaseObject):
             self._data.fileNames = reader.getDataDirectoryListing()
             self._data.enableNotifications()
             # if the UFO version is 1, do some conversion.
-            if self._ufoFormatVersion == 1:
+            if self._ufoFormatVersion == UFOFormatVersion.FORMAT_1_0:
                 self._convertFromFormatVersion1RoboFabData()
             # if the ufo version is < 3, read the kerning and groups
             # right now. do this by creating a reference to the reader.
             # otherwise a situation could arise where the groups
             # are modified by an external source before being read.
             # that could create a data corruption within this object.
-            if self._ufoFormatVersion < 3:
+            if self._ufoFormatVersion < UFOFormatVersion.FORMAT_3_0:
                 self._reader = reader
                 self._kerningGroupConversionRenameMaps = reader.getKerningGroupConversionRenameMaps()
                 k = self.kerning
@@ -796,9 +796,12 @@ class Font(BaseObject):
         # came in when the UFO was loaded
         if formatVersion is None and self._ufoFormatVersion is not None:
             formatVersion = self._ufoFormatVersion
-        # otherwise fallback to 3
+        # otherwise fallback to the default
         elif formatVersion is None:
-            formatVersion = 3
+            formatVersion = UFOFormatVersion.default()
+        else:
+            # convert it to a UFOFormatVersion object
+            formatVersion = UFOFormatVersion(formatVersion)
         # if down-converting in-place or "saving as" to a pre-existing path,
         # we first write to a temporary folder, then move to destination
         overwritePath = None
@@ -839,10 +842,10 @@ class Font(BaseObject):
                 self.groups.dirty = True
                 self.kerning.dirty = True
                 self.lib.dirty = True
-                if formatVersion > 1:
+                if formatVersion > UFOFormatVersion.FORMAT_1_0:
                     self.features.dirty = True
             # set the kerning group remap if necessary
-            if formatVersion < 3 and self._kerningGroupConversionRenameMaps is not None:
+            if formatVersion < UFOFormatVersion.FORMAT_3_0 and self._kerningGroupConversionRenameMaps is not None:
                 writer.setKerningGroupConversionRenameMaps(self._kerningGroupConversionRenameMaps)
             # save the objects
             self._saveInfo(writer=writer, saveAs=saveAs, progressBar=progressBar)
@@ -851,9 +854,9 @@ class Font(BaseObject):
             # Gremlins may be sneaking out through here.
             self._saveKerning(writer=writer, saveAs=saveAs, progressBar=progressBar)
             self._saveLib(writer=writer, saveAs=saveAs, progressBar=progressBar)
-            if formatVersion >= 2:
+            if formatVersion >= UFOFormatVersion.FORMAT_2_0:
                 self._saveFeatures(writer=writer, saveAs=saveAs, progressBar=progressBar)
-            if formatVersion >= 3:
+            if formatVersion >= UFOFormatVersion.FORMAT_3_0:
                 self.saveImages(writer=writer, removeUnreferencedImages=removeUnreferencedImages, saveAs=saveAs, progressBar=progressBar)
                 self.saveData(writer=writer, saveAs=saveAs, progressBar=progressBar)
             self.layers.save(writer, saveAs=saveAs, progressBar=progressBar)
@@ -969,7 +972,7 @@ class Font(BaseObject):
         # temporary down conversion before
         # passing the lib to the writer
         libCopy = dict(self.lib)
-        if writer.formatVersion == 1:
+        if writer.formatVersionTuple == UFOFormatVersion.FORMAT_1_0:
             self._convertToFormatVersion1RoboFabData(libCopy)
         writer.writeLib(libCopy, validate=self.lib.ufoLibWriteValidate)
 

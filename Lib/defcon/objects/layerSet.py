@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 import weakref
-from fontTools.ufoLib import UFOReader, UFOFileStructure
+from fontTools.ufoLib import UFOReader, UFOFileStructure, UFOFormatVersion
 from defcon.objects.base import BaseObject
 from defcon.objects.layer import Layer
 
@@ -289,7 +289,7 @@ class LayerSet(BaseObject):
                     pass
         # save the layers
 
-        if writer.formatVersion < 3:
+        if writer.formatVersionTuple < UFOFormatVersion.FORMAT_3_0:
             if progressBar is not None:
                 progressBar.update(text="Saving glyphs...", increment=0)
             layer = self.defaultLayer
