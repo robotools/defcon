@@ -87,9 +87,9 @@ class DataSetTest(unittest.TestCase):
             path = makeTestFontCopy(path)
             font = Font(path)
             del font.data["com.typesupply.defcon.test.file"]
-            reader = UFOReader(path)
-            self.assertEqual(font.data.testForExternalChanges(reader),
-                             ([], [], []))
+            with UFOReader(path) as reader:
+                self.assertEqual(font.data.testForExternalChanges(reader),
+                                 ([], [], []))
             tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_add_in_memory_and_scan(self):
@@ -98,9 +98,9 @@ class DataSetTest(unittest.TestCase):
             path = makeTestFontCopy(path)
             font = Font(path)
             font.data["com.typesupply.defcon.test.file2"] = "blah"
-            reader = UFOReader(path)
-            self.assertEqual(font.data.testForExternalChanges(reader),
-                             ([], [], []))
+            with UFOReader(path) as reader:
+                self.assertEqual(font.data.testForExternalChanges(reader),
+                                 ([], [], []))
             tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_modify_in_memory_and_scan(self):
@@ -108,10 +108,10 @@ class DataSetTest(unittest.TestCase):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
             font = Font(path)
-            reader = UFOReader(path)
             font.data["com.typesupply.defcon.test.file"] = "blah"
-            self.assertEqual(font.data.testForExternalChanges(reader),
-                             ([], [], []))
+            with UFOReader(path) as reader:
+                self.assertEqual(font.data.testForExternalChanges(reader),
+                                 ([], [], []))
             tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_remove_on_disk_and_scan(self):
@@ -125,9 +125,9 @@ class DataSetTest(unittest.TestCase):
             fileSystem.remove(fs.path.join("data",
                                    "com.typesupply.defcon.test.file"))
             closeTestFontAsFileSystem(fileSystem, font.path)
-            reader = UFOReader(path)
-            self.assertEqual(font.data.testForExternalChanges(reader),
-                             ([], [], ["com.typesupply.defcon.test.file"]))
+            with UFOReader(path) as reader:
+                self.assertEqual(font.data.testForExternalChanges(reader),
+                                 ([], [], ["com.typesupply.defcon.test.file"]))
             tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_add_on_disk_and_scan(self):
@@ -140,9 +140,9 @@ class DataSetTest(unittest.TestCase):
             dest = fs.path.join("data", "com.typesupply.defcon.test.file2")
             fileSystem.copy(source, dest)
             closeTestFontAsFileSystem(fileSystem, font.path)
-            reader = UFOReader(path)
-            self.assertEqual(font.data.testForExternalChanges(reader),
-                             ([], ["com.typesupply.defcon.test.file2"], []))
+            with UFOReader(path) as reader:
+                self.assertEqual(font.data.testForExternalChanges(reader),
+                                 ([], ["com.typesupply.defcon.test.file2"], []))
             tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_modify_on_disk_and_scan(self):
@@ -157,9 +157,9 @@ class DataSetTest(unittest.TestCase):
                                     "com.typesupply.defcon.test.file")
             fileSystem.setbytes(filePath, b"blah")
             closeTestFontAsFileSystem(fileSystem, font.path)
-            reader = UFOReader(path)
-            self.assertEqual(font.data.testForExternalChanges(reader),
-                             (["com.typesupply.defcon.test.file"], [], []))
+            with UFOReader(path) as reader:
+                self.assertEqual(font.data.testForExternalChanges(reader),
+                                 (["com.typesupply.defcon.test.file"], [], []))
             tearDownTestFontCopy(font.path)
 
     def test_reload_data(self):
