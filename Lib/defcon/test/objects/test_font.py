@@ -538,12 +538,19 @@ class FontTest(unittest.TestCase):
             elif os.path.isdir(path):
                 shutil.rmtree(path)
 
+    def test_new_font_format(self):
+        font = Font()
+        self.assertEqual(font.ufoFormatVersion, None)
+        self.assertEqual(font.ufoFormatVersionTuple, None)
+
     def test_save_in_place_different_format(self):
         path = makeTestFontCopy()
         font = Font(path)
-        self.assertEqual(font._ufoFormatVersion, (3, 0))
+        self.assertEqual(font.ufoFormatVersion, 3)
+        self.assertEqual(font.ufoFormatVersionTuple, (3, 0))
         font.save(formatVersion=2)
-        self.assertEqual(font._ufoFormatVersion, (2, 0))
+        self.assertEqual(font.ufoFormatVersion, 2)
+        self.assertEqual(font.ufoFormatVersionTuple, (2, 0))
 
     def test_save_in_place_invalid_ufo(self):
         path = makeTestFontCopy()

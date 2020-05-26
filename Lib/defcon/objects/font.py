@@ -273,9 +273,24 @@ class Font(BaseObject):
     path = property(_get_path, _set_path, doc="The location of the file on disk. Setting the path should only be done when the user has moved the file in the OS interface. Setting the path is not the same as a save operation.")
 
     def _get_ufoFormatVersion(self):
+        import warnings
+
+        warnings.warn(
+            "The 'ufoFormatVersion' attribute is deprecated; use the 'ufoFormatVersionTuple'",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if self._ufoFormatVersion is None:
+            return None
+        else:
+            return self._ufoFormatVersion.major
+
+    ufoFormatVersion = property(_get_ufoFormatVersion, doc="The UFO format major version that will be used when saving. This is taken from a loaded UFO during __init__. If this font was not loaded from a UFO, this will return None until the font has been saved. Deprecated, use ufoFormatVersionTuple instead.")
+
+    def _get_ufoFormatVersionTuple(self):
         return self._ufoFormatVersion
 
-    ufoFormatVersion = property(_get_ufoFormatVersion, doc="The UFO format version that will be used when saving. This is taken from a loaded UFO during __init__. If this font was not loaded from a UFO, this will return None until the font has been saved.")
+    ufoFormatVersionTuple = property(_get_ufoFormatVersionTuple, doc="The UFO format (major, minor) version tuple that will be used when saving. This is taken from a loaded UFO during __init__. If this font was not loaded from a UFO, this will return None until the font has been saved.")
 
     def _get_ufoFileStructure(self):
         return self._ufoFileStructure
