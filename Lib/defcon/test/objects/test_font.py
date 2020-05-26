@@ -547,9 +547,9 @@ class FontTest(unittest.TestCase):
     def test_save_in_place_different_format(self):
         path = makeTestFontCopy()
         font = Font(path)
-        self.assertEqual(font._ufoFormatVersion, 3)
+        self.assertEqual(font._ufoFormatVersion, (3, 0))
         font.save(formatVersion=2)
-        self.assertEqual(font._ufoFormatVersion, 2)
+        self.assertEqual(font._ufoFormatVersion, (2, 0))
 
     def test_save_in_place_invalid_ufo(self):
         path = makeTestFontCopy()
