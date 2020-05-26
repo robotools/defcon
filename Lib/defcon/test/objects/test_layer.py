@@ -180,66 +180,66 @@ class LayerTest(unittest.TestCase):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
             try:
-                font = Font(path)
+                with Font(path) as font:
 
-                reader = UFOReader(font.path)
-                self.assertEqual(font.layers[None].testForExternalChanges(reader),
-                                 ([], [], []))
+                    with UFOReader(font.path) as reader:
+                        self.assertEqual(font.layers[None].testForExternalChanges(reader),
+                                         ([], [], []))
 
-                # make a simple change to a glyph
-                fileSystem = openTestFontAsFileSystem(font.path)
-                g = font.layers[None]["A"]
-                path = fs.path.join("glyphs", "A_.glif")
-                t = fileSystem.readbytes(path)
-                t += b"<!-- test -->"
-                fileSystem.writebytes(path, t)
-                g._dataOnDiskTimeStamp -= 1
-                closeTestFontAsFileSystem(fileSystem, font.path)
-                reader = UFOReader(font.path)
-                self.assertEqual(font.layers[None].testForExternalChanges(reader),
-                                 (["A"], [], []))
+                        # make a simple change to a glyph
+                        fileSystem = openTestFontAsFileSystem(font.path)
+                        g = font.layers[None]["A"]
+                        path = fs.path.join("glyphs", "A_.glif")
+                        t = fileSystem.readbytes(path)
+                        t += b"<!-- test -->"
+                        fileSystem.writebytes(path, t)
+                        g._dataOnDiskTimeStamp -= 1
+                        closeTestFontAsFileSystem(fileSystem, font.path)
+                    with UFOReader(font.path) as reader:
+                        self.assertEqual(font.layers[None].testForExternalChanges(reader),
+                                         (["A"], [], []))
 
-                # save the glyph and test again
-                font["A"].dirty = True
-                font.save()
-                reader = UFOReader(font.path)
-                self.assertEqual(font.layers[None].testForExternalChanges(reader),
-                                 ([], [], []))
+                    # save the glyph and test again
+                    font["A"].dirty = True
+                    font.save()
+                    with UFOReader(font.path) as reader:
+                        self.assertEqual(font.layers[None].testForExternalChanges(reader),
+                                         ([], [], []))
 
-                # add a glyph
-                fileSystem = openTestFontAsFileSystem(font.path)
-                path = fs.path.join("glyphs", "A_.glif")
-                t = fileSystem.readbytes(path)
-                t = t.replace(b'<glyph name="A" format="1">',
-                              b'<glyph name="XYZ" format="1">')
-                path = fs.path.join("glyphs", "XYZ.glif")
-                fileSystem.writebytes(path, t)
-                path = fs.path.join("glyphs", "contents.plist")
-                with fileSystem.open(path, "rb") as f:
-                    plist = load(f)
-                savePlist = dict(plist)
-                plist["XYZ"] = "XYZ.glif"
-                with fileSystem.open(path, "wb") as f:
-                    dump(plist, f)
-                closeTestFontAsFileSystem(fileSystem, font.path)
-                reader = UFOReader(font.path)
-                self.assertEqual(font.layers[None].testForExternalChanges(reader),
-                                 ([], ["XYZ"], []))
-                path = font.path
+                    # add a glyph
+                    fileSystem = openTestFontAsFileSystem(font.path)
+                    path = fs.path.join("glyphs", "A_.glif")
+                    t = fileSystem.readbytes(path)
+                    t = t.replace(b'<glyph name="A" format="1">',
+                                  b'<glyph name="XYZ" format="1">')
+                    path = fs.path.join("glyphs", "XYZ.glif")
+                    fileSystem.writebytes(path, t)
+                    path = fs.path.join("glyphs", "contents.plist")
+                    with fileSystem.open(path, "rb") as f:
+                        plist = load(f)
+                    savePlist = dict(plist)
+                    plist["XYZ"] = "XYZ.glif"
+                    with fileSystem.open(path, "wb") as f:
+                        dump(plist, f)
+                    closeTestFontAsFileSystem(fileSystem, font.path)
+                    with UFOReader(font.path) as reader:
+                        self.assertEqual(font.layers[None].testForExternalChanges(reader),
+                                         ([], ["XYZ"], []))
+                    path = font.path
 
                 # delete a glyph
-                font = Font(path)
-                g = font["XYZ"]
-                fileSystem = openTestFontAsFileSystem(font.path)
-                path = fs.path.join("glyphs", "contents.plist")
-                with fileSystem.open(path, "wb") as f:
-                    dump(savePlist, f)
-                path = fs.path.join("glyphs", "XYZ.glif")
-                fileSystem.remove(path)
-                closeTestFontAsFileSystem(fileSystem, font.path)
-                reader = UFOReader(font.path)
-                self.assertEqual(font.layers[None].testForExternalChanges(reader),
-                                 ([], [], ["XYZ"]))
+                with Font(path) as font:
+                    g = font["XYZ"]
+                    fileSystem = openTestFontAsFileSystem(font.path)
+                    path = fs.path.join("glyphs", "contents.plist")
+                    with fileSystem.open(path, "wb") as f:
+                        dump(savePlist, f)
+                    path = fs.path.join("glyphs", "XYZ.glif")
+                    fileSystem.remove(path)
+                    closeTestFontAsFileSystem(fileSystem, font.path)
+                    with UFOReader(font.path) as reader:
+                        self.assertEqual(font.layers[None].testForExternalChanges(reader),
+                                         ([], [], ["XYZ"]))
             finally:
                 tearDownTestFontCopy(font.path)
 
