@@ -1,2 +1,2 @@
-fonttools==4.9.0
+fonttools==4.10.2
 # git+https://github.com/typesupply/compositor
