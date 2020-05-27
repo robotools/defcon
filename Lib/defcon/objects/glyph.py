@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 import weakref
 from warnings import warn
-from fontTools.misc.py23 import basestring
 from fontTools.misc.arrayTools import unionRect
 from defcon.objects.base import BaseObject
 from defcon.objects.contour import Contour
@@ -1035,7 +1034,7 @@ class Glyph(BaseObject):
 
     def _set_note(self, value):
         if value is not None:
-            assert isinstance(value, basestring)
+            assert isinstance(value, str)
         oldValue = self._note
         if oldValue != value:
             self._note = value

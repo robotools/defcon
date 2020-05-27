@@ -330,7 +330,9 @@ class LayerSet(BaseObject):
         after the save is completed this method will be called and new
         GlyphSet objects will be created and assigned to the layers.
         """
-        reader = UFOReader(self.font.path, validate=self.font.ufoLibReadValidate)
+        font = self.font
+        font.close()
+        font._reader = reader = UFOReader(font.path, validate=font.ufoLibReadValidate)
         if reader.fileStructure is UFOFileStructure.ZIP:
             for layerName in self.layerOrder:
                 layer = self[layerName]
@@ -434,37 +436,37 @@ class LayerSet(BaseObject):
         """
         Reload the layers. This should not be called externally.
         """
-        reader = UFOReader(self.font.path, validate=self.font.ufoLibReadValidate)
-        # handle the layers
-        currentLayerOrder = self.layerOrder
-        for layerName, l in layerData.get("layers", {}).items():
-            # new layer
-            if layerName not in currentLayerOrder:
-                glyphSet = reader.getGlyphSet(layerName, validateRead=self.ufoLibReadValidate, validateWrite=self.font.ufoLibWriteValidate)
-                self.newLayer(layerName, glyphSet)
-            # get the layer
-            layer = self[layerName]
-            # reload the layer info
-            if l.get("info"):
-                layer.color = None
-                layer.lib.clear()
-                layer._glyphSet.readLayerInfo(layer)
-                self._stampLayerInfoDataState(layer)
-            # reload the glyphs
-            glyphNames = l.get("glyphNames", [])
-            if glyphNames:
-                layer.reloadGlyphs(glyphNames)
-        # handle the order
-        if layerData.get("order", False):
-            newLayerOrder = reader.getLayerNames()
-            for layerName in self.layerOrder:
-                if layerName not in newLayerOrder:
-                    newLayerOrder.append(layerName)
-            self.layerOrder = newLayerOrder
-        # handle the default layer
-        if layerData.get("default", False):
-            newDefaultLayerName = reader.getDefaultLayerName()
-            self.defaultLayer = self[newDefaultLayerName]
+        with UFOReader(self.font.path, validate=self.font.ufoLibReadValidate) as reader:
+            # handle the layers
+            currentLayerOrder = self.layerOrder
+            for layerName, l in layerData.get("layers", {}).items():
+                # new layer
+                if layerName not in currentLayerOrder:
+                    glyphSet = reader.getGlyphSet(layerName, validateRead=self.ufoLibReadValidate, validateWrite=self.font.ufoLibWriteValidate)
+                    self.newLayer(layerName, glyphSet)
+                # get the layer
+                layer = self[layerName]
+                # reload the layer info
+                if l.get("info"):
+                    layer.color = None
+                    layer.lib.clear()
+                    layer._glyphSet.readLayerInfo(layer)
+                    self._stampLayerInfoDataState(layer)
+                # reload the glyphs
+                glyphNames = l.get("glyphNames", [])
+                if glyphNames:
+                    layer.reloadGlyphs(glyphNames)
+            # handle the order
+            if layerData.get("order", False):
+                newLayerOrder = reader.getLayerNames()
+                for layerName in self.layerOrder:
+                    if layerName not in newLayerOrder:
+                        newLayerOrder.append(layerName)
+                self.layerOrder = newLayerOrder
+            # handle the default layer
+            if layerData.get("default", False):
+                newDefaultLayerName = reader.getDefaultLayerName()
+                self.defaultLayer = self[newDefaultLayerName]
 
     # -----------------------------
     # Serialization/Deserialization

@@ -123,49 +123,49 @@ class FontTest(unittest.TestCase):
         for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
-            font = Font(path)
-            font["A"]  # glyph = font["A"]
-            fileSystem = openTestFontAsFileSystem(path)
-            glyphPath = fs.path.join("glyphs", "A_.glif")
-            fileSystem.remove(glyphPath)
-            contentsPath = fs.path.join("glyphs", "contents.plist")
-            with fileSystem.open(contentsPath, "rb") as f:
-                plist = load(f)
-            del plist["A"]
-            with fileSystem.open(contentsPath, "wb") as f:
-                dump(plist, f)
-            closeTestFontAsFileSystem(fileSystem, path)
-            r = font.testForExternalChanges()
-            self.assertEqual(r["deletedGlyphs"], ["A"])
-            del font["A"]
-            font.save()
-            self.assertFalse(os.path.exists(glyphPath))
+            with Font(path) as font:
+                font["A"]  # glyph = font["A"]
+                fileSystem = openTestFontAsFileSystem(path)
+                glyphPath = fs.path.join("glyphs", "A_.glif")
+                fileSystem.remove(glyphPath)
+                contentsPath = fs.path.join("glyphs", "contents.plist")
+                with fileSystem.open(contentsPath, "rb") as f:
+                    plist = load(f)
+                del plist["A"]
+                with fileSystem.open(contentsPath, "wb") as f:
+                    dump(plist, f)
+                closeTestFontAsFileSystem(fileSystem, path)
+                r = font.testForExternalChanges()
+                self.assertEqual(r["deletedGlyphs"], ["A"])
+                del font["A"]
+                font.save()
+                self.assertFalse(os.path.exists(glyphPath))
             tearDownTestFontCopy(font.path)
 
     def test_delitem_glyph_dirty(self):
         for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
-            font = Font(path)
-            glyph = font["A"]
-            glyph.dirty = True
-            fileSystem = openTestFontAsFileSystem(path)
-            glyphPath = fs.path.join("glyphs", "A_.glif")
-            fileSystem.remove(glyphPath)
-            contentsPath = fs.path.join("glyphs", "contents.plist")
-            with fileSystem.open(contentsPath, "rb") as f:
-                plist = load(f)
-            del plist["A"]
-            with fileSystem.open(contentsPath, "wb") as f:
-                dump(plist, f)
-            closeTestFontAsFileSystem(fileSystem, path)
-            r = font.testForExternalChanges()
-            self.assertEqual(r["deletedGlyphs"], ["A"])
-            del font["A"]
-            font.save()
-            fileSystem = openTestFontAsFileSystem(path)
-            self.assertFalse(fileSystem.exists(glyphPath))
-            closeTestFontAsFileSystem(fileSystem, path)
+            with Font(path) as font:
+                glyph = font["A"]
+                glyph.dirty = True
+                fileSystem = openTestFontAsFileSystem(path)
+                glyphPath = fs.path.join("glyphs", "A_.glif")
+                fileSystem.remove(glyphPath)
+                contentsPath = fs.path.join("glyphs", "contents.plist")
+                with fileSystem.open(contentsPath, "rb") as f:
+                    plist = load(f)
+                del plist["A"]
+                with fileSystem.open(contentsPath, "wb") as f:
+                    dump(plist, f)
+                closeTestFontAsFileSystem(fileSystem, path)
+                r = font.testForExternalChanges()
+                self.assertEqual(r["deletedGlyphs"], ["A"])
+                del font["A"]
+                font.save()
+                fileSystem = openTestFontAsFileSystem(path)
+                self.assertFalse(fileSystem.exists(glyphPath))
+                closeTestFontAsFileSystem(fileSystem, path)
             tearDownTestFontCopy(font.path)
 
     def test_len(self):
@@ -421,19 +421,19 @@ class FontTest(unittest.TestCase):
         for ufo in (u"TestFont.ufo", u"TestFont.ufoz"):
             path = makeTestFontCopy(getTestFontPath(ufo))
             try:
-                font = Font(path)
-                origFileStructure = font.ufoFileStructure
-                for glyph in font:
-                    glyph.dirty = True
-                font.save()
-                fileNames = sorted(
-                    [
-                        fs.path.basename(m.path)
-                        for m in UFOReader(path).fs.glob("glyphs/*.glif")
-                    ]
-                )
-                self.assertEqual(fileNames, ["A_.glif", "B_.glif", "C_.glif"])
-                self.assertEqual(origFileStructure, font.ufoFileStructure)
+                with Font(path) as font:
+                    origFileStructure = font.ufoFileStructure
+                    for glyph in font:
+                        glyph.dirty = True
+                    font.save()
+                    fileNames = sorted(
+                        [
+                            fs.path.basename(m.path)
+                            for m in UFOReader(path).fs.glob("glyphs/*.glif")
+                        ]
+                    )
+                    self.assertEqual(fileNames, ["A_.glif", "B_.glif", "C_.glif"])
+                    self.assertEqual(origFileStructure, font.ufoFileStructure)
             finally:
                 tearDownTestFontCopy(path)
 
@@ -456,12 +456,14 @@ class FontTest(unittest.TestCase):
                 self.assertEqual(font.path, saveAsPath)
                 self.assertEqual(origFileStructure, font.ufoFileStructure)
             finally:
+                font.close()
                 tearDownTestFontCopy(saveAsPath)
 
     def test_save_same_path(self):
         for ufo in (u"TestFont.ufo", u"TestFont.ufoz"):
             path = makeTestFontCopy(getTestFontPath(ufo))
             isZip = zipfile.is_zipfile(path)
+            font = Font(path)
             try:
                 font = Font(path)
                 font.save(path)
@@ -470,18 +472,20 @@ class FontTest(unittest.TestCase):
                 else:
                     self.assertTrue(os.path.isdir(path))
             finally:
+                font.close()
                 tearDownTestFontCopy(path)
 
     def test_save_same_path_different_structure(self):
         for ufo in ("TestFont.ufo", "TestFont.ufoz"):
-            path = getTestFontPath(ufo)
+            path = makeTestFontCopy(getTestFontPath(ufo))
             isZip = zipfile.is_zipfile(path)
-            font = Font(path)
-            with self.assertRaisesRegex(
-                DefconError,
-                "Can't save font in-place with a different structure"
-            ):
-                font.save(path, structure="package" if isZip else "zip")
+            with Font(path) as font:
+                with self.assertRaisesRegex(
+                    DefconError,
+                    "Can't save font in-place with a different structure"
+                ):
+                    font.save(path, structure="package" if isZip else "zip")
+            tearDownTestFontCopy(path)
 
     def test_save_new_font_without_path(self):
         font = Font()
@@ -492,21 +496,22 @@ class FontTest(unittest.TestCase):
     def test_save_new_font_to_exsisting_directory(self):
         for ufo in ("TestFont.ufo", "TestFont.ufoz"):
             path = makeTestFontCopy(getTestFontPath(ufo))
+            font = Font()
             try:
                 self.assertTrue(os.path.exists(path))
-                font = Font()
                 font.save(path)
                 self.assertTrue(os.path.isdir(path))
             finally:
+                font.close()
                 tearDownTestFontCopy(path)
 
     def test_save_ufoz(self):
         path = getTestFontPath()
         tmpdir = tempfile.mkdtemp()
         dest = os.path.join(tmpdir, "TestFont.ufoz")
+        font = Font(path)
         try:
             self.assertFalse(os.path.exists(dest))
-            font = Font(path)
             self.assertEqual(font.path, path)
             font.save(dest, structure="zip")
             self.assertTrue(os.path.exists(dest))
@@ -521,6 +526,7 @@ class FontTest(unittest.TestCase):
             )
             self.assertEqual(fileNames, ["A_.glif", "B_.glif", "C_.glif"])
         finally:
+            font.close()
             shutil.rmtree(tmpdir)
 
     def test_save_new_font_to_existing_file(self):
@@ -566,44 +572,43 @@ class FontTest(unittest.TestCase):
         for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
-            font = Font(path)
+            with Font(path) as font:
+                # load all the objects so that they get stamped
+                font.info  # i = font.info
+                k = font.kerning
+                font.groups  # g = font.groups
+                font.lib  # l = font.lib
+                font["A"]  # g = font["A"]
 
-            # load all the objects so that they get stamped
-            font.info  # i = font.info
-            k = font.kerning
-            font.groups  # g = font.groups
-            font.lib  # l = font.lib
-            font["A"]  # g = font["A"]
+                d = font.testForExternalChanges()
+                self.assertFalse(d["info"])
+                self.assertFalse(d["kerning"])
+                self.assertFalse(d["groups"])
+                self.assertFalse(d["lib"])
 
-            d = font.testForExternalChanges()
-            self.assertFalse(d["info"])
-            self.assertFalse(d["kerning"])
-            self.assertFalse(d["groups"])
-            self.assertFalse(d["lib"])
+                # make a simple change to the kerning data
+                fileSystem = openTestFontAsFileSystem(font.path)
+                path = u"kerning.plist"
+                t = fileSystem.readbytes(path)
+                t += b"<!-- test -->"
+                fileSystem.writebytes(path, t)
+                k._dataOnDiskTimeStamp -= 1
+                closeTestFontAsFileSystem(fileSystem, font.path)
 
-            # make a simple change to the kerning data
-            fileSystem = openTestFontAsFileSystem(font.path)
-            path = u"kerning.plist"
-            t = fileSystem.getbytes(path)
-            t += b"<!-- test -->"
-            fileSystem.setbytes(path, t)
-            k._dataOnDiskTimeStamp -= 1
-            closeTestFontAsFileSystem(fileSystem, font.path)
+                d = font.testForExternalChanges()
+                self.assertTrue(d["kerning"])
+                self.assertFalse(d["groups"])
+                self.assertFalse(d["info"])
+                self.assertFalse(d["lib"])
 
-            d = font.testForExternalChanges()
-            self.assertTrue(d["kerning"])
-            self.assertFalse(d["groups"])
-            self.assertFalse(d["info"])
-            self.assertFalse(d["lib"])
-
-            # save the kerning data and test again
-            font.kerning.dirty = True
-            font.save()
-            d = font.testForExternalChanges()
-            self.assertFalse(d["kerning"])
-            self.assertFalse(d["groups"])
-            self.assertFalse(d["info"])
-            self.assertFalse(d["lib"])
+                # save the kerning data and test again
+                font.kerning.dirty = True
+                font.save()
+                d = font.testForExternalChanges()
+                self.assertFalse(d["kerning"])
+                self.assertFalse(d["groups"])
+                self.assertFalse(d["info"])
+                self.assertFalse(d["lib"])
 
             tearDownTestFontCopy(font.path)
 

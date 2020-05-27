@@ -3,7 +3,6 @@ import os
 import re
 import tempfile
 import shutil
-from fontTools.misc.py23 import basestring
 from fontTools.ufoLib import UFOReader, UFOWriter, UFOLibError, UFOFileStructure, UFOFormatVersion
 from defcon.objects.base import BaseObject
 from defcon.objects.layerSet import LayerSet
@@ -134,15 +133,16 @@ class Font(BaseObject):
         self._guidelines = []
         self._identifiers = set()
 
+        self._reader = None
         self._dirty = False
 
         if path:
-            if not isinstance(path, basestring) and not hasattr(path, "__fspath__"):
+            if not isinstance(path, str) and not hasattr(path, "__fspath__"):
                 raise TypeError(
                     "invalid path: expected string or os.PathLike, found %s"
                     % type(path).__name__
                 )
-            reader = UFOReader(self._path, validate=self.ufoLibReadValidate)
+            self._reader = reader = UFOReader(self._path, validate=self.ufoLibReadValidate)
             self._ufoFormatVersion = reader.formatVersionTuple
             self._ufoFileStructure = reader.fileStructure
             # go ahead and load the layers
@@ -175,7 +175,6 @@ class Font(BaseObject):
             # are modified by an external source before being read.
             # that could create a data corruption within this object.
             if self._ufoFormatVersion < UFOFormatVersion.FORMAT_3_0:
-                self._reader = reader
                 self._kerningGroupConversionRenameMaps = reader.getKerningGroupConversionRenameMaps()
                 k = self.kerning
                 g = self.groups
@@ -187,6 +186,21 @@ class Font(BaseObject):
         if self._layers.defaultLayer is None:
             layer = self.newLayer("public.default")
             self._layers.defaultLayer = layer
+
+    def close(self):
+        # close file systems
+        if self._reader is not None:
+            self._reader.close()
+            del self._reader
+        for layer in self.layers:
+            if layer._glyphSet is not None:
+                layer._glyphSet.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        self.close()
 
     def _get_dispatcher(self):
         return self._dispatcher
@@ -261,7 +275,7 @@ class Font(BaseObject):
 
     def _set_path(self, path):
         # XXX: this needs to be reworked for layers
-        if not isinstance(path, basestring) and not hasattr(path, "__fspath__"):
+        if not isinstance(path, str) and not hasattr(path, "__fspath__"):
             raise TypeError(
                 "invalid path: expected string or os.PathLike, found %s"
                 % type(path).__name__
@@ -390,17 +404,17 @@ class Font(BaseObject):
                 # and bookkeep dirty
                 dirty = self.dirty
                 self.disableNotifications()
-                #
-                self._info.disableNotifications()
-                reader = UFOReader(self._path, validate=False)
-                reader.readInfo(self._info, validate=self._info.ufoLibReadValidate)
-                self._info.dirty = False
-                self._info.enableNotifications()
-                #
+                with UFOReader(self._path, validate=False) as reader:
+                    self._info.disableNotifications()
+                    reader.readInfo(self._info, validate=self._info.ufoLibReadValidate)
+                    self._info.dirty = False
+                    self._info.enableNotifications()
+                    #
+                    self._stampInfoDataState(reader)
                 self.dirty = dirty
                 self.enableNotifications()
-                #
-            self._stampInfoDataState(reader)
+            else:
+                self._stampInfoDataState()
         return self._info
 
     info = property(_get_info, doc="The font's :class:`Info` object.")
@@ -409,32 +423,29 @@ class Font(BaseObject):
 
     def _loadKerningAndGroups(self):
         # read
-        if hasattr(self, "_reader"):
-            reader = self._reader
-        else:
-            reader = UFOReader(self._path, validate=False)
-        # instantiate everything and store it if valid
-        self._groups = self.instantiateGroups()
-        self.beginSelfGroupsNotificationObservation()
-        self._kerning = self.instantiateKerning()
-        self.beginSelfKerningNotificationObservation()
-        # load data
-        kerning = reader.readKerning(validate=self._kerning.ufoLibReadValidate)
-        groups = reader.readGroups(validate=self._groups.ufoLibReadValidate)
-        # Note: the incoming kerning data has not been validated.
-        # Gremlins may be sneaking in through here.
-        ## store groups
-        self._groups.disableNotifications()
-        self._groups.update(groups)
-        self._groups.dirty = False
-        self._groups.enableNotifications()
-        self._stampGroupsDataState(reader)
-        ## store kerning
-        self._kerning.disableNotifications()
-        self._kerning.update(kerning)
-        self._kerning.dirty = False
-        self._kerning.enableNotifications()
-        self._stampKerningDataState(reader)
+        with UFOReader(self._path, validate=False) as reader:
+            # instantiate everything and store it if valid
+            self._groups = self.instantiateGroups()
+            self.beginSelfGroupsNotificationObservation()
+            self._kerning = self.instantiateKerning()
+            self.beginSelfKerningNotificationObservation()
+            # load data
+            kerning = reader.readKerning(validate=self._kerning.ufoLibReadValidate)
+            groups = reader.readGroups(validate=self._groups.ufoLibReadValidate)
+            # Note: the incoming kerning data has not been validated.
+            # Gremlins may be sneaking in through here.
+            ## store groups
+            self._groups.disableNotifications()
+            self._groups.update(groups)
+            self._groups.dirty = False
+            self._groups.enableNotifications()
+            self._stampGroupsDataState(reader)
+            ## store kerning
+            self._kerning.disableNotifications()
+            self._kerning.update(kerning)
+            self._kerning.dirty = False
+            self._kerning.enableNotifications()
+            self._stampKerningDataState(reader)
 
     def instantiateKerning(self):
         kerning = self._kerningClass(
@@ -524,13 +535,15 @@ class Font(BaseObject):
             self.beginSelfFeaturesNotificationObservation()
             reader = None
             if self._path is not None:
-                self._features.disableNotifications()
-                reader = UFOReader(self._path, validate=False)
-                t = reader.readFeatures()
-                self._features.text = t
-                self._features.dirty = False
-                self._features.enableNotifications()
-            self._stampFeaturesDataState(reader)
+                with UFOReader(self._path, validate=False) as reader:
+                    self._features.disableNotifications()
+                    t = reader.readFeatures()
+                    self._features.text = t
+                    self._features.dirty = False
+                    self._features.enableNotifications()
+                    self._stampFeaturesDataState(reader)
+            else:
+                self._stampFeaturesDataState()
         return self._features
 
     features = property(_get_features, doc="The font's :class:`Features` object.")
@@ -560,12 +573,14 @@ class Font(BaseObject):
             self.beginSelfLibNotificationObservation()
             reader = None
             if self._path is not None:
-                self._lib.disableNotifications()
-                reader = UFOReader(self._path, validate=False)
-                d = reader.readLib(validate=self._lib.ufoLibReadValidate)
-                self._lib.update(d)
-                self._lib.enableNotifications()
-            self._stampLibDataState(reader)
+                with UFOReader(self._path, validate=False) as reader:
+                    self._lib.disableNotifications()
+                    d = reader.readLib(validate=self._lib.ufoLibReadValidate)
+                    self._lib.update(d)
+                    self._lib.enableNotifications()
+                    self._stampLibDataState(reader)
+            else:
+                self._stampLibDataState()
         return self._lib
 
     lib = property(_get_lib, doc="The font's :class:`Lib` object.")
@@ -740,7 +755,7 @@ class Font(BaseObject):
             path = self._path
             saveAs = False
         else:
-            if not isinstance(path, basestring) and not hasattr(path, "__fspath__"):
+            if not isinstance(path, str) and not hasattr(path, "__fspath__"):
                 raise TypeError(
                     "invalid path: expected string or os.PathLike, found %s"
                     % type(path).__name__
@@ -860,11 +875,8 @@ class Font(BaseObject):
                 self.saveImages(writer=writer, removeUnreferencedImages=removeUnreferencedImages, saveAs=saveAs, progressBar=progressBar)
                 self.saveData(writer=writer, saveAs=saveAs, progressBar=progressBar)
             self.layers.save(writer, saveAs=saveAs, progressBar=progressBar)
-            # we must close the writer's filesystem to actually create the zip;
-            # Note that calling writer.close() makes all the SubFS instances
-            # derived from it unusable
-            if writer.fileStructure is UFOFileStructure.ZIP:
-                writer.close()
+            # we must close the writer's filesystem
+            writer.close()
             writer.setModificationTime()
             if overwritePath is not None:
                 if os.path.isfile(overwritePath):
@@ -1212,7 +1224,9 @@ class Font(BaseObject):
         if obj is None:
             return
         # make a reader if necessary
+        closeReader = False
         if reader is None:
+            closeReader = True
             reader = UFOReader(self.path, validate=False)
         # get the mod time from the reader
         modTime = reader.getFileModificationTime(fileName)
@@ -1226,6 +1240,8 @@ class Font(BaseObject):
         # store the data
         obj._dataOnDisk = data
         obj._dataOnDiskTimeStamp = modTime
+        if closeReader:
+            reader.close()
 
     def _stampInfoDataState(self, reader=None):
         self._stampFontDataState(self._info, "fontinfo.plist", reader=reader)
@@ -1288,19 +1304,19 @@ class Font(BaseObject):
         this decision up to you.
         """
         assert self.path is not None
-        reader = UFOReader(self.path, validate=self.ufoLibReadValidate)
-        infoChanged = self._testInfoForExternalModifications(reader)
-        kerningChanged = self._testKerningForExternalModifications(reader)
-        groupsChanged = self._testGroupsForExternalModifications(reader)
-        featuresChanged = self._testFeaturesForExternalModifications(reader)
-        libChanged = self._testLibForExternalModifications(reader)
-        layerChanges = self.layers.testForExternalChanges(reader)
-        modifiedImages = addedImages = deletedImages = []
-        if self._images is not None:
-            modifiedImages, addedImages, deletedImages = self._images.testForExternalChanges(reader)
-        modifiedData = addedData = deletedData = []
-        if self._data is not None:
-            modifiedData, addedData, deletedData = self._data.testForExternalChanges(reader)
+        with UFOReader(self.path, validate=self.ufoLibReadValidate) as reader:
+            infoChanged = self._testInfoForExternalModifications(reader)
+            kerningChanged = self._testKerningForExternalModifications(reader)
+            groupsChanged = self._testGroupsForExternalModifications(reader)
+            featuresChanged = self._testFeaturesForExternalModifications(reader)
+            libChanged = self._testLibForExternalModifications(reader)
+            layerChanges = self.layers.testForExternalChanges(reader)
+            modifiedImages = addedImages = deletedImages = []
+            if self._images is not None:
+                modifiedImages, addedImages, deletedImages = self._images.testForExternalChanges(reader)
+            modifiedData = addedData = deletedData = []
+            if self._data is not None:
+                modifiedData, addedData, deletedData = self._data.testForExternalChanges(reader)
         # deprecated stuff
         defaultLayerName = self.layers.defaultLayer.name
         modifiedGlyphs = layerChanges["modified"].get(defaultLayerName, {}).get("modified")
@@ -1337,22 +1353,28 @@ class Font(BaseObject):
         if obj is None:
             return
         # make a reader if necessary
+        closeReader = False
         if reader is None:
+            closeReader = True
             reader = UFOReader(self.path, validate=False)
         # get the mod time from the reader
         modTime = reader.getFileModificationTime(fileName)
+        # fallback
+        result = False
         # file is not in the UFO
         if modTime is None:
             if obj._dataOnDisk:
-                return True
-            return False
+                result = True
+            result = False
         # time stamp mismatch
-        if modTime != obj._dataOnDiskTimeStamp:
+        elif modTime != obj._dataOnDiskTimeStamp:
             data = reader.readBytesFromPath(fileName)
             if data != obj._dataOnDisk:
-                return True
+                result = True
+        if closeReader:
+            reader.close()
         # fallback
-        return False
+        return result
 
     def _testInfoForExternalModifications(self, reader=None):
         return self._testFontDataForExternalModifications(self._info, "fontinfo.plist", reader=reader)
@@ -1380,31 +1402,31 @@ class Font(BaseObject):
         if self._info is None:
             obj = self.info
         else:
-            reader = UFOReader(self.path, validate=False)
-            newInfo = Info()
-            reader.readInfo(newInfo, validate=self._info.ufoLibReadValidate)
-            oldInfo = self._info
-            for attr in dir(newInfo):
-                if attr in deprecatedFontInfoAttributesVersion2:
-                    continue
-                if attr.startswith("_"):
-                    continue
-                if attr == "dirty":
-                    continue
-                if attr == "dispatcher":
-                    continue
-                if attr == "font":
-                    continue
-                if not hasattr(oldInfo, attr):
-                    continue
-                newValue = getattr(newInfo, attr)
-                oldValue = getattr(oldInfo, attr)
-                if hasattr(newValue, "im_func"):
-                    continue
-                if oldValue == newValue:
-                    continue
-                setattr(oldInfo, attr, newValue)
-            self._stampInfoDataState(reader)
+            with UFOReader(self.path, validate=False) as reader:
+                newInfo = Info()
+                reader.readInfo(newInfo, validate=self._info.ufoLibReadValidate)
+                oldInfo = self._info
+                for attr in dir(newInfo):
+                    if attr in deprecatedFontInfoAttributesVersion2:
+                        continue
+                    if attr.startswith("_"):
+                        continue
+                    if attr == "dirty":
+                        continue
+                    if attr == "dispatcher":
+                        continue
+                    if attr == "font":
+                        continue
+                    if not hasattr(oldInfo, attr):
+                        continue
+                    newValue = getattr(newInfo, attr)
+                    oldValue = getattr(oldInfo, attr)
+                    if hasattr(newValue, "im_func"):
+                        continue
+                    if oldValue == newValue:
+                        continue
+                    setattr(oldInfo, attr, newValue)
+                self._stampInfoDataState(reader)
 
     def reloadKerning(self):
         """
@@ -1418,13 +1440,13 @@ class Font(BaseObject):
         if self._kerning is None:
             obj = self.kerning
         else:
-            reader = UFOReader(self._path, validate=False)
-            kerning = reader.readKerning(validate=self._kerning.ufoLibReadValidate)
-            # Note: the incoming kerning data has not been validated.
-            # Gremlins may be sneaking in through here.
-            self._kerning.clear()
-            self._kerning.update(kerning)
-            self._stampKerningDataState(reader)
+            with UFOReader(self._path, validate=False) as reader:
+                kerning = reader.readKerning(validate=self._kerning.ufoLibReadValidate)
+                # Note: the incoming kerning data has not been validated.
+                # Gremlins may be sneaking in through here.
+                self._kerning.clear()
+                self._kerning.update(kerning)
+                self._stampKerningDataState(reader)
 
     def reloadGroups(self):
         """
@@ -1434,11 +1456,11 @@ class Font(BaseObject):
         if self._groups is None:
             obj = self.groups
         else:
-            reader = UFOReader(self._path, validate=False)
-            d = reader.readGroups(validate=self._groups.ufoLibReadValidate)
-            self._groups.clear()
-            self._groups.update(d)
-            self._stampGroupsDataState(reader)
+            with UFOReader(self._path, validate=False) as reader:
+                d = reader.readGroups(validate=self._groups.ufoLibReadValidate)
+                self._groups.clear()
+                self._groups.update(d)
+                self._stampGroupsDataState(reader)
 
     def reloadFeatures(self):
         """
@@ -1448,10 +1470,10 @@ class Font(BaseObject):
         if self._features is None:
             obj = self.features
         else:
-            reader = UFOReader(self._path, validate=False)
-            text = reader.readFeatures()
-            self._features.text = text
-            self._stampFeaturesDataState(reader)
+            with UFOReader(self._path, validate=False) as reader:
+                text = reader.readFeatures()
+                self._features.text = text
+                self._stampFeaturesDataState(reader)
 
     def reloadLib(self):
         """
@@ -1461,11 +1483,11 @@ class Font(BaseObject):
         if self._lib is None:
             obj = self.lib
         else:
-            reader = UFOReader(self._path, validate=False)
-            d = reader.readLib(validate=self._lib.ufoLibReadValidate)
-            self._lib.clear()
-            self._lib.update(d)
-            self._stampLibDataState(reader)
+            with UFOReader(self._path, validate=False) as reader:
+                d = reader.readLib(validate=self._lib.ufoLibReadValidate)
+                self._lib.clear()
+                self._lib.update(d)
+                self._stampLibDataState(reader)
 
     def reloadImages(self, fileNames):
         """

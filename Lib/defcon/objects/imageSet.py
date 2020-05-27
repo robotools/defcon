@@ -3,7 +3,6 @@ import os
 import hashlib
 import weakref
 from defcon.objects.base import BaseObject
-from fontTools.misc.py23 import unicode
 from fontTools.ufoLib import UFOReader, UFOLibError
 from fontTools.ufoLib.filenames import (
     userNameToFileName, illegalCharacters, reservedFileNames, maxFileNameLength
@@ -114,8 +113,7 @@ class ImageSet(BaseObject):
     def __getitem__(self, fileName):
         d = self._data[fileName]
         if d["data"] is None:
-            path = self.font.path
-            reader = UFOReader(path, validate=False)
+            reader = self.font._reader
             data = reader.readImage(fileName, validate=self.ufoLibReadValidate)
             d["data"] = data
             d["digest"] = _makeDigest(data)
@@ -186,12 +184,12 @@ class ImageSet(BaseObject):
         if saveAs:
             font = self.font
             if font is not None and font.path is not None and os.path.exists(font.path):
-                reader = UFOReader(font.path, validate=False)
-                readerImageNames = reader.getImageDirectoryListing(validate=self.ufoLibReadValidate)
-                for fileName, data in self._data.items():
-                    if data["data"] is not None or fileName not in readerImageNames:
-                        continue
-                    writer.copyImageFromReader(reader, fileName, fileName, validate=self.ufoLibWriteValidate)
+                with UFOReader(font.path, validate=False) as reader:
+                    readerImageNames = reader.getImageDirectoryListing(validate=self.ufoLibReadValidate)
+                    for fileName, data in self._data.items():
+                        if data["data"] is not None or fileName not in readerImageNames:
+                            continue
+                        writer.copyImageFromReader(reader, fileName, fileName, validate=self.ufoLibWriteValidate)
         for fileName in self._scheduledForDeletion:
             try:
                 writer.removeImage(fileName, validate=self.ufoLibWriteValidate)
@@ -220,7 +218,7 @@ class ImageSet(BaseObject):
         """
         Make a file system legal version of **fileName**.
         """
-        fileName = unicode(fileName)
+        fileName = str(fileName)
         suffix = ""
         if fileName.lower().endswith(".png"):
             suffix = fileName[-4:]
@@ -392,7 +390,7 @@ def fileNameValidator(value):
     True
     """
     # must be a unicode
-    if not isinstance(value, unicode):
+    if not isinstance(value, str):
         return False
     # must not be longer then the max fileName length
     if len(value) > maxFileNameLength:

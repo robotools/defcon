@@ -101,29 +101,28 @@ class LayerTest(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(path, "B_.glif")))
 
     def test_len(self):
-        font = Font(getTestFontPath())
-        layers = font.layers
-        self.assertEqual(len(layers), 3)
+        with Font(getTestFontPath()) as font:
+            layers = font.layers
+            self.assertEqual(len(layers), 3)
 
         font = Font()
         layers = font.layers
         self.assertEqual(len(layers), 1)
 
     def test_contains(self):
-        font = Font(getTestFontPath())
-        layers = font.layers
-        self.assertIn("public.default", layers)
-        self.assertNotIn("NotInFont", layers)
+        with Font(getTestFontPath()) as font:
+            layers = font.layers
+            self.assertIn("public.default", layers)
+            self.assertNotIn("NotInFont", layers)
 
     def test_testForExternalChanges(self):
         for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
-            font = Font(path)
-            reader = UFOReader(path)
-            self.assertEqual(font.layers.testForExternalChanges(reader),
-                             {"deleted": [], "added": [], "modified": {},
-                              "defaultLayer": False, "order": False})
+            with Font(path) as font, UFOReader(path) as reader:
+                self.assertEqual(font.layers.testForExternalChanges(reader),
+                                 {"deleted": [], "added": [], "modified": {},
+                                  "defaultLayer": False, "order": False})
             tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_layerinfo(self):
@@ -131,36 +130,36 @@ class LayerTest(unittest.TestCase):
             # layerinfo.plist
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
-            font = Font(path)
-            data = {"lib": {}}
-            data["lib"]["testForExternalChanges.test"] = 1
-            fileSystem = openTestFontAsFileSystem(path)
-            p = fs.path.join("glyphs", "layerinfo.plist")
-            with fileSystem.open(p, mode="wb") as f:
-                dump(data, f)
-            closeTestFontAsFileSystem(fileSystem, path)
-            reader = UFOReader(path)
-            self.assertTrue(
-                font.layers.testForExternalChanges(reader)
-                ["modified"]["public.default"]["info"])
+            with Font(path) as font:
+                data = {"lib": {}}
+                data["lib"]["testForExternalChanges.test"] = 1
+                fileSystem = openTestFontAsFileSystem(path)
+                p = fs.path.join("glyphs", "layerinfo.plist")
+                with fileSystem.open(p, mode="wb") as f:
+                    dump(data, f)
+                closeTestFontAsFileSystem(fileSystem, path)
+                with UFOReader(path) as reader:
+                    self.assertTrue(
+                        font.layers.testForExternalChanges(reader)
+                        ["modified"]["public.default"]["info"])
             tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_add_a_layer(self):
         for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
-            font = Font(path)
-            fileSystem = openTestFontAsFileSystem(path)
-            fs.copy.copy_dir(fileSystem, "glyphs", fileSystem, "glyphs.test")
-            with fileSystem.open(u"layercontents.plist", "rb") as f:
-                contents = load(f)
-            contents.append(("test", "glyphs.test"))
-            with fileSystem.open(u"layercontents.plist", "wb") as f:
-                dump(contents, f)
-            closeTestFontAsFileSystem(fileSystem, path)
-            reader = UFOReader(path)
-            self.assertEqual(font.layers.testForExternalChanges(reader)["added"],
-                             ["test"])
+            with Font(path) as font:
+                fileSystem = openTestFontAsFileSystem(path)
+                fs.copy.copy_dir(fileSystem, "glyphs", fileSystem, "glyphs.test")
+                with fileSystem.open(u"layercontents.plist", "rb") as f:
+                    contents = load(f)
+                contents.append(("test", "glyphs.test"))
+                with fileSystem.open(u"layercontents.plist", "wb") as f:
+                    dump(contents, f)
+                closeTestFontAsFileSystem(fileSystem, path)
+                with UFOReader(path) as reader:
+                    self.assertEqual(font.layers.testForExternalChanges(reader)["added"],
+                                     ["test"])
             tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_remove_a_layer(self):
@@ -176,17 +175,18 @@ class LayerTest(unittest.TestCase):
                 dump(contents, f)
             closeTestFontAsFileSystem(fileSystem, path)
             font = Font(path)
-            fileSystem = openTestFontAsFileSystem(path)
-            fileSystem.removetree(u"glyphs.test")
-            with fileSystem.open(u"layercontents.plist", "rb") as f:
-                contents = load(f)
-            del contents[-1]
-            with fileSystem.open(u"layercontents.plist", "wb") as f:
-                dump(contents, f)
-            closeTestFontAsFileSystem(fileSystem, path)
-            reader = UFOReader(path)
-            self.assertEqual(font.layers.testForExternalChanges(reader)["deleted"],
-                             ["test"])
+            with font:
+                fileSystem = openTestFontAsFileSystem(path)
+                fileSystem.removetree(u"glyphs.test")
+                with fileSystem.open(u"layercontents.plist", "rb") as f:
+                    contents = load(f)
+                del contents[-1]
+                with fileSystem.open(u"layercontents.plist", "wb") as f:
+                    dump(contents, f)
+                closeTestFontAsFileSystem(fileSystem, path)
+                with UFOReader(path) as reader:
+                    self.assertEqual(font.layers.testForExternalChanges(reader)["deleted"],
+                                     ["test"])
             tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_change_layer_order(self):
@@ -201,18 +201,18 @@ class LayerTest(unittest.TestCase):
             with fileSystem.open(u"layercontents.plist", "wb") as f:
                 dump(contents, f)
             closeTestFontAsFileSystem(fileSystem, path)
-            font = Font(path)
-            fileSystem = openTestFontAsFileSystem(path)
-            with fileSystem.open(u"layercontents.plist", "rb") as f:
-                contents = load(f)
-            contents.reverse()
-            with fileSystem.open(u"layercontents.plist", "wb") as f:
-                dump(contents, f)
-            closeTestFontAsFileSystem(fileSystem, path)
-            reader = UFOReader(path)
-            self.assertEqual(font.layers.testForExternalChanges(reader),
-                             {"deleted": [], "added": [], "modified": {},
-                              "defaultLayer": False, "order": True})
+            with Font(path) as font:
+                fileSystem = openTestFontAsFileSystem(path)
+                with fileSystem.open(u"layercontents.plist", "rb") as f:
+                    contents = load(f)
+                contents.reverse()
+                with fileSystem.open(u"layercontents.plist", "wb") as f:
+                    dump(contents, f)
+                closeTestFontAsFileSystem(fileSystem, path)
+                with UFOReader(path) as reader:
+                    self.assertEqual(font.layers.testForExternalChanges(reader),
+                                     {"deleted": [], "added": [], "modified": {},
+                                      "defaultLayer": False, "order": True})
             tearDownTestFontCopy(font.path)
 
     def test_testForExternalChanges_change_default_layer(self):
@@ -226,16 +226,16 @@ class LayerTest(unittest.TestCase):
             with fileSystem.open(u"layercontents.plist", "wb") as f:
                 dump(contents, f)
             closeTestFontAsFileSystem(fileSystem, path)
-            font = Font(path)
-            fileSystem = openTestFontAsFileSystem(path)
-            contents = [("foo", "glyphs.test"), ("test", "glyphs")]
-            with fileSystem.open(u"layercontents.plist", "wb") as f:
-                dump(contents, f)
-            closeTestFontAsFileSystem(fileSystem, path)
-            reader = UFOReader(path)
-            self.assertEqual(font.layers.testForExternalChanges(reader),
-                             {"deleted": [], "added": [], "modified": {},
-                              "defaultLayer": True, "order": False})
+            with Font(path) as font:
+                fileSystem = openTestFontAsFileSystem(path)
+                contents = [("foo", "glyphs.test"), ("test", "glyphs")]
+                with fileSystem.open(u"layercontents.plist", "wb") as f:
+                    dump(contents, f)
+                closeTestFontAsFileSystem(fileSystem, path)
+                with UFOReader(path) as reader:
+                    self.assertEqual(font.layers.testForExternalChanges(reader),
+                                     {"deleted": [], "added": [], "modified": {},
+                                      "defaultLayer": True, "order": False})
             tearDownTestFontCopy(font.path)
 
     def test_reloadLayers_layerinfo(self):

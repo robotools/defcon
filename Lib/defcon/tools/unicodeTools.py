@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-from fontTools.misc.py23 import unichr
 from fontTools import unicodedata
 
 _openClosePairText = """
@@ -350,7 +349,7 @@ Cn""".splitlines()
 def decompositionBase(value):
     letterCategories = ("Ll", "Lu", "Lt", "Lo")
     try:
-        c = unichr(value)
+        c = chr(value)
     # see not in category function
     except ValueError:
         return -1
@@ -360,7 +359,7 @@ def decompositionBase(value):
     if " " not in decomposition:
         return -1
     parts = decomposition.split(" ")
-    unichrs = [unichr(int(i, 16)) for i in parts if i]
+    unichrs = [chr(int(i, 16)) for i in parts if i]
     letters = [ord(i) for i in unichrs if unicodedata.category(i) in letterCategories]
     letterCount = len(letters)
     if letterCount != 1:
@@ -382,13 +381,13 @@ def closeRelative(value):
     return _openToClose.get(value)
 
 def category(value):
-    c = unichr(value)
+    c = chr(value)
     return unicodedata.category(c)
 
 def script(value):
-    char = unichr(value)
+    char = chr(value)
     return unicodedata.script_name(unicodedata.script(char), default="Unknown")
 
 def block(value):
-    char = unichr(value)
+    char = chr(value)
     return unicodedata.block(char)

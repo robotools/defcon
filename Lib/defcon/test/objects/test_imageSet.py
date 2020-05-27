@@ -101,77 +101,74 @@ class ImageSetTest(unittest.TestCase):
         for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
-            font = Font(path)
-            del font.images["image 1.png"]
-            reader = UFOReader(path)
-            self.assertEqual(font.images.testForExternalChanges(reader),
-                             ([], [], []))
+            with Font(path) as font, UFOReader(path) as reader:
+                del font.images["image 1.png"]
+                self.assertEqual(font.images.testForExternalChanges(reader),
+                                 ([], [], []))
             tearDownTestFontCopy(font.path)
 
     def test_testExternalChanges_add_in_memory_and_scan(self):
         for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
-            font = Font(path)
-            font.images["image 3.png"] = pngSignature + b"blah"
-            reader = UFOReader(path)
-            self.assertEqual(font.images.testForExternalChanges(reader),
-                             ([], [], []))
+            with Font(path) as font, UFOReader(path) as reader:
+                font.images["image 3.png"] = pngSignature + b"blah"
+                self.assertEqual(font.images.testForExternalChanges(reader),
+                                 ([], [], []))
             tearDownTestFontCopy(font.path)
 
     def test_testExternalChanges_modify_in_memory_and_scan(self):
         for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
-            font = Font(path)
-            font.images["image 1.png"] = pngSignature + b"blah"
-            reader = UFOReader(path)
-            self.assertEqual(font.images.testForExternalChanges(reader),
-                             ([], [], []))
+            with Font(path) as font, UFOReader(path) as reader:
+                font.images["image 1.png"] = pngSignature + b"blah"
+                self.assertEqual(font.images.testForExternalChanges(reader),
+                                 ([], [], []))
             tearDownTestFontCopy(font.path)
 
     def test_testExternalChanges_remove_on_disk_and_scan(self):
         for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
-            font = Font(path)
-            fileSystem = openTestFontAsFileSystem(font.path)
-            fileSystem.remove(fs.path.join("images", "image 1.png"))
-            closeTestFontAsFileSystem(fileSystem, font.path)
-            reader = UFOReader(path)
-            self.assertEqual(font.images.testForExternalChanges(reader),
-                             ([], [], ["image 1.png"]))
+            with Font(path) as font:
+                fileSystem = openTestFontAsFileSystem(font.path)
+                fileSystem.remove(fs.path.join("images", "image 1.png"))
+                closeTestFontAsFileSystem(fileSystem, font.path)
+                with UFOReader(path) as reader:
+                    self.assertEqual(font.images.testForExternalChanges(reader),
+                                     ([], [], ["image 1.png"]))
             tearDownTestFontCopy(font.path)
 
     def test_testExternalChanges_add_on_disk_and_scan(self):
         for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
-            font = Font(path)
-            fileSystem = openTestFontAsFileSystem(font.path)
-            source = fs.path.join("images", "image 1.png")
-            dest = fs.path.join("images", "image 3.png")
-            fileSystem.copy(source, dest)
-            closeTestFontAsFileSystem(fileSystem, font.path)
-            reader = UFOReader(path)
-            self.assertEqual(font.images.testForExternalChanges(reader),
-                             ([], ["image 3.png"], []))
+            with Font(path) as font:
+                fileSystem = openTestFontAsFileSystem(font.path)
+                source = fs.path.join("images", "image 1.png")
+                dest = fs.path.join("images", "image 3.png")
+                fileSystem.copy(source, dest)
+                closeTestFontAsFileSystem(fileSystem, font.path)
+                with UFOReader(path) as reader:
+                    self.assertEqual(font.images.testForExternalChanges(reader),
+                                     ([], ["image 3.png"], []))
             tearDownTestFontCopy(font.path)
 
     def test_testExternalChanges_modify_on_disk_and_scan(self):
         for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
             path = makeTestFontCopy(path)
-            font = Font(path)
-            font.images["image 1.png"]  # image = font.images["image 1.png"]
-            fileSystem = openTestFontAsFileSystem(font.path)
-            imagePath = fs.path.join("images", "image 1.png")
-            data = fileSystem.getbytes(imagePath)
-            fileSystem.setbytes(imagePath, data + b"blah")
-            closeTestFontAsFileSystem(fileSystem, font.path)
-            reader = UFOReader(path)
-            self.assertEqual(font.images.testForExternalChanges(reader),
-                             (["image 1.png"], [], []))
+            with Font(path) as font:
+                font.images["image 1.png"]  # image = font.images["image 1.png"]
+                fileSystem = openTestFontAsFileSystem(font.path)
+                imagePath = fs.path.join("images", "image 1.png")
+                data = fileSystem.readbytes(imagePath)
+                fileSystem.writebytes(imagePath, data + b"blah")
+                closeTestFontAsFileSystem(fileSystem, font.path)
+                with UFOReader(path) as reader:
+                    self.assertEqual(font.images.testForExternalChanges(reader),
+                                     (["image 1.png"], [], []))
             tearDownTestFontCopy(font.path)
 
     def test_reloadImages(self):

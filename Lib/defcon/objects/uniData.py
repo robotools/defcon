@@ -2,7 +2,6 @@ from __future__ import absolute_import
 import weakref
 import unicodedata
 from fontTools.agl import AGL2UV
-from fontTools.misc.py23 import basestring, range
 from defcon.tools import unicodeTools
 from defcon.objects.base import BaseDictObject
 
@@ -574,7 +573,7 @@ class UnicodeData(BaseDictObject):
     def _sortRecurse(self, blocks, sortMethod, ascending, allowPseudoUnicode, function):
         if not blocks:
             return []
-        if not isinstance(list(blocks)[0], basestring):
+        if not isinstance(list(blocks)[0], str):
             sortedBlocks = []
             for block in blocks:
                 block = self._sortRecurse(block, sortMethod, ascending, allowPseudoUnicode, function)
