@@ -154,6 +154,7 @@ setup_params = dict(
     package_dir={"": "Lib"},
     packages=find_packages("Lib"),
     include_package_data=True,
+    python_requires=">=3.6",
     setup_requires=pytest_runner + sphinx + wheel + bump2version,
     tests_require=[
         'pytest>=3.0.3',
