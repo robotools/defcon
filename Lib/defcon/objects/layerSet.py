@@ -334,9 +334,22 @@ class LayerSet(BaseObject):
         font.close()
         font._reader = reader = UFOReader(font.path, validate=font.ufoLibReadValidate)
         if reader.fileStructure is UFOFileStructure.ZIP:
+            defaultLayerName = self._defaultLayerName
             for layerName in self.layerOrder:
                 layer = self[layerName]
-                layer._glyphSet = reader.getGlyphSet(layerName=layerName, validateRead=self.ufoLibReadValidate)
+                if reader.formatVersionTuple < (3, 0):
+                    # ufo2 or less has not layers
+                    # map only to the default layer to the ufo2 glyphSet
+                    # set all all other layers internal _glyphSet object to None
+                    if defaultLayerName == layerName:
+                        glyphSet = reader.getGlyphSet(validateRead=self.ufoLibReadValidate)
+                    else:
+                        glyphSet = None
+                else:
+                    # we do have layers and the must be available after a save action
+                    glyphSet = reader.getGlyphSet(layerName=layerName, validateRead=self.ufoLibReadValidate)
+
+                layer._glyphSet = glyphSet
 
     # ------------------------
     # Notification Observation
