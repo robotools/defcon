@@ -575,6 +575,20 @@ class FontTest(unittest.TestCase):
         _ = font.layers
         font.save()
 
+    def test_save_ufo3z_as_ufo2(self):
+        # https://github.com/robotools/defcon/issues/296
+        font = Font()
+        font.layers.defaultLayer.name = "a-custom-layer-name"
+        font.newLayer("a-new-layer")
+
+        with tempfile.TemporaryDirectory() as root:
+            path_ufo3 = os.path.join(root, "three.ufo")
+            font.save(path_ufo3, formatVersion=3, structure="zip")
+
+            path_ufo2 = os.path.join(root, "two.ufo")
+            font_ufo2 = Font(path_ufo3)
+            font_ufo2.save(path_ufo2, formatVersion=2)
+
     def test_testForExternalChanges(self):
         for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
             path = getTestFontPath(ufo)
