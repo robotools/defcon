@@ -584,10 +584,13 @@ class FontTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             path_ufo3 = os.path.join(root, "three.ufo")
             font.save(path_ufo3, formatVersion=3, structure="zip")
+            font.close()
 
             path_ufo2 = os.path.join(root, "two.ufo")
-            font_ufo2 = Font(path_ufo3)
-            font_ufo2.save(path_ufo2, formatVersion=2)
+
+            with Font(path_ufo3) as font_ufo2:
+                font_ufo2.save(path_ufo2, formatVersion=2)
+
 
     def test_testForExternalChanges(self):
         for ufo in (u"TestExternalEditing.ufo", u"TestExternalEditing.ufoz"):
