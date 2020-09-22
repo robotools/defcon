@@ -7,12 +7,23 @@ matrix:
   include:    
     - python: 3.6
       env: TOXENV=py36-cov
+      arch: amd64
     - python: 3.7
       env:
         - TOXENV=py37-cov
         - BUILD_DIST=true
+      arch: amd64
       # required to run python3.7 on Travis CI
       # https://github.com/travis-ci/travis-ci/issues/9815
+      dist: xenial
+    - python: 3.6
+      env: TOXENV=py36-cov
+      arch: ppc64le
+    - python: 3.7
+      env:
+        - TOXENV=py37-cov
+        - BUILD_DIST=true
+      arch: ppc64le
       dist: xenial
 install:
   - pip install --upgrade pip setuptools wheel
