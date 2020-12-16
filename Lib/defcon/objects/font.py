@@ -1097,7 +1097,6 @@ class Font(BaseObject):
         """
         if not isinstance(guideline, self._guidelineClass):
             guideline = self.instantiateGuideline(guidelineDict=guideline)
-        assert guideline not in self._guidelines
         assert guideline.font in (self, None), "This guideline belongs to another font."
         self.postNotification(notification="Font.GuidelineWillBeAdded", data=dict(object=guideline))
         if guideline.font is None:
