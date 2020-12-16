@@ -1057,7 +1057,10 @@ class Font(BaseObject):
     guidelines = property(_get_guidelines, _set_guidelines, doc="An ordered list of :class:`Guideline` objects stored in the font. Setting this will post a *Font.Changed* notification along with any notifications posted by the :py:meth:`Font.appendGuideline` and :py:meth:`Font.clearGuidelines` methods.")
 
     def instantiateGuideline(self, guidelineDict=None):
-        guideline = self._guidelineClass(guidelineDict=guidelineDict)
+        guideline = self._guidelineClass(
+            font=self,
+            guidelineDict=guidelineDict
+        )
         return guideline
 
     def beginSelfGuidelineNotificationObservation(self, guideline):
@@ -1094,8 +1097,9 @@ class Font(BaseObject):
         """
         if not isinstance(guideline, self._guidelineClass):
             guideline = self.instantiateGuideline(guidelineDict=guideline)
+        assert guideline not in self._guidelines
         assert guideline.font in (self, None), "This guideline belongs to another font."
-        self.postNotification(notification="Font.GuidelineWillBeAdded")
+        self.postNotification(notification="Font.GuidelineWillBeAdded", data=dict(object=guideline))
         if guideline.font is None:
             assert guideline.glyph is None, "This guideline belongs to a glyph."
         if guideline.font is None:
