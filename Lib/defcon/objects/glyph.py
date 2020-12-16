@@ -833,7 +833,9 @@ class Glyph(BaseObject):
     anchors = property(_get_anchors, _set_anchors, doc="An ordered list of :class:`Anchor` objects stored in the glyph.")
 
     def instantiateAnchor(self, anchorDict=None):
-        anchor = self._anchorClass(anchorDict=anchorDict)
+        anchor = self._anchorClass(
+            glyph=self,
+            anchorDict=anchorDict)
         return anchor
 
     def beginSelfAnchorNotificationObservation(self, anchor):
@@ -868,19 +870,20 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
-        try:
-            assert anchor.glyph is None
-        except AttributeError:
-            pass
-        self.postNotification(notification="Glyph.AnchorWillBeAdded")
         if not isinstance(anchor, self._anchorClass):
             anchor = self.instantiateAnchor(anchorDict=anchor)
-        if anchor.identifier is not None:
-            identifiers = self._identifiers
-            assert anchor.identifier not in identifiers
-            identifiers.add(anchor.identifier)
-        anchor.glyph = self
-        anchor.beginSelfNotificationObservation()
+
+        assert anchor not in self._anchors
+        assert anchor.glyph in (self, None), "This anchor belongs to another glyph."
+
+        self.postNotification(notification="Glyph.AnchorWillBeAdded", data=dict(object=anchor))
+        if anchor.glyph is None:
+            if anchor.identifier is not None:
+                identifiers = self._identifiers
+                assert anchor.identifier not in identifiers
+                identifiers.add(anchor.identifier)
+            anchor.glyph = self
+            anchor.beginSelfNotificationObservation()
         self.beginSelfAnchorNotificationObservation(anchor)
         self._anchors.insert(index, anchor)
         self.postNotification(notification="Glyph.AnchorsChanged")
@@ -939,7 +942,10 @@ class Glyph(BaseObject):
     guidelines = property(_get_guidelines, _set_guidelines, doc="An ordered list of :class:`Guideline` objects stored in the glyph. Setting this will post a *Glyph.Changed* notification along with any notifications posted by the :py:meth:`Glyph.appendGuideline` and :py:meth:`Glyph.clearGuidelines` methods.")
 
     def instantiateGuideline(self, guidelineDict=None):
-        guideline = self._guidelineClass(guidelineDict=guidelineDict)
+        guideline = self._guidelineClass(
+            glyph=self,
+            guidelineDict=guidelineDict
+        )
         return guideline
 
     def beginSelfGuidelineNotificationObservation(self, guideline):
@@ -975,12 +981,14 @@ class Glyph(BaseObject):
         This will post a *Glyph.Changed* notification.
         """
         assert id(guideline) not in [id(guide) for guide in self.guidelines]
-        self.postNotification(notification="Glyph.GuidelineWillBeAdded")
         if not isinstance(guideline, self._guidelineClass):
             guideline = self.instantiateGuideline(guidelineDict=guideline)
+
+        assert guideline not in self._guidelines
         assert guideline.glyph in (self, None), "This guideline belongs to another glyph."
         if guideline.glyph is None:
             assert guideline.font is None, "This guideline belongs to a font."
+        self.postNotification(notification="Glyph.GuidelineWillBeAdded", data=dict(object=guideline))
         if guideline.glyph is None:
             if guideline.identifier is not None:
                 identifiers = self._identifiers
