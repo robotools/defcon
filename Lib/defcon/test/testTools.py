@@ -74,8 +74,12 @@ def closeTestFontAsFileSystem(fileSystem, testFontPath=None):
 
 class NotificationTestObserver(object):
 
-    def __init__(self):
+    def __init__(self, name=None):
+        self.name = name
         self.stack = []
+
+    def __repr__(self):
+        return "<_TestObservable {name} {id}".format(name=self.name, id=id(self))
 
     def notificationCallback(self, notification):
         print(notification.name, notification.object.name)

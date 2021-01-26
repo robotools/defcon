@@ -9,6 +9,9 @@ class _TestObservable(object):
         self.center = center
         self.name = name
 
+    def __repr__(self):
+        return "<_TestObservable {name} {id}".format(name=self.name, id=id(self))
+
     def postNotification(self, name):
         self.center.postNotification(name, self)
 
@@ -392,6 +395,103 @@ class NotificationCenterTest(unittest.TestCase):
         center.enableNotifications(observer=observer1)
         self.assertFalse(center.areNotificationsDisabled(observer=observer1))
 
+    def test_addObserver_identifier(self):
+        center = NotificationCenter()
+        observable = _TestObservable(center, "Observable")
+        observer = NotificationTestObserver()
+        center.addObserver(observer, "notificationCallback", "A", observable, identifier="identifier1")
+        center.addObserver(observer, "notificationCallback", "B", observable, identifier="identifier2")
+        expected = [
+            dict(observer=observer, observable=observable, notification="A", identifier="identifier1"),
+            dict(observer=observer, observable=observable, notification="B", identifier="identifier2")
+        ]
+        self.assertEqual(center.findObservations(), expected)
+
+    def test_addObserver_identifierDuplicate(self):
+        center = NotificationCenter()
+        observable = _TestObservable(center, "Observable")
+        observer = NotificationTestObserver()
+        center.addObserver(observer, "notificationCallback", "A", observable, identifier="identifier1")
+        center.addObserver(observer, "notificationCallback", "B", observable, identifier="identifier2")
+        expected = [
+            dict(observer=observer, observable=observable, notification="A", identifier="identifier1"),
+            dict(observer=observer, observable=observable, notification="B", identifier="identifier2")
+        ]
+        self.assertEqual(center.findObservations(), expected)
+
+    def _buildFindObservationsObjects(self):
+        center = NotificationCenter()
+        observable1 = _TestObservable(center, "Observable1")
+        observable2 = _TestObservable(center, "Observable2")
+        observer1 = NotificationTestObserver(name="Observer1")
+        observer2 = NotificationTestObserver(name="Observer2")
+        center.addObserver(observer1, "notificationCallback", "A", observable1, identifier="identifier1-1-A")
+        center.addObserver(observer1, "notificationCallback", "B", observable1, identifier="identifier1-1-B")
+        center.addObserver(observer1, "notificationCallback", "A", observable2, identifier="identifier1-2-A")
+        center.addObserver(observer1, "notificationCallback", "B", observable2, identifier="identifier1-2-B")
+        center.addObserver(observer2, "notificationCallback", "A", observable1, identifier="identifier2-1-A")
+        center.addObserver(observer2, "notificationCallback", "B", observable1, identifier="identifier2-1-B")
+        center.addObserver(observer2, "notificationCallback", "A", observable2, identifier="identifier2-2-A")
+        center.addObserver(observer2, "notificationCallback", "B", observable2, identifier="identifier2-2-B")
+        return center, observer1, observer2, observable1, observable2
+
+    def test_findObservations_observer(self):
+        center, observer1, observer2, observable1, observable2 = self._buildFindObservationsObjects()
+        expected = [
+            dict(observer=observer1, notification="A", observable=observable1, identifier="identifier1-1-A"),
+            dict(observer=observer1, notification="B", observable=observable1, identifier="identifier1-1-B"),
+            dict(observer=observer1, notification="A", observable=observable2, identifier="identifier1-2-A"),
+            dict(observer=observer1, notification="B", observable=observable2, identifier="identifier1-2-B")
+        ]
+        result = center.findObservations(observer=observer1)
+        self.assertEqual(result, expected)
+
+    def test_findObservations_observable(self):
+        center, observer1, observer2, observable1, observable2 = self._buildFindObservationsObjects()
+        expected = [
+            dict(observer=observer1, notification="A", observable=observable1, identifier="identifier1-1-A"),
+            dict(observer=observer2, notification="A", observable=observable1, identifier="identifier2-1-A"),
+            dict(observer=observer1, notification="B", observable=observable1, identifier="identifier1-1-B"),
+            dict(observer=observer2, notification="B", observable=observable1, identifier="identifier2-1-B")
+        ]
+        result = center.findObservations(observable=observable1)
+        self.assertEqual(result, expected)
+
+    def test_findObservations_notification(self):
+        center, observer1, observer2, observable1, observable2 = self._buildFindObservationsObjects()
+        expected = [
+            dict(observer=observer1, notification="A", observable=observable1, identifier="identifier1-1-A"),
+            dict(observer=observer2, notification="A", observable=observable1, identifier="identifier2-1-A"),
+            dict(observer=observer1, notification="A", observable=observable2, identifier="identifier1-2-A"),
+            dict(observer=observer2, notification="A", observable=observable2, identifier="identifier2-2-A")
+        ]
+        result = center.findObservations(notification="A")
+        self.assertEqual(result, expected)
+
+    def test_findObservations_identifier(self):
+        center, observer1, observer2, observable1, observable2 = self._buildFindObservationsObjects()
+        expected = [
+            dict(observer=observer1, notification="A", observable=observable1, identifier="identifier1-1-A")
+        ]
+        result = center.findObservations(identifier="identifier1-1-A")
+        self.assertEqual(result, expected)
+
+    def test_findObservations_identifierPattern(self):
+        center, observer1, observer2, observable1, observable2 = self._buildFindObservationsObjects()
+        expected = [
+            dict(observer=observer1, notification="A", observable=observable1, identifier="identifier1-1-A"),
+            dict(observer=observer1, notification="A", observable=observable2, identifier="identifier1-2-A")
+        ]
+        result = center.findObservations(identifier="identifier1-*-A")
+        self.assertEqual(result, expected)
+
+    def test_findObservations_all(self):
+        center, observer1, observer2, observable1, observable2 = self._buildFindObservationsObjects()
+        expected = [
+            dict(observer=observer1, notification="A", observable=observable1, identifier="identifier1-1-A")
+        ]
+        result = center.findObservations(observer=observer1, notification="A", observable=observable1, identifier="identifier1-1-A")
+        self.assertEqual(result, expected)
 
 if __name__ == "__main__":
     unittest.main()
