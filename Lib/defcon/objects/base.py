@@ -75,7 +75,7 @@ class BaseObject(object):
 
     dispatcher = property(_get_dispatcher, doc="The :class:`defcon.tools.notifications.NotificationCenter` assigned to the parent of this object.")
 
-    def addObserver(self, observer, methodName, notification):
+    def addObserver(self, observer, methodName, notification, identifier=None):
         """
         Add an observer to this object's notification dispatcher.
 
@@ -84,6 +84,10 @@ class BaseObject(object):
           when the notification is posted.
         * **notification** The notification that the observer should
           be notified of.
+        * **identifier** None or a string identifying the observation.
+          There is no requirement that the string be unique. A reverse
+          domain naming scheme is recommended, but there are no
+          requirements for the structure of the string.
 
         The method that will be called as a result of the action
         must accept a single *notification* argument. This will
@@ -93,12 +97,12 @@ class BaseObject(object):
 
             dispatcher = anObject.dispatcher
             dispatcher.addObserver(observer=observer, methodName=methodName,
-                notification=notification, observable=anObject)
+                notification=notification, observable=anObject, identifier=identifier)
         """
         dispatcher = self.dispatcher
         if dispatcher is not None:
             self.dispatcher.addObserver(observer=observer, methodName=methodName,
-                notification=notification, observable=self)
+                notification=notification, observable=self, identifier=identifier)
 
     def removeObserver(self, observer, notification):
         """
@@ -217,6 +221,39 @@ class BaseObject(object):
         dispatcher = self.dispatcher
         if dispatcher is not None:
             dispatcher.postNotification(notification=notification, observable=self, data=data)
+
+    def findObservations(self, observer=None, notification=None, observable=None, identifier=None):
+        """
+        Find observations of this object matching the given
+        arguments based on the values that were passed during
+        addObserver. A value of None for any of these indicates
+        that all should be considered to match the value.
+        In the case of identifier, strings will be matched
+        using fnmatch.fnmatchcase. The returned value will be
+        a list of dictionaries with this format:
+
+            [
+                {
+                    observer=<...>
+                    observable=<...>
+                    methodName="..."
+                    notification="..."
+                    identifier="..."
+                }
+            ]
+
+        This is a convenience method that does the same thing as::
+
+            dispatcher = anObject.dispatcher
+            dispatcher.findObservations(
+                observer=observer, observable=anObject,
+                notification=notification, identifier=identifier
+            )
+        """
+        dispatcher = self.dispatcher
+        if dispatcher is not None:
+            return self.dispatcher.findObservations(observer=observer, notification=notification,
+                observable=self, identifier=identifier)
 
     # ------------------------
     # Notification Observation

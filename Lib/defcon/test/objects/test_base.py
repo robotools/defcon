@@ -38,12 +38,18 @@ class BaseObjectTest(unittest.TestCase):
         obj._dispatcher = weakref.ref(notificationCenter)
         obj.addObserver(observer=notificationObject,
                         methodName="notificationCallback",
-                        notification="BaseObject.Changed")
+                        notification="BaseObject.Changed",
+                        identifier="test")
         self.assertTrue(
             obj.dispatcher.hasObserver(observer=notificationObject,
                                        notification="BaseObject.Changed",
                                        observable=obj)
         )
+        expected = [
+            dict(observer=notificationObject, notification="BaseObject.Changed", observable=obj, identifier="test")
+        ]
+        result = obj.findObservations()
+        self.assertEqual(expected, result)
 
     def test_removeObserver(self):
         obj = BaseObject()
