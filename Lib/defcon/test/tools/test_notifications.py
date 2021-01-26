@@ -419,6 +419,17 @@ class NotificationCenterTest(unittest.TestCase):
         ]
         self.assertEqual(center.findObservations(), expected)
 
+    def test_addObsremoveerver_identifier(self):
+        center = NotificationCenter()
+        observable = _TestObservable(center, "Observable")
+        observer = NotificationTestObserver()
+        center.addObserver(observer, "notificationCallback", "A", observable, identifier="identifier1")
+        center.addObserver(observer, "notificationCallback", "B", observable, identifier="identifier2")
+        center.removeObserver(observer, "A", observable)
+        center.removeObserver(observer, "B", observable)
+        expected = []
+        self.assertEqual(center.findObservations(), expected)
+
     def _buildFindObservationsObjects(self):
         center = NotificationCenter()
         observable1 = _TestObservable(center, "Observable1")
