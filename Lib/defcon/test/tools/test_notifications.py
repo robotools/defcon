@@ -124,7 +124,6 @@ class NotificationCenterTest(unittest.TestCase):
         center.postNotification("B", observable2)
         self.assertEqual(observer.stack[-1], ("A", "Observable2"))
 
-
     def test_postNotification_no_notification_observable(self):
         # no notification, observable
         center = NotificationCenter()
@@ -138,7 +137,6 @@ class NotificationCenterTest(unittest.TestCase):
         center.postNotification("B", observable1)
         self.assertEqual(observer.stack[-1], ("B", "Observable1"))
         center.postNotification("B", observable2)
-
 
     def test_postNotification_no_notification_no_observable(self):
         # no notification, no observable
@@ -165,7 +163,6 @@ class NotificationCenterTest(unittest.TestCase):
         center.addObserver(observer, "notificationCallback", "A", observable1)
         center.addObserver(observer, "notificationCallback", "B", observable1)
         center.addObserver(observer, "notificationCallback", "C", observable2)
-
         center.holdNotifications()
         observable1.postNotification("A")
         self.assertEqual(len(observer.stack), 0)
@@ -190,7 +187,6 @@ class NotificationCenterTest(unittest.TestCase):
         center.addObserver(observer, "notificationCallback", "A", observable1)
         center.addObserver(observer, "notificationCallback", "B", observable1)
         center.addObserver(observer, "notificationCallback", "C", observable2)
-
         center.holdNotifications(observable=observable1)
         observable1.postNotification("A")
         observable1.postNotification("A")
@@ -212,7 +208,6 @@ class NotificationCenterTest(unittest.TestCase):
         center.addObserver(observer, "notificationCallback", "A", observable1)
         center.addObserver(observer, "notificationCallback", "B", observable1)
         center.addObserver(observer, "notificationCallback", "C", observable2)
-
         center.holdNotifications(notification="A")
         observable1.postNotification("A")
         observable1.postNotification("A")
