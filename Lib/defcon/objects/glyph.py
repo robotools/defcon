@@ -545,11 +545,13 @@ class Glyph(BaseObject):
         self.dirty = dirty
         self.enableNotifications()
 
-    def instantiateContour(self):
+    def instantiateContour(self, contourDict=None):
         contour = self._contourClass(
             glyph=self,
             pointClass=self.pointClass
         )
+        if contourDict is not None:
+            contour.setDataFromSerialization(contourDict)
         return contour
 
     def beginSelfContourNotificationObservation(self, contour):
@@ -684,10 +686,12 @@ class Glyph(BaseObject):
 
     components = property(_get_components, doc="An ordered list of :class:`Component` objects stored in the glyph.")
 
-    def instantiateComponent(self):
+    def instantiateComponent(self, componentDict=None):
         component = self._componentClass(
             glyph=self
         )
+        if componentDict is not None:
+            component.setDataFromSerialization(componentDict)
         return component
 
     def beginSelfComponentNotificationObservation(self, component):
@@ -1100,9 +1104,10 @@ class Glyph(BaseObject):
 
     imageClass = property(_get_imageClass, doc="The class used for the image.")
 
-    def instantiateImage(self):
+    def instantiateImage(self, imageDict=None):
         image = self._imageClass(
-            glyph=self
+            glyph=self,
+            imageDict=imageDict
         )
         return image
 
@@ -1371,8 +1376,7 @@ class Glyph(BaseObject):
             return wrapper
 
         def single_init(factory, data):
-            item = factory()
-            item.setDataFromSerialization(data)
+            item = factory(data)
             return item
 
         def list_init(factory, data):
