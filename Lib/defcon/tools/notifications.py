@@ -76,8 +76,8 @@ class NotificationCenter(object):
           requirements for the structure of the string.
 
         If None is given for both *notification* and *observable*
-        **all** notifications posted will be sent to the method
-        given method of the observer.
+        **all** notifications posted will be sent to the given method
+        of the observer.
 
         The method that will be called as a result of the action
         must accept a single *notification* argument. This will
@@ -119,24 +119,38 @@ class NotificationCenter(object):
 
         * **observer** A registered object.
         * **notification** The notification that the observer was registered
-          to be notified of.
+          to be notified of. If this is None, all notifications for
+          the *observable* will be removed for *observer*.
         * **observable** The object being observed.
         """
         if observable is not None:
             observable = weakref.ref(observable)
-        key = (notification, observable)
-        if key not in self._registry:
-            return
         observer = weakref.ref(observer)
-        if observer in self._registry[key]:
-            del self._registry[key][observer]
-        if not len(self._registry[key]):
-            del self._registry[key]
-        if key in self._identifierRegistry:
-            if observer in self._identifierRegistry[key]:
-                del self._identifierRegistry[key][observer]
-            if not len(self._identifierRegistry[key]):
-                del self._identifierRegistry[key]
+        if notification is None:
+            keys = []
+            for (otherNotification, otherObservable), observerDict in self._registry.items():
+                if otherObservable != observable:
+                    continue
+                for otherObserver in observerDict.keys():
+                    if otherObserver != observer:
+                        continue
+                    keys.append((otherNotification, observable))
+        else:
+            keys = [
+                (notification, observable)
+            ]
+        for key in keys:
+            if key not in self._registry:
+                continue
+            if observer in self._registry[key]:
+                del self._registry[key][observer]
+            if not len(self._registry[key]):
+                del self._registry[key]
+            if key in self._identifierRegistry:
+                if observer in self._identifierRegistry[key]:
+                    del self._identifierRegistry[key][observer]
+                if not len(self._identifierRegistry[key]):
+                    del self._identifierRegistry[key]
 
     def postNotification(self, notification, observable, data=None):
         assert notification is not None
