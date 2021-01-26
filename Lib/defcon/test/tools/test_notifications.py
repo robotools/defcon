@@ -436,14 +436,14 @@ class NotificationCenterTest(unittest.TestCase):
         observable = _TestObservable(center, "Observable")
         observer = NotificationTestObserver()
         center.addObserver(observer, "notificationCallback", "A", observable, identifier="identifier1")
-        center.addObserver(observer, "notificationCallback", "B", observable, identifier="identifier2")
+        center.addObserver(observer, "notificationCallback", "B", observable, identifier="identifier1")
         expected = [
             dict(observer=observer, observable=observable, notification="A", identifier="identifier1"),
-            dict(observer=observer, observable=observable, notification="B", identifier="identifier2")
+            dict(observer=observer, observable=observable, notification="B", identifier="identifier1")
         ]
         self.assertEqual(center.findObservations(), expected)
 
-    def test_addObsremoveerver_identifier(self):
+    def test_removeObserver_identifier(self):
         center = NotificationCenter()
         observable = _TestObservable(center, "Observable")
         observer = NotificationTestObserver()
