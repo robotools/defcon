@@ -1,12 +1,13 @@
-from __future__ import print_function
-from collections import OrderedDict
 """
 A flexible and relatively robust implementation
 of the Observer Pattern.
 """
 
+from __future__ import print_function
+from collections import OrderedDict
 import sys
 import weakref
+from fnmatch import fnmatchcase
 
 """
 
@@ -20,7 +21,7 @@ registry : {
         (notification, observable) : OrderedDict(
             observer : method name
         )
-    }
+}
 
 holds : {
     (notification, observable, observer) : {
@@ -35,6 +36,12 @@ disabled : {
     (notification, observable, observer) : count
 }
 
+identifierRegistry : {
+        (notification, observable) : OrderedDict(
+            observer : identifier
+        )
+}
+
 """
 
 
@@ -44,12 +51,13 @@ class NotificationCenter(object):
         self._registry = {}
         self._holds = {}
         self._disabled = {}
+        self._identifierRegistry = {}
 
     # -----
     # Basic
     # -----
 
-    def addObserver(self, observer, methodName, notification=None, observable=None):
+    def addObserver(self, observer, methodName, notification=None, observable=None, identifier=None):
         """
         Add an observer to this notification dispatcher.
 
@@ -62,10 +70,14 @@ class NotificationCenter(object):
         * **observable** The object to observe. If this is None,
           all notifications with the name provided as *notification*
           will be posted to the *observer*.
+        * **identifier** None or a string identifying the observation.
+          There is no requirement that the string be unique. A reverse
+          domain naming scheme is recommended, but there are no
+          requirements for the structure of the string.
 
         If None is given for both *notification* and *observable*
-        **all** notifications posted will be sent to the method
-        given method of the observer.
+        **all** notifications posted will be sent to the given method
+        of the observer.
 
         The method that will be called as a result of the action
         must accept a single *notification* argument. This will
@@ -82,6 +94,10 @@ class NotificationCenter(object):
                 notification=key[0], observable=key[1](), observer=observer(), method1=self._registry[key][observer], method2=methodName
             )
         self._registry[key][observer] = methodName
+        if identifier is not None:
+            if key not in self._identifierRegistry:
+                self._identifierRegistry[key] = OrderedDict()
+            self._identifierRegistry[key][observer] = identifier
 
     def hasObserver(self, observer, notification, observable):
         """
@@ -103,19 +119,38 @@ class NotificationCenter(object):
 
         * **observer** A registered object.
         * **notification** The notification that the observer was registered
-          to be notified of.
+          to be notified of. If this is None, all notifications for
+          the *observable* will be removed for *observer*.
         * **observable** The object being observed.
         """
         if observable is not None:
             observable = weakref.ref(observable)
-        key = (notification, observable)
-        if key not in self._registry:
-            return
         observer = weakref.ref(observer)
-        if observer in self._registry[key]:
-            del self._registry[key][observer]
-        if not len(self._registry[key]):
-            del self._registry[key]
+        if notification is None:
+            keys = []
+            for (otherNotification, otherObservable), observerDict in self._registry.items():
+                if otherObservable != observable:
+                    continue
+                for otherObserver in observerDict.keys():
+                    if otherObserver != observer:
+                        continue
+                    keys.append((otherNotification, observable))
+        else:
+            keys = [
+                (notification, observable)
+            ]
+        for key in keys:
+            if key not in self._registry:
+                continue
+            if observer in self._registry[key]:
+                del self._registry[key][observer]
+            if not len(self._registry[key]):
+                del self._registry[key]
+            if key in self._identifierRegistry:
+                if observer in self._identifierRegistry[key]:
+                    del self._identifierRegistry[key][observer]
+                if not len(self._identifierRegistry[key]):
+                    del self._identifierRegistry[key]
 
     def postNotification(self, notification, observable, data=None):
         assert notification is not None
@@ -365,6 +400,58 @@ class NotificationCenter(object):
             observer = weakref.ref(observer)
         key = (notification, observable, observer)
         return key in self._disabled
+
+    # ----
+    # Find
+    # ----
+
+    def findObservations(self, observer=None, notification=None, observable=None, identifier=None):
+        """
+        Find observations matching the given arguments based
+        on the values that were passed during addObserver.
+        A value of None for any of these indicates that all
+        should be considered to match the value. In the case
+        of identifier, strings will be matched using fnmatch.fnmatchcase.
+        The returned value will be a list of dictionaries with
+        this format:
+
+            [
+                {
+                    observer=<...>
+                    observable=<...>
+                    methodName="..."
+                    notification="..."
+                    identifier="..."
+                }
+            ]
+        """
+        if observer is not None:
+            observer = weakref.ref(observer)
+        if observable is not None:
+            observable = weakref.ref(observable)
+        found = []
+        for (otherNotification, otherObservable), observerDict in self._identifierRegistry.items():
+            if notification is not None:
+                if otherNotification != notification:
+                    continue
+            if observable is not None:
+                if otherObservable != observable:
+                    continue
+            for otherObserver, otherIdentifier in observerDict.items():
+                if identifier is not None:
+                    if not fnmatchcase(otherIdentifier, identifier):
+                        continue
+                if observer is not None:
+                    if otherObserver != observer:
+                        continue
+                observation = dict(
+                    observer=otherObserver(),
+                    observable=otherObservable(),
+                    notification=otherNotification,
+                    identifier=otherIdentifier
+                )
+                found.append(observation)
+        return found
 
 
 class Notification(object):
