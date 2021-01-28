@@ -430,17 +430,20 @@ class NotificationCenter(object):
         if observable is not None:
             observable = weakref.ref(observable)
         found = []
-        for (otherNotification, otherObservable), observerDict in self._identifierRegistry.items():
+        for (otherNotification, otherObservable), observerDict in self._registry.items():
             if notification is not None:
                 if otherNotification != notification:
                     continue
             if observable is not None:
                 if otherObservable != observable:
                     continue
-            for otherObserver, otherIdentifier in observerDict.items():
-                if identifier is not None:
-                    if not fnmatchcase(otherIdentifier, identifier):
-                        continue
+            for otherObserver, methodName in observerDict.items():
+                otherIdentifier = None
+                if (otherNotification, otherObservable) in self._identifierRegistry:
+                    otherIdentifier = self._identifierRegistry[otherNotification, otherObservable].get(otherObserver)
+                    if otherIdentifier is not None and identifier is not None:
+                        if not fnmatchcase(otherIdentifier, identifier):
+                            continue
                 if observer is not None:
                     if otherObserver != observer:
                         continue

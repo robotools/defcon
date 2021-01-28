@@ -429,7 +429,8 @@ class NotificationCenterTest(unittest.TestCase):
             dict(observer=observer, observable=observable, notification="A", identifier="identifier1"),
             dict(observer=observer, observable=observable, notification="B", identifier="identifier2")
         ]
-        self.assertEqual(center.findObservations(), expected)
+        result = center.findObservations()
+        self.assertEqual(result, expected)
 
     def test_addObserver_identifierDuplicate(self):
         center = NotificationCenter()
@@ -526,6 +527,19 @@ class NotificationCenterTest(unittest.TestCase):
             dict(observer=observer1, notification="A", observable=observable1, identifier="identifier1-1-A")
         ]
         result = center.findObservations(observer=observer1, notification="A", observable=observable1, identifier="identifier1-1-A")
+        self.assertEqual(result, expected)
+
+    def test_findObservations_noIdentifier(self):
+        center = NotificationCenter()
+        observable = _TestObservable(center, "Observable")
+        observer = NotificationTestObserver()
+        center.addObserver(observer, "notificationCallback", "A", observable, identifier="identifier1")
+        center.addObserver(observer, "notificationCallback", "B", observable)
+        expected = [
+            dict(observer=observer, observable=observable, notification="A", identifier="identifier1"),
+            dict(observer=observer, observable=observable, notification="B", identifier=None)
+        ]
+        result = center.findObservations()
         self.assertEqual(result, expected)
 
 if __name__ == "__main__":
