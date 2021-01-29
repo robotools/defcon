@@ -1,4 +1,4 @@
-|Travis Build Status| |Appveyor Build Status| |Coverage Status|
+|CI Build Status| |Coverage Status|
 |Python Versions| |PyPI Version|
 
 Defcon
@@ -60,12 +60,10 @@ Property List file format in XML, copyright
 names from PostScript and the OpenType FDK, copyright
 `Adobe <http://www.adobe.com>`_.
 
-.. |Travis Build Status| image:: https://travis-ci.org/robotools/defcon.svg?branch=master
-   :target: https://travis-ci.org/robotools/defcon
-.. |Appveyor Build Status| image:: https://ci.appveyor.com/api/projects/status/github/robotools/defcon?branch=master&svg=true
-   :target: https://ci.appveyor.com/project/robotools/defcon/branch/master
+.. |CI Build Status| image:: https://github.com/robotools/defcon/workflows/Tests/badge.svg
+   :target: https://github.com/robotools/defcon/actions?query=workflow%3ATests
 .. |Coverage Status| image:: https://coveralls.io/repos/github/robotools/defcon/badge.svg?branch=master
    :target: https://coveralls.io/github/robotools/defcon?branch=master
-.. |Python Versions| image:: https://img.shields.io/badge/python-3.6%2C%203.7-blue.svg
+.. |Python Versions| image:: https://img.shields.io/badge/python-3.6%2C%203.7%2C%203.8%2C%203.9-blue.svg
 .. |PyPI Version| image:: https://img.shields.io/pypi/v/defcon.svg
    :target: https://pypi.org/project/defcon/
