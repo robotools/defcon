@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from setuptools import setup, find_packages
+import sys
 
 needs_sphinx = {'build_sphinx', 'dist'}.intersection(sys.argv)
 sphinx = ['sphinx'] if needs_sphinx else []
