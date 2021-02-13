@@ -5,7 +5,7 @@ of font development tools. This works on UFO files.
 from __future__ import absolute_import
 
 try:
-    from _version import __version__
+    from ._version import __version__
 except ImportError:
     try:
         from setuptools_scm import get_version
