@@ -441,9 +441,13 @@ class NotificationCenter(object):
                 otherIdentifier = None
                 if (otherNotification, otherObservable) in self._identifierRegistry:
                     otherIdentifier = self._identifierRegistry[otherNotification, otherObservable].get(otherObserver)
-                    if otherIdentifier is not None and identifier is not None:
-                        if not fnmatchcase(otherIdentifier, identifier):
-                            continue
+                if otherIdentifier is None and identifier is not None:
+                    continue
+                if otherIdentifier is not None and identifier is None:
+                    continue
+                if otherIdentifier is not None and identifier is not None:
+                    if not fnmatchcase(otherIdentifier, identifier):
+                        continue
                 if observer is not None:
                     if otherObserver != observer:
                         continue
