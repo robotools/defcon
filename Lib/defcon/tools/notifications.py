@@ -443,8 +443,6 @@ class NotificationCenter(object):
                     otherIdentifier = self._identifierRegistry[otherNotification, otherObservable].get(otherObserver)
                 if otherIdentifier is None and identifier is not None:
                     continue
-                if otherIdentifier is not None and identifier is None:
-                    continue
                 if otherIdentifier is not None and identifier is not None:
                     if not fnmatchcase(otherIdentifier, identifier):
                         continue
