@@ -344,7 +344,7 @@ class FontTest(unittest.TestCase):
         guideline = font.instantiateGuideline()
         self.assertIsInstance(guideline, Guideline)
         guideline = font.instantiateGuideline(guidelineDict={"x": 100})
-        self.assertEqual(guideline, {'x': 100})
+        self.assertEqual(dict(guideline), {'x': 100})
 
     def test_beginSelfGuidelineNotificationObservation(self):
         font = Font(getTestFontPath())
@@ -370,25 +370,25 @@ class FontTest(unittest.TestCase):
         font = Font(getTestFontPath())
         guideline1 = Guideline(guidelineDict={"x": 100})
         font.appendGuideline(guideline1)
-        self.assertEqual(font.guidelines, [{'x': 100}])
+        self.assertEqual([dict(guideline) for guideline in font.guidelines], [{'x': 100}])
         guideline2 = Guideline(guidelineDict={"y": 200})
         font.appendGuideline(guideline2)
-        self.assertEqual(font.guidelines, [{'x': 100}, {'y': 200}])
+        self.assertEqual([dict(guideline) for guideline in font.guidelines], [{'x': 100}, {'y': 200}])
         guideline3 = Guideline(guidelineDict={"y": 100})
         font.appendGuideline(guideline3)
-        self.assertEqual(font.guidelines, [{'x': 100}, {'y': 200}, {'y': 100}])
+        self.assertEqual([dict(guideline) for guideline in font.guidelines], [{'x': 100}, {'y': 200}, {'y': 100}])
 
     def test_insertGuideline(self):
         font = Font(getTestFontPath())
         guideline1 = Guideline(guidelineDict={"x": 100})
         font.insertGuideline(0, guideline1)
-        self.assertEqual(font.guidelines, [{'x': 100}])
+        self.assertEqual([dict(guideline) for guideline in font.guidelines], [{'x': 100}])
         guideline2 = Guideline(guidelineDict={"y": 200})
         font.insertGuideline(0, guideline2)
-        self.assertEqual(font.guidelines, [{'y': 200}, {'x': 100}])
+        self.assertEqual([dict(guideline) for guideline in font.guidelines], [{'y': 200}, {'x': 100}])
         guideline3 = Guideline(guidelineDict={"y": 100})
         font.insertGuideline(2, guideline3)
-        self.assertEqual(font.guidelines, [{'y': 200}, {'x': 100}, {'y': 100}])
+        self.assertEqual([dict(guideline) for guideline in font.guidelines], [{'y': 200}, {'x': 100}, {'y': 100}])
 
     def test_removeGuideline(self):
         font = Font(getTestFontPath())
