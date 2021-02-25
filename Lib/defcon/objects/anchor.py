@@ -42,6 +42,9 @@ class Anchor(BaseDictObject):
             self.color = anchorDict.get("color")
             self.identifier = anchorDict.get("identifier")
 
+    def __eq__(self, other):
+        return id(self) == id(other)
+
     # parents
 
     def getParent(self):
