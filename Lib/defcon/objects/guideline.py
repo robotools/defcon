@@ -47,6 +47,9 @@ class Guideline(BaseDictObject):
             self.color = guidelineDict.get("color")
             self.identifier = guidelineDict.get("identifier")
 
+    def __hash__(self):
+        return id(self)
+
     def __eq__(self, other):
         return id(self) == id(other)
 
