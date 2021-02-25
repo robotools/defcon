@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 import weakref
-from defcon.objects.base import BaseDictObject
+from defcon.objects.base import BaseDictCompareObject
 from defcon.objects.color import Color
 from defcon.tools.identifiers import makeRandomIdentifier
 
 
-class Guideline(BaseDictObject):
+class Guideline(BaseDictCompareObject):
 
     """
     This object represents a guideline.
@@ -46,12 +46,6 @@ class Guideline(BaseDictObject):
             self.name = guidelineDict.get("name")
             self.color = guidelineDict.get("color")
             self.identifier = guidelineDict.get("identifier")
-
-    def __hash__(self):
-        return id(self)
-
-    def __eq__(self, other):
-        return id(self) == id(other)
 
     # --------------
     # Parent Objects

@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 import weakref
-from defcon.objects.base import BaseDictObject
+from defcon.objects.base import BaseDictCompareObject
 from defcon.objects.color import Color
 from defcon.tools.identifiers import makeRandomIdentifier
 
 
-class Anchor(BaseDictObject):
+class Anchor(BaseDictCompareObject):
 
     """
     This object represents an anchor point.
@@ -41,12 +41,6 @@ class Anchor(BaseDictObject):
             self.name = anchorDict.get("name")
             self.color = anchorDict.get("color")
             self.identifier = anchorDict.get("identifier")
-
-    def __hash__(self):
-        return id(self)
-
-    def __eq__(self, other):
-        return id(self) == id(other)
 
     # parents
 
