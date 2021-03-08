@@ -268,6 +268,18 @@ class ContourTest(unittest.TestCase):
              [(543, 0, None), (700, 157, None), (700, 350, "curve")],
              [(700.0, 736.0, None), (0.0, 736.0, None), (0, 350, "curve")]])
 
+    def test_offCurveOnlySegement(self):
+        font = Font()
+        glyph = font.newGlyph("offCurveOnly")
+        pen = glyph.getPen()
+        pen.qCurveTo((100, 100), (100, 200), (200, 200), (200, 100), None)
+        pen.endPath()
+        contour = glyph[0]
+        self.assertEqual(
+            [simpleSegment(segment) for segment in contour.segments],
+            [[(100, 100, None), (100, 200, None), (200, 200, None), (200, 100, None)]]
+        )
+
     def test_clockwise_get(self):
         font = Font(getTestFontPath())
         contour = font["A"][0]
@@ -377,7 +389,7 @@ class ContourTest(unittest.TestCase):
         contour.identifier = None
         self.assertEqual(contour.identifier, "contour 2")
         self.assertEqual(sorted(glyph.identifiers), ["contour 1", "contour 2"])
-    
+
     def test_correct_direction_same_area(self):
         glyph = Glyph()
         pen = glyph.getPointPen()

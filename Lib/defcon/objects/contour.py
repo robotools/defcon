@@ -301,9 +301,10 @@ class Contour(BaseObject):
         if len(segments[-1]) == 0:
             del segments[-1]
         if lastWasOffCurve:
-            lastSegment = segments[-1]
-            segment = segments.pop(0)
-            lastSegment.extend(segment)
+            if len(segments) != 1:
+                lastSegment = segments[-1]
+                segment = segments.pop(0)
+                lastSegment.extend(segment)
         elif segments[0][-1].segmentType != "move":
             segment = segments.pop(0)
             segments.append(segment)
