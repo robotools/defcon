@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 import weakref
-from defcon.objects.base import BaseDictObject
+from defcon.objects.base import BaseDictCompareObject
 from defcon.objects.color import Color
 from defcon.tools.identifiers import makeRandomIdentifier
 
 
-class Guideline(BaseDictObject):
+class Guideline(BaseDictCompareObject):
 
     """
     This object represents a guideline.

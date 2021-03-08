@@ -877,6 +877,7 @@ class Glyph(BaseObject):
         if not isinstance(anchor, self._anchorClass):
             anchor = self.instantiateAnchor(anchorDict=anchor)
 
+        assert anchor not in self._anchors
         assert anchor.glyph in (self, None), "This anchor belongs to another glyph."
 
         self.postNotification(notification="Glyph.AnchorWillBeAdded", data=dict(object=anchor))
@@ -983,7 +984,8 @@ class Glyph(BaseObject):
 
         This will post a *Glyph.Changed* notification.
         """
-        assert id(guideline) not in [id(guide) for guide in self.guidelines]
+
+        assert guideline not in self.guidelines
         if not isinstance(guideline, self._guidelineClass):
             guideline = self.instantiateGuideline(guidelineDict=guideline)
 

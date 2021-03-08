@@ -578,6 +578,17 @@ class BaseDictObject(dict, BaseObject):
         self.update(data)
 
 
+class BaseDictCompareObject(BaseDictObject):
+
+    # hash and eq must happen on the same class
+    # otherwise the object becomes unhashable
+    def __hash__(self):
+        return id(self)
+
+    def __eq__(self, other):
+        return id(self) == id(other)
+
+
 def setUfoLibReadValidate(value):
     """
     Set the default read validation.

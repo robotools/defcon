@@ -481,6 +481,13 @@ class GlyphTest(unittest.TestCase):
         glyph.clearAnchors()
         self.assertEqual(len(glyph.anchors), 0)
 
+    def test_duplicatedAnchors(self):
+        font = Font(getTestFontPath())
+        glyph = font["A"]
+        anchor = glyph.anchors[0]
+        with self.assertRaises(AssertionError):
+            glyph.appendAnchor(anchor)
+
     def test_appendGuideline(self):
         glyph = Glyph()
         glyph.dirty = False
@@ -503,6 +510,13 @@ class GlyphTest(unittest.TestCase):
         glyph = font["A"]
         glyph.clearGuidelines()
         self.assertEqual(len(glyph.guidelines), 0)
+
+    def test_duplicatedGuideline(self):
+        font = Font(getTestFontPath())
+        glyph = font.layers["Layer 1"]["A"]
+        guideline = glyph.guidelines[0]
+        with self.assertRaises(AssertionError):
+            glyph.appendGuideline(guideline)
 
     def test_len(self):
         font = Font(getTestFontPath())

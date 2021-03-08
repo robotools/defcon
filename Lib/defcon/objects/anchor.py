@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 import weakref
-from defcon.objects.base import BaseDictObject
+from defcon.objects.base import BaseDictCompareObject
 from defcon.objects.color import Color
 from defcon.tools.identifiers import makeRandomIdentifier
 
 
-class Anchor(BaseDictObject):
+class Anchor(BaseDictCompareObject):
 
     """
     This object represents an anchor point.
