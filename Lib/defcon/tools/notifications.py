@@ -145,11 +145,14 @@ class NotificationCenter(object):
                 del self._registry[key][observer]
             if not len(self._registry[key]):
                 del self._registry[key]
-            self._observerKeyBacktrack[observer][observable].remove(key)
-            if not self._observerKeyBacktrack[observer][observable]:
-                del self._observerKeyBacktrack[observer][observable]
-            if not self._observerKeyBacktrack[observer]:
-                del self._observerKeyBacktrack[observer]
+            if observer in self._observerKeyBacktrack:
+                if observable in self._observerKeyBacktrack[observer]:
+                    if key in self._observerKeyBacktrack[observer][observable]:
+                        self._observerKeyBacktrack[observer][observable].remove(key)
+                    if not self._observerKeyBacktrack[observer][observable]:
+                        del self._observerKeyBacktrack[observer][observable]
+                if not self._observerKeyBacktrack[observer]:
+                    del self._observerKeyBacktrack[observer]
             if key in self._identifierRegistry:
                 if observer in self._identifierRegistry[key]:
                     del self._identifierRegistry[key][observer]
