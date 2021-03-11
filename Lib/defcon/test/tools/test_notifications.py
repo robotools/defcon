@@ -71,7 +71,7 @@ class NotificationCenterTest(unittest.TestCase):
         center.removeObserver(observer, "A", observable)
         self.assertFalse(center.hasObserver(observer, "A", observable))
 
-    def test_removeObserver_noNotification(self):
+    def test_removeObserver_allNotifications(self):
         center = NotificationCenter()
         observable1 = _TestObservable(center, "Observable1")
         observable2 = _TestObservable(center, "Observable2")
@@ -85,7 +85,7 @@ class NotificationCenterTest(unittest.TestCase):
         center.addObserver(observer1, "notificationCallback", "B", observable2)
         center.addObserver(observer2, "notificationCallback", "A", observable2)
         center.addObserver(observer2, "notificationCallback", "B", observable2)
-        center.removeObserver(observer1, None, observable1)
+        center.removeObserver(observer1, "all", observable1)
         self.assertFalse(center.hasObserver(observer1, "A", observable1))
         self.assertFalse(center.hasObserver(observer1, "B", observable1))
         self.assertTrue(center.hasObserver(observer1, "A", observable2))
@@ -108,8 +108,10 @@ class NotificationCenterTest(unittest.TestCase):
         observable = _TestObservable(center, "Observable")
         observer = NotificationTestObserver()
         center.addObserver(observer, "notificationCallback", None, observable)
+        center.addObserver(observer, "notificationCallback", "A", observable)
         center.removeObserver(observer, None, observable)
         self.assertFalse(center.hasObserver(observer, None, observable))
+        self.assertTrue(center.hasObserver(observer, "A", observable))
 
     def test_removeObserver_no_notification_no_observable(self):
         center = NotificationCenter()
