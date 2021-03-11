@@ -49,6 +49,7 @@ class NotificationCenter(object):
 
     def __init__(self):
         self._registry = {}
+        self._observerKeyBacktrack = {}
         self._holds = {}
         self._disabled = {}
         self._identifierRegistry = {}
@@ -94,6 +95,11 @@ class NotificationCenter(object):
                 notification=key[0], observable=key[1](), observer=observer(), method1=self._registry[key][observer], method2=methodName
             )
         self._registry[key][observer] = methodName
+        if observer not in self._observerKeyBacktrack:
+            self._observerKeyBacktrack[observer] = {}
+        if observable not in self._observerKeyBacktrack[observer]:
+            self._observerKeyBacktrack[observer][observable] = set()
+        self._observerKeyBacktrack[observer][observable].add(key)
         if identifier is not None:
             if key not in self._identifierRegistry:
                 self._identifierRegistry[key] = OrderedDict()
@@ -119,22 +125,15 @@ class NotificationCenter(object):
 
         * **observer** A registered object.
         * **notification** The notification that the observer was registered
-          to be notified of. If this is None, all notifications for
+          to be notified of. If this is `"all"`, all notifications for
           the *observable* will be removed for *observer*.
         * **observable** The object being observed.
         """
         if observable is not None:
             observable = weakref.ref(observable)
         observer = weakref.ref(observer)
-        if notification is None:
-            keys = []
-            for (otherNotification, otherObservable), observerDict in self._registry.items():
-                if otherObservable != observable:
-                    continue
-                for otherObserver in observerDict.keys():
-                    if otherObserver != observer:
-                        continue
-                    keys.append((otherNotification, observable))
+        if notification == "all":
+            keys = set(self._observerKeyBacktrack[observer][observable])
         else:
             keys = [
                 (notification, observable)
@@ -146,6 +145,11 @@ class NotificationCenter(object):
                 del self._registry[key][observer]
             if not len(self._registry[key]):
                 del self._registry[key]
+            self._observerKeyBacktrack[observer][observable].remove(key)
+            if not self._observerKeyBacktrack[observer][observable]:
+                del self._observerKeyBacktrack[observer][observable]
+            if not self._observerKeyBacktrack[observer]:
+                del self._observerKeyBacktrack[observer]
             if key in self._identifierRegistry:
                 if observer in self._identifierRegistry[key]:
                     del self._identifierRegistry[key][observer]
