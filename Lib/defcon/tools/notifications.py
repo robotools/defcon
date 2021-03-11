@@ -84,6 +84,7 @@ class NotificationCenter(object):
         must accept a single *notification* argument. This will
         be a :class:`Notification` object.
         """
+        assert notification != "all", "'all' is a reserved name and can not be used as a notification."
         if observable is not None:
             observable = weakref.ref(observable)
         observer = weakref.ref(observer)
