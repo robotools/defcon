@@ -53,7 +53,8 @@ class Glyph(BaseObject):
     - Glyph.NoteChanged
     - Glyph.LibChanged
     - Glyph.ImageChanged
-    - Glyph.ImageWillBeDeleted
+    - Glyph.ImageWillBeCleared
+    - Glyph.ImageCleared
     - Glyph.ContourWillBeAdded
     - Glyph.ContourWillBeDeleted
     - Glyph.ContoursChanged
@@ -1120,12 +1121,12 @@ class Glyph(BaseObject):
         return self._image
 
     def _set_image(self, image):
-        # removing image
+        # clearing the image
         if image is None:
             if self._image is not None:
-                self.postNotification(notification="Glyph.ImageWillBeDeleted")
-                self.endSelfImageNotificationObservation()
-                self._image = None
+                self.postNotification(notification="Glyph.ImageWillBeCleared")
+                self._image.clear()
+                self.postNotification(notification="Glyph.ImageCleared")
                 self.postNotification(notification="Glyph.ImageChanged")
                 self.dirty = True
         # adding image

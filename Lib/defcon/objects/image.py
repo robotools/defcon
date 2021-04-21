@@ -3,7 +3,10 @@ import weakref
 from defcon.objects.base import BaseDictObject
 from defcon.objects.color import Color
 
-_defaultTransformation = {
+
+_defaultImage = {
+    "fileName": None,
+    "color"   : None,
     "xScale"  : 1,
     "xyScale" : 0,
     "yxScale" : 0,
@@ -11,7 +14,6 @@ _defaultTransformation = {
     "xOffset" : 0,
     "yOffset" : 0
 }
-
 
 class Image(BaseDictObject):
 
@@ -42,13 +44,11 @@ class Image(BaseDictObject):
         self.glyph = glyph
         super(Image, self).__init__()
         self.beginSelfNotificationObservation()
-        self["fileName"] = None
-        self["color"] = None
-        if imageDict is not None:
-            self.update(imageDict)
-        for key, value in _defaultTransformation.items():
+        for key, value in _defaultImage.items():
             if self.get(key) is None:
                 self[key] = value
+        if imageDict is not None:
+            self.update(imageDict)
         self._dirty = False
 
     def __len__(self):
@@ -61,6 +61,12 @@ class Image(BaseDictObject):
             return 0
         return super(Image, self).__len__()
 
+    def clear(self):
+        # clear all the image data and fill it with default values
+        super(BaseDictObject, self).clear()
+        for key, value in _defaultImage.items():
+            if self.get(key) is None:
+                self[key] = value
     # --------------
     # Parent Objects
     # --------------
