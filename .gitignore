@@ -21,3 +21,6 @@ htmlcov
 
 # OS X Finder
 .DS_Store
+
+# auto-generated version file
+Lib/defcon/_version.py
