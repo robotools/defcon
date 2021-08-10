@@ -642,6 +642,17 @@ class GlyphTest(unittest.TestCase):
         pointPen.addComponent("baseGlyph", [1, 0, 0, 1, 0, 0])
         self.assertEqual(componentGlyph.area, 10000)
 
+    def test_tempLib(self):
+        font = Font()
+
+        glyph = font.newGlyph("A")
+        glyph.tempLib["foo"] = "bar"
+        self.assertEqual(glyph.tempLib, {"foo": "bar"})
+
+        otherGlyph = font.newGlyph("A.other")
+        otherGlyph.setDataFromSerialization(glyph.getDataForSerialization())
+        self.assertEqual(otherGlyph.tempLib, {"foo": "bar"})
+
 
 if __name__ == "__main__":
     unittest.main()

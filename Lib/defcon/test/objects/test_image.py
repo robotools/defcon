@@ -39,6 +39,13 @@ class ImageTest(unittest.TestCase):
             (i.fileName, i.transformation, i.color),
             ('foo.png', ('1', '2', '3', '4', '5', '6'), '0,0,0,0'))
 
+    def test_clear(self):
+        i = Image()
+        i.fileName = "foo"
+        self.assertEqual(i.fileName, "foo")
+        i.clear()
+        self.assertIsNone(i.fileName)
+
     def test_read(self):
         font = Font(getTestFontPath())
         glyph = font.layers["Layer 1"]["A"]
