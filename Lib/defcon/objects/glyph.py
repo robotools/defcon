@@ -130,6 +130,7 @@ class Glyph(BaseObject):
         self._anchors = []
         self._guidelines = []
         self._lib = None
+        self._tempLib = None
 
         if contourClass is None:
             contourClass = Contour
@@ -1098,6 +1099,20 @@ class Glyph(BaseObject):
         self._lib.removeObserver(observer=self, notification="Lib.Changed")
         self._lib.endSelfNotificationObservation()
 
+    # temp lib
+
+    def _get_tempLib(self):
+        if self._tempLib is None:
+            self._tempLib = self.instantiateLib()
+        return self._tempLib
+
+    def _set_tempLib(self, value):
+        if value is not None:
+            self.tempLib.clear()
+            self.tempLib.update(value)
+
+    tempLib = property(_get_tempLib, _set_tempLib, doc="The glyph's :class:`tempLib` object.")
+
     # -----
     # Image
     # -----
@@ -1354,7 +1369,8 @@ class Glyph(BaseObject):
             ('anchors', serialized_list_get),
             ('guidelines', serialized_list_get),
             ('image', serialized_get),
-            ('lib', serialized_get)
+            ('lib', serialized_get),
+            ('tempLib', serialized_get),
         ]
 
         if self._shallowLoadedContours is not None:
@@ -1396,10 +1412,11 @@ class Glyph(BaseObject):
         setters = (
             ('name', set_attr),
             ('unicodes', set_attr),
-            ('width',  set_attr),
-            ('height',  set_attr),
-            ('note',  set_attr),
-            ('lib',  set_attr),
+            ('width', set_attr),
+            ('height', set_attr),
+            ('note', set_attr),
+            ('lib', set_attr),
+            ('tempLib', set_attr),
             ('_shallowLoadedContours', set_attr),
             ('_contours', init_set(list_init, self.instantiateContour, set_each(self.appendContour, True))),
             ('components', init_set(list_init, self.instantiateComponent, set_each(self.appendComponent, True))),

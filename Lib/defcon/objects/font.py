@@ -121,6 +121,7 @@ class Font(BaseObject):
         self._groups = None
         self._features = None
         self._lib = None
+        self._tempLib = None
         self._kerningGroupConversionRenameMaps = None
 
         self._layers = self.instantiateLayerSet()
@@ -599,6 +600,20 @@ class Font(BaseObject):
         return self._lib
 
     lib = property(_get_lib, doc="The font's :class:`Lib` object.")
+
+    # temp lib
+
+    def _get_tempLib(self):
+        if self._tempLib is None:
+            self._tempLib = self.instantiateLib()
+        return self._tempLib
+
+    def _set_tempLib(self, value):
+        if value is not None:
+            self.tempLib.clear()
+            self.tempLib.update(value)
+
+    tempLib = property(_get_tempLib, _set_tempLib, doc="The font's :class:`tempLib` object.")
 
     # images
 
@@ -1743,6 +1758,7 @@ class Font(BaseObject):
             ('kerning', serialized_get),
             ('layers',  serialized_get),
             ('lib', serialized_get),
+            ('tempLib', serialized_get),
             ('guidelines', serialized_list_get)
         )
 
@@ -1795,6 +1811,7 @@ class Font(BaseObject):
             ('kerning', single_update),
             ('layers', init_set_layers),
             ('lib', single_update),
+            ('tempLib', single_update),
             ('guidelines', set_guidelines)
         )
 

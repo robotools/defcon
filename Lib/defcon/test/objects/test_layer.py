@@ -374,6 +374,16 @@ class LayerTest(unittest.TestCase):
         self.assertTrue(guideline.getParent(), insertedGlyph)
         self.assertTrue(guideline.dispatcher, newFont.dispatcher)
 
+    def test_tempLib(self):
+        font = Font()
+        layer = font.layers["public.default"]
+        layer.tempLib["foo"] = "bar"
+        self.assertEqual(layer.tempLib, {"foo": "bar"})
+
+        otherLayer = font.newLayer("other.layer")
+        otherLayer.setDataFromSerialization(layer.getDataForSerialization())
+        self.assertEqual(otherLayer.tempLib, {"foo": "bar"})
+
 
 class LayerWithTestFontCopyTest(unittest.TestCase):
 

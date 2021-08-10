@@ -788,5 +788,16 @@ class FontTest(unittest.TestCase):
         glyph.unicodes = [65]
         self.assertEqual(font.unicodeData[65], ["test", "A"])
 
+    def test_tempLib(self):
+        font = Font()
+
+        font.tempLib["foo"] = "bar"
+        self.assertEqual(font.tempLib, {"foo": "bar"})
+
+        otherFont = Font()
+        otherFont.setDataFromSerialization(font.getDataForSerialization())
+        self.assertEqual(otherFont.tempLib, {"foo": "bar"})
+
+
 if __name__ == "__main__":
     unittest.main()

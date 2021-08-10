@@ -28,6 +28,7 @@ class Layer(BaseObject):
     - Layer.GlyphUnicodesChanged
     - Layer.NameChanged
     - Layer.ColorChanged
+    - Layer.LibChanged
 
     The Layer object has some dict like behavior. For example, to get a glyph::
 
@@ -83,6 +84,7 @@ class Layer(BaseObject):
 
         self._color = None
         self._lib = None
+        self._tempLib = None
         self._unicodeData = None
 
         self._directory = None
@@ -473,6 +475,20 @@ class Layer(BaseObject):
 
     lib = property(_get_lib, _set_lib, doc="The layer's :class:`Lib` object.")
 
+    # temp lib
+
+    def _get_tempLib(self):
+        if self._tempLib is None:
+            self._tempLib = self.instantiateLib()
+        return self._tempLib
+
+    def _set_tempLib(self, value):
+        if value is not None:
+            self.tempLib.clear()
+            self.tempLib.update(value)
+
+    tempLib = property(_get_tempLib, _set_tempLib, doc="The layer's :class:`tempLib` object.")
+
     # unicode data
 
     def instantiateUnicodeData(self):
@@ -716,6 +732,7 @@ class Layer(BaseObject):
 
         getters = (
             ('lib', serialized_get),
+            ('tempLib', serialized_get),
             ('color', simple_get),
             ('glyphs', lambda _: {name: self[name].getDataForSerialization() for name in self.keys()})
         )
@@ -740,6 +757,7 @@ class Layer(BaseObject):
 
         setters = (
             ('lib', set_attr),
+            ('tempLib', set_attr),
             ('color', set_attr),
             ('glyphs', set_glyphs)
         )
