@@ -381,13 +381,15 @@ class LayerSet(BaseObject):
     # External Edit Support
     # ---------------------
 
-    def _stampLayerInfoDataState(self, layer):
-        if layer._glyphSet is None:
+    def _stampLayerInfoDataState(self, layer, glyphSet=None):
+        if glyphSet is None:
+            glyphSet = layer._glyphSet
+        if glyphSet is None:
             return
         # there isn't a mod time function
         # so load the data and pack it.
         i = _StaticLayerInfoMaker()
-        layer._glyphSet.readLayerInfo(i)
+        glyphSet.readLayerInfo(i)
         layer._dataOnDisk = i.pack()
 
     def testForExternalChanges(self, reader):
