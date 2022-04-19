@@ -176,7 +176,11 @@ class Guideline(BaseDictCompareObject):
         old = self.get("name")
         if value == old:
             return
-        self["name"] = value
+        if value is None:
+            if "name" in self:
+                del self["name"]
+        else:
+            self["name"] = value
         self.postNotification("Guideline.NameChanged", data=dict(oldValue=old, newValue=value))
 
     name = property(_get_name, _set_name, doc="The name. Setting this will post *Guideline.NameChanged* and *Guideline.Changed* notifications.")
