@@ -14,3 +14,11 @@ class FuzzyNumber(object):
             else:
                 return self.value < other.value
         return self.value < other
+
+    def __eq__(self, other):
+        if hasattr(other, "value"):
+            return abs(self.value - other.value) < self.threshold
+        return self.value == other
+
+    def __hash__(self):
+        return hash((self.value, self.threshold))

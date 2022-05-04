@@ -21,7 +21,7 @@ class TestFuzzyNumber(unittest.TestCase):
 
     def test_comparison(self):
         fuzzyNumber1 = FuzzyNumber(value=0, threshold=1)
-        # self.assertEqual(fuzzyNumber1, 0)
+        self.assertEqual(fuzzyNumber1, 0)
         self.assertTrue(fuzzyNumber1 < 1)
         self.assertFalse(fuzzyNumber1 < -0.000001)
         self.assertFalse(fuzzyNumber1 < 0)
@@ -53,3 +53,18 @@ class TestFuzzyNumber(unittest.TestCase):
             "[[-1.000000 1.000000], [0.000000 1.000000]]"
         )
         self.assertTrue(fuzzyNumber1 > fuzzyNumber2)
+
+        # equal
+        self.assertEqual(fuzzyNumber1, fuzzyNumber1)
+        self.assertNotEqual(fuzzyNumber1, fuzzyNumber2)
+
+        # complex sorting
+        fuzzyNumber2 = FuzzyNumber(value=0.999999, threshold=1)
+        self.assertEqual(
+            repr(sorted([(fuzzyNumber1, 20), (fuzzyNumber2, 10)])),
+            "[([0.999999 1.000000], 10), ([0.000000 1.000000], 20)]"
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
