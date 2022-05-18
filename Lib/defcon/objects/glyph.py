@@ -445,6 +445,28 @@ class Glyph(BaseObject):
 
     markColor = property(_get_markColor, _set_markColor, doc="The glyph's mark color. When setting, the value can be a UFO color string, a sequence of (r, g, b, a) or a :class:`Color` object. Setting this posts *Glyph.MarkColorChanged* and *Glyph.Changed* notifications.")
 
+    # truetype overlap
+
+    def _get_trueTypeOverlap(self):
+        value = self.lib.get("public.truetype.overlap")
+        return value
+
+    def _set_trueTypeOverlap(self, value):
+        # don't write if there is no change
+        oldValue = self.lib.get("public.truetype.overlap")
+        if value == oldValue:
+            return
+        # remove
+        if value is None:
+            if "public.truetype.overlap" in self.lib:
+                del self.lib["public.truetype.overlap"]
+        # store
+        else:
+            self.lib["public.truetype.overlap"] = value
+        self.postNotification(notification="Glyph.TrueTypeOverlapChanged", data=dict(oldValue=oldValue, newValue=value))
+
+    trueTypeOverlap = property(_get_trueTypeOverlap, _set_trueTypeOverlap, doc="Boolean used for indicating the glyph contours or components may have overlap. Setting this posts *Glyph.TrueTypeOverlapChanged* and *Glyph.Changed* notifications.")
+
     # vertical origin
 
     def _get_verticalOrigin(self):
