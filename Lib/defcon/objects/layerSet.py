@@ -425,8 +425,9 @@ class LayerSet(BaseObject):
             modifiedGlyphs, addedGlyphs, deletedGlyphs = layer.testForExternalChanges(reader)
             newLayerInfo = _StaticLayerInfoMaker()
             layerInfoChanged = False
-            if layer._glyphSet is not None:
-                layer._glyphSet.readLayerInfo(newLayerInfo)
+            glyphSet = reader.getGlyphSet(layerName=layer.name, validateRead=layer.ufoLibReadValidate)
+            if glyphSet is not None:
+                glyphSet.readLayerInfo(newLayerInfo)
                 layerInfoChanged = layer._dataOnDisk != newLayerInfo.pack()
             if modifiedGlyphs or addedGlyphs or deletedGlyphs or layerInfoChanged:
                 modifiedLayers[layerName] = dict(
