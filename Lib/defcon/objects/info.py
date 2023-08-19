@@ -89,6 +89,7 @@ class Info(BaseObject):
         for name in self._properties:
             _, default = self._properties[name]
             setattr(self, '_'+name, copy(default))
+        self._dirty = False
 
     def getParent(self):
         return self.font

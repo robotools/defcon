@@ -59,6 +59,7 @@ class ImageSet(BaseObject):
             self._font = weakref.ref(font)
         super(ImageSet, self).__init__()
         self.beginSelfNotificationObservation()
+        self._dirty = False
         self._data = {}
         self._scheduledForDeletion = {}
 

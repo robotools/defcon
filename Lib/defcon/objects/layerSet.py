@@ -66,6 +66,7 @@ class LayerSet(BaseObject):
         self._defaultLayer = None
 
         self._layerActionHistory = []
+        self._dirty = False
 
     def __del__(self):
         super(LayerSet, self).__del__()

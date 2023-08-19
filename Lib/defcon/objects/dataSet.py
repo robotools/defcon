@@ -27,6 +27,7 @@ class DataSet(BaseObject):
         self.beginSelfNotificationObservation()
         self._data = {}
         self._scheduledForDeletion = {}
+        self._dirty = False
 
     # --------------
     # Parent Objects
