@@ -16,7 +16,6 @@ Reference Data
 """"""""""""""
 
 * :attr:`~defcon.Component.bounds`
-* :attr:`~defcon.Component.bounds`
 
 Properties
 """"""""""
