@@ -1,5 +1,5 @@
 include License.txt
-include requirements.txt dev-requirements.txt
+include requirements.txt requirements-dev.txt
 include tox.ini
 include .coveragerc
 recursive-include documentation *
