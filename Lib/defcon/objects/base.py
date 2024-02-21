@@ -50,6 +50,11 @@ class BaseObject(object):
 
     def __del__(self):
         self.endSelfNotificationObservation()
+        self._dispatcher = None
+        self._dataOnDisk = None
+        self._dataOnDiskTimeStamp = None
+        self._undoManager = None
+        self._representations = None
 
     # ------
     # Parent
