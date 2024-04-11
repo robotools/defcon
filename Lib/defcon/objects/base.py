@@ -334,7 +334,7 @@ class BaseObject(object):
     # ---------------
 
     def getRepresentation(self, name, **kwargs):
-        """
+        r"""
         Get a representation. **name** must be a registered
         representation name. **\*\*kwargs** will be passed
         to the appropriate representation factory.
@@ -357,7 +357,7 @@ class BaseObject(object):
             return representations[subKey]
 
     def destroyRepresentation(self, name, **kwargs):
-        """
+        r"""
         Destroy the stored representation for **name**
         and **\*\*kwargs**. If no **kwargs** are given,
         any representation with **name** will be destroyed
@@ -402,7 +402,7 @@ class BaseObject(object):
         return representations
 
     def hasCachedRepresentation(self, name, **kwargs):
-        """
+        r"""
         Returns a boolean indicating if a representation for
         **name** and **\*\*kwargs** is cached in the object.
         """

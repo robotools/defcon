@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 class Font(BaseObject):
 
-    """
+    r"""
     If loading from an existing UFO, **path** should be the path to the UFO.
 
     If you subclass one of the sub objects, such as :class:`Glyph`,
@@ -1647,13 +1647,13 @@ class Font(BaseObject):
                     setattr(self.info, infoAttr, value)
 
     featureRE = re.compile(
-        "^"            # start of line
-        "\s*"          #
-        "feature"      # feature
-        "\s+"          #
-        "(\w{4})"      # four alphanumeric characters
-        "\s*"          #
-        "\{"           # {
+        r"^"           # start of line
+        r"\s*"         #
+        r"feature"     # feature
+        r"\s+"         #
+        r"(\w{4})"     # four alphanumeric characters
+        r"\s*"         #
+        r"\{"          # {
         , re.MULTILINE # run in multiline to preserve line seps
     )
 

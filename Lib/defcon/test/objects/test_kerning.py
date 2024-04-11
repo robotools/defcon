@@ -38,7 +38,7 @@ class KerningTest(unittest.TestCase):
     def test___getitem__(self):
         font = Font(getTestFontPath())
         self.assertEqual(font.kerning["A", "A"], -100)
-        with self.assertRaisesRegex(KeyError, "\('NotInFont', 'NotInFont'\)"):
+        with self.assertRaisesRegex(KeyError, r"\('NotInFont', 'NotInFont'\)"):
             font.kerning["NotInFont", "NotInFont"]
 
     def test___setitem__(self):
