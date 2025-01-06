@@ -49,9 +49,11 @@ class GuidelineTest(unittest.TestCase):
         g = Guideline()
         g.color = "1,1,1,1"
         self.assertEqual(g.color, "1,1,1,1")
+        self.assertTrue("color" in g)
         self.assertTrue(g.dirty)
         g.color = None
         self.assertIsNone(g.color)
+        self.assertFalse("color" in g)
         self.assertTrue(g.dirty)
 
     def test_identifier(self):
