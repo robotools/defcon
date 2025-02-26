@@ -1060,8 +1060,6 @@ class Font(BaseObject):
     def _get_guidelines(self):
         if self._info is None:
             self.info
-        if not self._guidelines:
-            return None
         return list(self._guidelines)
 
     def _set_guidelines(self, value):
