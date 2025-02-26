@@ -198,7 +198,10 @@ class Guideline(BaseDictCompareObject):
         oldColor = self.get("color")
         if newColor == oldColor:
             return
-        self["color"] = newColor
+        if newColor is None:
+            del self["color"]
+        else:
+            self["color"] = newColor
         self.postNotification("Guideline.ColorChanged", data=dict(oldValue=oldColor, newValue=newColor))
 
     color = property(_get_color, _set_color, doc="The guideline's :class:`Color` object. When setting, the value can be a UFO color string, a sequence of (r, g, b, a) or a :class:`Color` object. Setting this posts *Guideline.ColorChanged* and *Guideline.Changed* notifications.")
