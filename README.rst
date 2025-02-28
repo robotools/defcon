@@ -64,6 +64,6 @@ names from PostScript and the OpenType FDK, copyright
    :target: https://github.com/robotools/defcon/actions?query=workflow%3ATests
 .. |Coverage Status| image:: https://codecov.io/gh/robotools/defcon/graph/badge.svg?token=cJyogdvWZ2 
  :target: https://codecov.io/gh/robotools/defcon
-.. |Python Versions| image:: https://img.shields.io/badge/python-3.8%2C%203.9%2C%203.10%2C%203.11-blue.svg
+.. |Python Versions| image:: https://img.shields.io/badge/python-3.8%2C%203.11%2C%203.12%2C%203.13-blue.svg
 .. |PyPI Version| image:: https://img.shields.io/pypi/v/defcon.svg
    :target: https://pypi.org/project/defcon/
