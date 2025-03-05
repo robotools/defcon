@@ -181,6 +181,7 @@ class NotificationCenter(object):
             for key in holdDisabledPossibilities:
                 if key in self._disabled:
                     return
+            for key in holdDisabledPossibilities:
                 if key in self._holds:
                     n = (notification, observableRef, data)
                     if n not in self._holds[key]["notifications"]:
