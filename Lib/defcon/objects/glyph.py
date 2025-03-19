@@ -1256,6 +1256,7 @@ class Glyph(BaseObject):
         self.clearAnchors()
         self.clearGuidelines()
         self.clearImage()
+        self.lib.clear()
         self.releaseHeldNotifications()
 
     # ----
