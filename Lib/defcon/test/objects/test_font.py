@@ -126,9 +126,9 @@ class FontTest(unittest.TestCase):
             with Font(path) as font:
                 font["A"]  # glyph = font["A"]
                 fileSystem = openTestFontAsFileSystem(path)
-                glyphPath = fs.path.join("glyphs", "A_.glif")
+                glyphPath = "glyphs/A_.glif"
                 fileSystem.remove(glyphPath)
-                contentsPath = fs.path.join("glyphs", "contents.plist")
+                contentsPath = "glyphs/contents.plist"
                 with fileSystem.open(contentsPath, "rb") as f:
                     plist = load(f)
                 del plist["A"]
@@ -150,9 +150,9 @@ class FontTest(unittest.TestCase):
                 glyph = font["A"]
                 glyph.dirty = True
                 fileSystem = openTestFontAsFileSystem(path)
-                glyphPath = fs.path.join("glyphs", "A_.glif")
+                glyphPath = "glyphs/A_.glif"
                 fileSystem.remove(glyphPath)
-                contentsPath = fs.path.join("glyphs", "contents.plist")
+                contentsPath = "glyphs/contents.plist"
                 with fileSystem.open(contentsPath, "rb") as f:
                     plist = load(f)
                 del plist["A"]
@@ -426,8 +426,9 @@ class FontTest(unittest.TestCase):
                     font.save()
                     fileNames = sorted(
                         [
-                            fs.path.basename(m.path)
-                            for m in UFOReader(path).fs.glob("glyphs/*.glif")
+                            path
+                            for path in UFOReader(path).fs.listdir("glyphs")
+                            if path.endswith(".glif")
                         ]
                     )
                     self.assertEqual(fileNames, ["A_.glif", "B_.glif", "C_.glif"])
@@ -446,8 +447,9 @@ class FontTest(unittest.TestCase):
             try:
                 fileNames = sorted(
                     [
-                        fs.path.basename(m.path)
-                        for m in UFOReader(saveAsPath).fs.glob("glyphs/*.glif")
+                        path
+                        for path in UFOReader(saveAsPath).fs.listdir("glyphs")
+                        if path.endswith(".glif")
                     ]
                 )
                 self.assertEqual(fileNames, ["A_.glif", "B_.glif", "C_.glif"])
@@ -518,8 +520,9 @@ class FontTest(unittest.TestCase):
             self.assertEqual(font.ufoFileStructure, UFOFileStructure.ZIP)
             fileNames = sorted(
                 [
-                    fs.path.basename(m.path)
-                    for m in UFOReader(dest).fs.glob("glyphs/*.glif")
+                    path
+                    for path in UFOReader(dest).fs.listdir("glyphs")
+                    if path.endswith(".glif")
                 ]
             )
             self.assertEqual(fileNames, ["A_.glif", "B_.glif", "C_.glif"])

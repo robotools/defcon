@@ -122,8 +122,7 @@ class DataSetTest(unittest.TestCase):
                 # image = font.data["com.typesupply.defcon.test.file"]
                 font.data["com.typesupply.defcon.test.file"]
                 fileSystem = openTestFontAsFileSystem(font.path)
-                fileSystem.remove(fs.path.join("data",
-                                       "com.typesupply.defcon.test.file"))
+                fileSystem.remove("data/com.typesupply.defcon.test.file")
                 closeTestFontAsFileSystem(fileSystem, font.path)
                 with UFOReader(path) as reader:
                     self.assertEqual(font.data.testForExternalChanges(reader),
@@ -136,8 +135,8 @@ class DataSetTest(unittest.TestCase):
             path = makeTestFontCopy(path)
             with Font(path) as font:
                 fileSystem = openTestFontAsFileSystem(font.path)
-                source = fs.path.join("data", "com.typesupply.defcon.test.file")
-                dest = fs.path.join("data", "com.typesupply.defcon.test.file2")
+                source = "data/com.typesupply.defcon.test.file"
+                dest = "data/com.typesupply.defcon.test.file2"
                 fileSystem.copy(source, dest)
                 closeTestFontAsFileSystem(fileSystem, font.path)
                 with UFOReader(path) as reader:
@@ -153,8 +152,7 @@ class DataSetTest(unittest.TestCase):
                 # d = font.data["com.typesupply.defcon.test.file"]
                 font.data["com.typesupply.defcon.test.file"]
                 fileSystem = openTestFontAsFileSystem(font.path)
-                filePath = fs.path.join("data",
-                                        "com.typesupply.defcon.test.file")
+                filePath = "data/com.typesupply.defcon.test.file"
                 fileSystem.writebytes(filePath, b"blah")
                 closeTestFontAsFileSystem(fileSystem, font.path)
                 with UFOReader(path) as reader:
