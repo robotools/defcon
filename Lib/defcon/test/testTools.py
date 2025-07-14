@@ -3,10 +3,8 @@ import os
 import shutil
 from pkg_resources import resource_filename
 import zipfile
-import fs.osfs
-import fs.tempfs
-import fs.zipfs
-import fs.copy
+import fontTools.misc.filesystem as fs
+
 
 TESTDATA_DIR = resource_filename("defcon.test", 'testdata')
 

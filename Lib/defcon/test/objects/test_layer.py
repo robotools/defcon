@@ -1,9 +1,7 @@
 import unittest
 import glob
 import os
-import fs
-import fs.copy
-import fs.path
+import fontTools.misc.filesystem as fs
 from fontTools.ufoLib import UFOReader, UFOFileStructure
 from defcon import Font, Glyph, Color, Component, Anchor, Guideline
 from defcon.test.testTools import (
