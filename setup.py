@@ -32,11 +32,11 @@ setup_params = dict(
         'pytest>=3.0.3',
     ],
     install_requires=[
-        "fonttools[ufo,unicode] >= 4.10.0",
+        "fonttools[ufo,unicode] >= 4.59.0",
     ],
     extras_require={
         'pens': ["fontPens>=0.1.0"],
-        'lxml': ["fonttools[lxml] >= 4.10.0"],
+        'lxml': ["fonttools[lxml] >= 4.59.0"],
     },
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -48,7 +48,7 @@ setup_params = dict(
         'Topic :: Multimedia :: Graphics :: Editors :: Vector-Based',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    python_requires='>=3.7',
+    python_requires='>=3.9',
     zip_safe=True,
 )
 

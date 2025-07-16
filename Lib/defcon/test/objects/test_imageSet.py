@@ -1,9 +1,7 @@
 from __future__ import unicode_literals
 import unittest
 import os
-import fs
-import fs.copy
-import fs.path
+import fontTools.misc.filesystem as fs
 from fontTools.ufoLib import UFOReader
 from defcon import Font
 from defcon.objects.imageSet import fileNameValidator

@@ -3,9 +3,7 @@ import os
 import glob
 import tempfile
 import shutil
-import fs
-import fs.copy
-import fs.path
+import fontTools.misc.filesystem as fs
 from defcon import Font, Glyph, LayerSet, Guideline
 from defcon.errors import DefconError
 from defcon.tools.notifications import NotificationCenter

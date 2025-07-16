@@ -1,9 +1,7 @@
 import unittest
 import os
 import shutil
-import fs
-import fs.copy
-import fs.path
+import fontTools.misc.filesystem as fs
 from defcon import Font
 from defcon.test.testTools import (
     getTestFontPath, getTestFontCopyPath, makeTestFontCopy,
