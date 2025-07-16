@@ -1,12 +1,12 @@
 from __future__ import print_function
 import os
 import shutil
-from pkg_resources import resource_filename
+from importlib.resources import files
 import zipfile
 import fontTools.misc.filesystem as fs
 
 
-TESTDATA_DIR = resource_filename("defcon.test", 'testdata')
+TESTDATA_DIR = files("defcon.test") / "testdata"
 
 
 def getTestFontPath(fileName='TestFont.ufo'):
