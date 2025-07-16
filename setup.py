@@ -32,11 +32,11 @@ setup_params = dict(
         'pytest>=3.0.3',
     ],
     install_requires=[
-        "fonttools[ufo,unicode] >= 4.10.0",
+        "fonttools[unicode] >= 4.59.0",
     ],
     extras_require={
         'pens': ["fontPens>=0.1.0"],
-        'lxml': ["fonttools[lxml] >= 4.10.0"],
+        'lxml': ["fonttools[lxml] >= 4.59.0"],
     },
     classifiers=[
         'Development Status :: 4 - Beta',
