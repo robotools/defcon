@@ -48,7 +48,7 @@ setup_params = dict(
         'Topic :: Multimedia :: Graphics :: Editors :: Vector-Based',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    python_requires='>=3.7',
+    python_requires='>=3.9',
     zip_safe=True,
 )
 
