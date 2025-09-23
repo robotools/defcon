@@ -23,6 +23,11 @@ jobs:
   deploy:
 
     runs-on: ubuntu-latest
+    environment:
+      name: publish-to-pypi
+      url: https://pypi.org/p/defcon
+    permissions:
+      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
 
     steps:
     - uses: actions/checkout@v4.2.2
@@ -38,7 +43,4 @@ jobs:
       run: |
         python setup.py sdist bdist_wheel
     - name: Publish
-      uses: pypa/gh-action-pypi-publish@v1.12.4
-      with:
-        user: __token__
-        password: ${{ secrets.PYPI_PASSWORD }}
+      uses: pypa/gh-action-pypi-publish@v1.13.0
