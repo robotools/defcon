@@ -298,19 +298,23 @@ for line in _openClosePairText.splitlines():
 
 # ordered sets
 orderedScripts = []
+seen_scripts = set()
 for value in unicodedata.Scripts.VALUES:
     value = unicodedata.script_name(value)
     if value == "Unknown":
         continue
-    if value not in orderedScripts:
+    if value not in seen_scripts:
+        seen_scripts.add(value)
         orderedScripts.append(value)
 orderedScripts.append("Unknown")
 
 orderedBlocks = []
+seen_blocks = set()
 for value in unicodedata.Blocks.VALUES:
     if value == "No_Block":
         continue
-    if value not in orderedBlocks:
+    if value not in seen_blocks:
+        seen_blocks.add(value)
         orderedBlocks.append(value)
 
 orderedCategories = """Lu
