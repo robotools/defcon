@@ -30,7 +30,7 @@ jobs:
           - platform: windows-latest
             python-version: 3.13
     steps:
-    - uses: actions/checkout@v6.0.1
+    - uses: actions/checkout@v6.0.2
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v6.1.0
       with:
