@@ -327,7 +327,7 @@ def _imageDict(data=None, dirty=False, digest=None, onDisk=True, onDiskModTime=N
     return dict(data=data, digest=digest, dirty=dirty, onDisk=onDisk, onDiskModTime=onDiskModTime)
 
 def _makeDigest(data):
-    m = hashlib.md5()
+    m = hashlib.md5(usedforsecurity=False)
     m.update(data)
     return m.digest()
 
